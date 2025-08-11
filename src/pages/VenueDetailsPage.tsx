@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, MapPin, ArrowLeft, Share2, Heart, Clock, Users, Car, Camera, Shield, Wifi, Coffee, AirVent } from 'lucide-react';
+import { Star, MapPin, ArrowLeft, Share2, Heart, Clock, Users, Car, Camera, Shield, Wifi, Coffee, AirVent, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BrandNav from '@/components/BrandNav';
 import BookingWidget from '@/components/BookingWidget';
 import ImageCarousel from '@/components/ImageCarousel';
@@ -13,6 +15,7 @@ import ReviewCard from '@/components/ReviewCard';
 import SEO from '@/components/SEO';
 import { facilitiesApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface VenueDetails {
   id: string;
@@ -74,6 +77,7 @@ const VenueDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // State
   const [venue, setVenue] = useState<VenueDetails | null>(null);
@@ -89,6 +93,13 @@ const VenueDetailsPage = () => {
   const [hasMoreReviews, setHasMoreReviews] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  // Review form state
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSport, setReviewSport] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   // Mock data for development
   const mockVenue: VenueDetails = {
     id: id || '1',
@@ -96,7 +107,7 @@ const VenueDetailsPage = () => {
     location: 'Satellite, Jodhpur Village',
     address: '123 Sports Complex, Satellite Road, Jodhpur Village, Ahmedabad, Gujarat 380015',
     rating: 4.9,
-    reviewCount: 127,
+    reviewCount: 0, // No fake review count - only real reviews
     images: [
       '/placeholder.svg',
       '/placeholder.svg',
@@ -125,36 +136,7 @@ const VenueDetailsPage = () => {
     createdAt: '2023-01-15T10:00:00Z'
   };
 
-  const mockReviews: Review[] = [
-    {
-      id: '1',
-      userId: 'user1',
-      userName: 'Rahul Sharma',
-      userAvatar: '/placeholder.svg',
-      rating: 5,
-      comment: 'Excellent facility with top-notch badminton courts. The lighting is perfect and the court surface is professional grade. Highly recommended!',
-      date: '2024-08-10T14:30:00Z',
-      sport: 'Badminton'
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      userName: 'Priya Patel',
-      rating: 4,
-      comment: 'Great venue for playing badminton. The only minor issue is that it can get quite busy during peak hours.',
-      date: '2024-08-08T18:15:00Z',
-      sport: 'Badminton'
-    },
-    {
-      id: '3',
-      userId: 'user3',
-      userName: 'Arjun Mehta',
-      rating: 5,
-      comment: 'Amazing experience! The staff is very helpful and the facilities are well-maintained. Will definitely book again.',
-      date: '2024-08-05T16:45:00Z',
-      sport: 'Cricket'
-    }
-  ];
+  const mockReviews: Review[] = [];
 
   const mockTimeSlots: TimeSlot[] = [
     { id: '1', startTime: '05:00', endTime: '06:00', price: 400, isAvailable: true, courtId: 'court1', courtName: 'Court 1' },
@@ -356,6 +338,76 @@ const VenueDetailsPage = () => {
     });
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) {
+      toast({
+        title: "Please Login",
+        description: "You need to login to submit a review.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      toast({
+        title: "Review Required",
+        description: "Please write a review comment.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingReview(true);
+
+      // In a real app, this would be an API call
+      const newReview: Review = {
+        id: Date.now().toString(),
+        userId: user.id,
+        userName: user.fullName,
+        userAvatar: user.avatarUrl || '/placeholder.svg',
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        date: new Date().toISOString(),
+        sport: reviewSport || venue?.sports[0]?.name || ''
+      };
+
+      // Add to reviews state
+      setReviews(prev => [newReview, ...prev]);
+      
+      // Update venue review count
+      if (venue) {
+        setVenue(prev => prev ? {
+          ...prev,
+          reviewCount: prev.reviewCount + 1,
+          rating: prev.reviewCount > 0 
+            ? ((prev.rating * prev.reviewCount) + reviewRating) / (prev.reviewCount + 1)
+            : reviewRating
+        } : null);
+      }
+
+      // Reset form
+      setReviewComment('');
+      setReviewRating(5);
+      setReviewSport('');
+      setShowReviewForm(false);
+
+      toast({
+        title: "Review Submitted",
+        description: "Thank you for your review! It helps other players.",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const getAmenityIcon = (iconName: string) => {
     const icons: { [key: string]: React.ReactNode } = {
       Car: <Car className="h-5 w-5" />,
@@ -469,8 +521,12 @@ const VenueDetailsPage = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="font-medium text-sm">{venue.rating}</span>
-                        <span className="text-sm">({venue.reviewCount} reviews)</span>
+                        <span className="font-medium text-sm">
+                          {venue.reviewCount > 0 ? venue.rating : 'New'}
+                        </span>
+                        {venue.reviewCount > 0 && (
+                          <span className="text-sm">({venue.reviewCount} reviews)</span>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-gray-500">{venue.address}</p>
@@ -594,15 +650,141 @@ const VenueDetailsPage = () => {
 
               {/* Player Reviews & Ratings */}
               <motion.div variants={staggerItem}>
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Player Reviews ({venue.reviewCount})
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Player Reviews {venue.reviewCount > 0 ? `(${venue.reviewCount})` : ''}
+                  </h2>
+                  {user && (
+                    <Button 
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      variant={showReviewForm ? "outline" : "default"}
+                      size="sm"
+                    >
+                      {showReviewForm ? 'Cancel' : 'Write Review'}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Review Form */}
+                {showReviewForm && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Share Your Experience</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Rating Selection */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Rating
+                        </label>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <button
+                              key={rating}
+                              type="button"
+                              onClick={() => setReviewRating(rating)}
+                              className="p-1 hover:scale-110 transition-transform"
+                            >
+                              <Star 
+                                className={`h-6 w-6 ${
+                                  rating <= reviewRating 
+                                    ? 'text-yellow-400 fill-yellow-400' 
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                          <span className="ml-2 text-sm text-gray-600">
+                            {reviewRating} star{reviewRating !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Sport Selection */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Sport (optional)
+                        </label>
+                        <Select value={reviewSport} onValueChange={setReviewSport}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select sport you played" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {venue.sports.map((sport) => (
+                              <SelectItem key={sport.id} value={sport.name}>
+                                {sport.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Review Comment */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Your Review
+                        </label>
+                        <Textarea
+                          placeholder="Share your experience at this venue. What did you like? Any tips for other players?"
+                          value={reviewComment}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 500) {
+                              setReviewComment(value);
+                            }
+                          }}
+                          rows={4}
+                          className="resize-none"
+                        />
+                        <p className={`text-xs mt-1 ${
+                          reviewComment.length > 450 ? 'text-red-500' : 'text-gray-500'
+                        }`}>
+                          {reviewComment.length}/500 characters
+                        </p>
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="flex gap-3 pt-2">
+                        <Button 
+                          onClick={handleSubmitReview}
+                          disabled={isSubmittingReview || !reviewComment.trim()}
+                          className="flex items-center gap-2"
+                        >
+                          <Send className="h-4 w-4" />
+                          {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowReviewForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <ReviewCard key={review.id} review={review} />
-                  ))}
+                  {reviews.length > 0 ? (
+                    reviews.map((review) => (
+                      <ReviewCard key={review.id} review={review} />
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No reviews yet. Be the first to review this venue!</p>
+                      {user && !showReviewForm && (
+                        <Button 
+                          onClick={() => setShowReviewForm(true)}
+                          className="mt-3"
+                          variant="outline"
+                        >
+                          Write First Review
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   
-                  {hasMoreReviews && (
+                  {hasMoreReviews && reviews.length > 0 && (
                     <div className="text-center pt-4">
                       <Button
                         variant="outline"

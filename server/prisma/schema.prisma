@@ -50,6 +50,7 @@ model User {
   status       UserStatus    @default(ACTIVE)
   facilities   Facility[]    @relation("OwnerFacilities")
   bookings     Booking[]
+  reviews      Review[]
   refreshTokens RefreshToken[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -79,6 +80,7 @@ model Facility {
   owner       User            @relation("OwnerFacilities", fields: [ownerId], references: [id])
   ownerId     String
   courts      Court[]
+  reviews     Review[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   @@index([status])
@@ -152,4 +154,23 @@ model RefreshToken {
   createdAt  DateTime @default(now())
   @@index([userId])
   @@index([expiresAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  facilityId String
+  rating     Int      @db.SmallInt // 1-5 rating
+  comment    String?
+  sport      String?  // Which sport was reviewed
+  isVerified Boolean  @default(false) // Only reviews from users who actually booked
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([userId, facilityId]) // One review per user per facility
+  @@index([facilityId])
+  @@index([rating])
+  @@index([createdAt])
 }
