@@ -19,6 +19,9 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
+
 app.get('/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
 app.use('/auth', authRouter);
