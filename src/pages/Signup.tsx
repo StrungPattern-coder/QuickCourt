@@ -167,7 +167,7 @@ const Signup = () => {
       </motion.div>
 
       {/* Right Column - Signup Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <motion.div 
           className="w-full max-w-md"
           initial={{ opacity: 0, x: 50 }}
@@ -175,7 +175,7 @@ const Signup = () => {
           transition={{ duration: 0.6 }}
         >
           {/* Back Button - Mobile */}
-          <div className="mb-6 lg:hidden">
+          <div className="mb-4 sm:mb-6 lg:hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -189,34 +189,34 @@ const Signup = () => {
 
           {/* Signup Card */}
           <motion.div 
-            className="bg-white rounded-2xl shadow-lg p-8 w-full"
+            className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 w-full"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
           >
             {/* Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-6 sm:mb-8">
               {/* Logo */}
               <motion.div 
-                className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center mb-6 shadow-lg"
+                className="mx-auto h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center mb-4 sm:mb-6 shadow-lg"
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 400 }}
               >
-                <span className="text-white font-bold text-2xl">QC</span>
+                <span className="text-white font-bold text-xl sm:text-2xl">QC</span>
               </motion.div>
 
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
                 Join QuickCourt
               </h1>
-              <p className="text-gray-500">
+              <p className="text-gray-500 text-sm sm:text-base">
                 Book, manage, and enjoy sports effortlessly.
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
               {/* Avatar Upload */}
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-4 sm:mb-6">
                 <div className="relative">
                   <div 
                     className="w-20 h-20 rounded-full border-3 border-gray-300 bg-gray-100 flex items-center justify-center cursor-pointer hover:border-[#2ECC71] transition-colors overflow-hidden"

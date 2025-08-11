@@ -148,83 +148,37 @@ const VenuesPage = () => {
   };
 
   // Mock data - replace with actual API call
-  const mockVenues: Venue[] = [
-    {
-      id: '1',
-      name: 'Elite Sports Complex',
-      location: 'Bandra West, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Badminton', 'Tennis'],
-      pricePerHour: 500,
-      rating: 4.8,
-      reviewCount: 127,
-      amenities: ['Parking', 'Changing Room', 'Water', 'First Aid'],
-      type: 'indoor',
-      isVerified: true
-    },
-    {
-      id: '2',
-      name: 'SportZone Arena',
-      location: 'Andheri East, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Football', 'Cricket'],
-      pricePerHour: 400,
-      rating: 4.7,
-      reviewCount: 89,
-      amenities: ['Parking', 'Floodlights', 'Seating'],
-      type: 'outdoor',
-      isVerified: true
-    },
-    {
-      id: '3',
-      name: 'Court Masters',
-      location: 'Powai, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Tennis', 'Squash'],
-      pricePerHour: 600,
-      rating: 4.6,
-      reviewCount: 156,
-      amenities: ['AC', 'Parking', 'Cafeteria', 'Pro Shop'],
-      type: 'indoor',
-      isVerified: true
-    }
-  ];
+  // Removed mockVenues. Use real API below.
 
   // Fetch venues
   const fetchVenues = async () => {
     setIsLoading(true);
     try {
-      // For now, use mock data
-      // Replace with actual API call:
-      // const response = await facilitiesApi.getAll({
-      //   ...filters,
-      //   sort: sortBy,
-      //   page: currentPage,
-      //   limit: 12
-      // });
-      
-      // Simulate API delay
-      setTimeout(() => {
-        const filteredVenues = mockVenues.filter(venue => {
-          if (filters.sportType && filters.sportType !== 'All Sports') {
-            if (!venue.sports.includes(filters.sportType)) return false;
-          }
-          if (filters.location) {
-            if (!venue.location.toLowerCase().includes(filters.location.toLowerCase())) return false;
-          }
-          if (venue.pricePerHour < filters.priceMin || venue.pricePerHour > filters.priceMax) return false;
-          if (venue.rating < filters.rating) return false;
-          if (filters.venueType && venue.type !== filters.venueType) return false;
-          
-          return true;
-        });
-        
-        setVenues(filteredVenues);
-        setTotalResults(filteredVenues.length);
-        setTotalPages(Math.ceil(filteredVenues.length / 12));
-        setIsLoading(false);
-      }, 800);
-      
+      // Use real API call
+      const response = await facilitiesApi.list({
+        sport: filters.sportType,
+        q: filters.location,
+        page: currentPage,
+        pageSize: 12
+      });
+      // Map Facility[] to Venue[] for frontend
+      const mappedVenues = (response.items || []).map((facility) => ({
+        id: facility.id,
+        name: facility.name,
+        location: facility.location,
+        images: facility.images || [],
+        sports: facility.sports || [],
+        pricePerHour: facility.courts?.[0]?.pricePerHour ?? 0,
+        rating: 0, // No rating field in Court, set to 0 or fetch from reviews
+        reviewCount: 0, // You can update this if you have review data
+        amenities: facility.amenities || [],
+        type: 'indoor' as 'indoor' | 'outdoor',
+        isVerified: facility.status === 'APPROVED',
+      }));
+      setVenues(mappedVenues);
+      setTotalResults(response.total || mappedVenues.length);
+      setTotalPages(Math.ceil((response.total || mappedVenues.length) / 12));
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching venues:', error);
       toast({
@@ -308,7 +262,7 @@ const VenuesPage = () => {
   }, [currentPage]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-[72px]">
       <SEO 
         title={`${pageContext.title} - QuickCourt`}
         description={`${pageContext.subtitle}. Filter by sport, location, price and more.`}
@@ -317,24 +271,24 @@ const VenuesPage = () => {
       <BrandNav />
       
       {/* Search Bar - Sticky */}
-      <div className="sticky top-20 z-40 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
+      <div className="sticky top-[72px] z-40 bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search Inputs */}
-            <div className="flex flex-1 gap-3 w-full lg:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <div className="relative flex-1">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search location"
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
-                  className="pl-10 h-12"
+                  className="pl-10 h-10 sm:h-12"
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
               
               <Select value={selectedSport} onValueChange={setSelectedSport}>
-                <SelectTrigger className="w-40 h-12">
+                <SelectTrigger className="w-full sm:w-40 h-10 sm:h-12">
                   <SelectValue placeholder="Sport" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,14 +304,14 @@ const VenuesPage = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="pl-10 w-40 h-12"
+                  className="pl-10 w-full sm:w-40 h-10 sm:h-12"
                 />
               </div>
             </div>
 
             {/* Search Button & Mobile Filter Toggle */}
-            <div className="flex gap-3">
-              <Button onClick={handleSearch} className="h-12 px-8">
+            <div className="flex gap-2 sm:gap-3">
+              <Button onClick={handleSearch} className="flex-1 sm:flex-none h-10 sm:h-12 px-6 sm:px-8">
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
@@ -365,7 +319,7 @@ const VenuesPage = () => {
               <Button
                 variant="outline"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="lg:hidden h-12"
+                className="lg:hidden h-10 sm:h-12 px-4"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
@@ -419,19 +373,35 @@ const VenuesPage = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <span className="text-2xl">{pageContext.icon}</span>
-                  {pageContext.title} {filters.location && `in ${filters.location}`}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">{pageContext.icon}</span>
+                  <span className="line-clamp-1">
+                    {pageContext.title} {filters.location && `in ${filters.location}`}
+                  </span>
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">
                   {isLoading ? 'Loading...' : `${totalResults} venues found`} • {pageContext.subtitle}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* View Toggle */}
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                {/* Sort Dropdown */}
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-full sm:w-48 h-9 text-sm">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* View Toggle - Hidden on mobile */}
                 <div className="hidden md:flex border rounded-lg p-1">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -450,21 +420,6 @@ const VenuesPage = () => {
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
-
-                {/* Sort Dropdown */}
-                <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-48">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SORT_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 

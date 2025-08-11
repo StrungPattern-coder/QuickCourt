@@ -92,6 +92,37 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
+    // If token is expired, try to refresh it
+    if (response.status === 401 && token) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const refreshResponse = await authApi.refresh(refreshToken);
+          localStorage.setItem('accessToken', refreshResponse.accessToken);
+          localStorage.setItem('refreshToken', refreshResponse.refreshToken);
+          
+          // Retry the original request with new token
+          const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${refreshResponse.accessToken}`,
+              ...options.headers,
+            },
+            ...options,
+          });
+          
+          if (retryResponse.ok) {
+            return retryResponse.json();
+          }
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to login
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
+      }
+    }
+    
     const error = await response.json().catch(() => ({ message: 'Network error' }));
     console.log('❌ API Error:', error);
     throw new ApiError(response.status, error.message || 'Request failed');
@@ -142,7 +173,7 @@ export const authApi = {
 
 // Facilities API
 export const facilitiesApi = {
-  getAll: (params?: {
+  list: (params?: {
     sport?: string;
     q?: string;
     page?: number;
@@ -169,13 +200,63 @@ export const facilitiesApi = {
     location: string;
     description: string;
     sports: string[];
-    amenities: string[];
-    images: string[];
-  }) =>
-    apiRequest('/facilities', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    amenities?: string[];
+    images?: string[];
+  }) => apiRequest('/facilities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Courts API
+export const courtsApi = {
+  create: (data: {
+    name: string;
+    facilityId: string;
+    pricePerHour: number;
+    openTime: number;
+    closeTime: number;
+  }) => apiRequest('/courts', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  getByFacility: (facilityId: string) => apiRequest<Court[]>(`/courts/facility/${facilityId}`),
+
+  getOwnerCourts: () => apiRequest<(Court & {
+    facility: {
+      name: string;
+      location: string;
+      status: string;
+    };
+    _count: {
+      bookings: number;
+    };
+  })[]>('/courts/owner'),
+
+  getById: (id: string) => apiRequest<Court & {
+    facility: {
+      name: string;
+      location: string;
+      status: string;
+      sports: string[];
+      amenities: string[];
+    };
+  }>(`/courts/${id}`),
+
+  update: (id: string, data: {
+    name?: string;
+    pricePerHour?: number;
+    openTime?: number;
+    closeTime?: number;
+  }) => apiRequest(`/courts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  delete: (id: string) => apiRequest(`/courts/${id}`, {
+    method: 'DELETE',
+  }),
 };
 
 // Bookings API

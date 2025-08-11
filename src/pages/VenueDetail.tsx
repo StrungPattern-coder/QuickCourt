@@ -145,17 +145,17 @@ const VenueDetail = () => {
       />
       <BrandNav />
       
-      <main className="container mx-auto px-4 py-10 max-w-6xl">
+      <main className="container mx-auto px-4 py-6 sm:py-8 md:py-10 max-w-6xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">{venue.name}</h1>
-          <div className="flex items-center gap-4 mb-4">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">{venue.name}</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
             <div className="flex items-center gap-1">
-              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-              <span className="font-semibold">4.5</span>
-              <span className="text-muted-foreground">(32 reviews)</span>
+              <Star className="h-4 sm:h-5 w-4 sm:w-5 fill-yellow-400 text-yellow-400" />
+              <span className="font-semibold text-sm sm:text-base">4.5</span>
+              <span className="text-muted-foreground text-sm">(32 reviews)</span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="flex items-center gap-1 text-muted-foreground text-sm">
               <MapPin className="h-4 w-4" />
               {venue.location}
             </div>
@@ -163,12 +163,12 @@ const VenueDetail = () => {
         </div>
 
         {/* Image Gallery */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Carousel className="w-full">
             <CarouselContent>
               {venue.images.map((image, index) => (
                 <CarouselItem key={index}>
-                  <div className="relative h-64 md:h-96 rounded-lg overflow-hidden">
+                  <div className="relative h-48 sm:h-56 md:h-64 lg:h-96 rounded-lg overflow-hidden">
                     <img
                       src={image}
                       alt={`${venue.name} - Image ${index + 1}`}
@@ -183,9 +183,9 @@ const VenueDetail = () => {
           </Carousel>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
             {/* About */}
             <Card>
               <CardHeader>
@@ -204,16 +204,16 @@ const VenueDetail = () => {
                 <CardTitle>Sports Available</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   {venue.sports.map((sport) => (
                     <Popover key={sport}>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-start h-auto p-4">
-                          <div className="flex items-center gap-3">
+                        <Button variant="outline" className="justify-start h-auto p-3 sm:p-4 text-left">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             {getSportIcon(sport)}
                             <div>
-                              <p className="font-semibold capitalize">{sport}</p>
-                              <p className="text-sm text-muted-foreground">Click for pricing</p>
+                              <p className="font-semibold capitalize text-sm sm:text-base">{sport}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">Click for pricing</p>
                             </div>
                           </div>
                         </Button>
