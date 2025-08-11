@@ -6,6 +6,32 @@ import { UserRole } from '../../types/enums.js';
 const prisma = new PrismaClient();
 const router = Router();
 
+// Helpers
+function formatDay(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatMonth(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function addDays(d: Date, days: number) {
+  const nd = new Date(d);
+  nd.setDate(nd.getDate() + days);
+  return nd;
+}
+
+function addMonths(d: Date, months: number) {
+  const nd = new Date(d);
+  nd.setMonth(nd.getMonth() + months);
+  return nd;
+}
+
 // Get dashboard statistics
 router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
@@ -87,6 +113,140 @@ router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: Auth
   } catch (error) {
     console.error('Failed to fetch admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// Admin analytics (no hardcoded data). Returns timeseries and aggregates.
+// Query: ?range=7d|30d|90d|12m (default 30d)
+router.get('/analytics', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+  try {
+    const range = (String(req.query.range || '30d')) as '7d'|'30d'|'90d'|'12m';
+    const now = new Date();
+    let start: Date;
+    let granularity: 'day' | 'month' = 'day';
+    if (range === '7d') start = addDays(now, -6); // include today => 7 points
+    else if (range === '30d') start = addDays(now, -29);
+    else if (range === '90d') start = addDays(now, -89);
+    else { // 12m
+      granularity = 'month';
+      start = addMonths(now, -11);
+      start.setDate(1);
+    }
+
+    // Pre-build buckets
+    const buckets: string[] = [];
+    if (granularity === 'day') {
+      for (let d = new Date(start); d <= now; d = addDays(d, 1)) {
+        buckets.push(formatDay(d));
+      }
+    } else {
+      for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d <= now; d = addMonths(d, 1)) {
+        buckets.push(formatMonth(d));
+      }
+    }
+
+    // Fetch raw data in range
+    const [users, bookings, facilities] = await Promise.all([
+      prisma.user.findMany({
+        where: { createdAt: { gte: start, lte: now } },
+        select: { id: true, role: true, createdAt: true }
+      }),
+      prisma.booking.findMany({
+        where: { createdAt: { gte: start, lte: now } },
+        select: { id: true, status: true, price: true, createdAt: true, court: { select: { facilityId: true } } }
+      }),
+      prisma.facility.findMany({
+        select: { id: true, name: true, status: true }
+      })
+    ]);
+
+    // Users time series
+    const usersSeries = buckets.map((b) => ({ period: b, total: 0, USER: 0, OWNER: 0 }));
+    let usersTotal = 0, ownersTotal = 0;
+    for (const u of users) {
+      const key = granularity === 'day' ? formatDay(u.createdAt) : formatMonth(u.createdAt);
+      const idx = buckets.indexOf(key);
+      if (idx !== -1) {
+        usersSeries[idx].total += 1;
+        // @ts-ignore role is string union
+        usersSeries[idx][u.role] += 1;
+      }
+      if (u.role === 'OWNER') ownersTotal += 1; else usersTotal += 1;
+    }
+
+    // Bookings time series and revenue
+    const bookingsSeries = buckets.map((b) => ({ period: b, total: 0, PENDING: 0, CONFIRMED: 0, COMPLETED: 0, CANCELLED: 0 }));
+    const revenueSeries = buckets.map((b) => ({ period: b, amount: 0 }));
+    let revenueTotal = 0;
+    const facilityTotals: Record<string, { revenue: number; bookings: number }> = {};
+    for (const b of bookings) {
+      const key = granularity === 'day' ? formatDay(b.createdAt) : formatMonth(b.createdAt);
+      const idx = buckets.indexOf(key);
+      if (idx !== -1) {
+        bookingsSeries[idx].total += 1;
+        // @ts-ignore status key exists
+        bookingsSeries[idx][b.status] += 1;
+        const price = Number(b.price);
+        if (b.status === 'CONFIRMED' || b.status === 'COMPLETED') {
+          revenueSeries[idx].amount += price;
+          revenueTotal += price;
+          const fid = b.court?.facilityId;
+          if (fid) {
+            facilityTotals[fid] = facilityTotals[fid] || { revenue: 0, bookings: 0 };
+            facilityTotals[fid].revenue += price;
+          }
+        }
+        const fid2 = b.court?.facilityId;
+        if (fid2) {
+          facilityTotals[fid2] = facilityTotals[fid2] || { revenue: 0, bookings: 0 };
+          facilityTotals[fid2].bookings += 1;
+        }
+      }
+    }
+
+    // Facilities distribution
+    const facilitiesByStatus = facilities.reduce((acc: Record<string, number>, f) => {
+      acc[f.status] = (acc[f.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Top facilities by revenue/bookings in the range
+    const topFacilities = Object.entries(facilityTotals)
+      .map(([facilityId, v]) => {
+        const f = facilities.find(ff => ff.id === facilityId);
+        return { id: facilityId, name: f?.name || 'Unknown', revenue: v.revenue, bookings: v.bookings };
+      })
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    res.json({
+      range,
+      granularity,
+      users: {
+        total: users.length,
+        byRole: { USER: usersTotal, OWNER: ownersTotal, ADMIN: 0 },
+        timeSeries: usersSeries
+      },
+      bookings: {
+        total: bookings.length,
+        byStatus: bookingsSeries.reduce((acc, cur) => {
+          acc.PENDING += cur.PENDING; acc.CONFIRMED += cur.CONFIRMED; acc.COMPLETED += cur.COMPLETED; acc.CANCELLED += cur.CANCELLED; return acc;
+        }, { PENDING: 0, CONFIRMED: 0, COMPLETED: 0, CANCELLED: 0 } as any),
+        timeSeries: bookingsSeries
+      },
+      revenue: {
+        total: revenueTotal,
+        timeSeries: revenueSeries
+      },
+      facilities: {
+        total: facilities.length,
+        byStatus: facilitiesByStatus
+      },
+      topFacilities
+    });
+  } catch (error) {
+    console.error('Failed to fetch analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
 

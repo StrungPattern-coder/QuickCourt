@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { facilitiesApi } from '@/lib/api';
 
-const sports = ['tennis', 'basketball', 'badminton', 'soccer', 'squash', 'volleyball'];
+const sports = ['badminton', 'tennis', 'football', 'cricket', 'basketball', 'table tennis', 'squash', 'swimming', 'volleyball', 'pickleball'];
 
 const Venues = () => {
   const [searchParams, setSearchParams] = useSearchParams();
