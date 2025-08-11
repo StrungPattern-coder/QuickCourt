@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import AdminLoginDialog from '@/components/AdminLoginDialog';
 
 const BrandNav = () => {
   const navigate = useNavigate();
@@ -164,6 +165,7 @@ const BrandNav = () => {
               Login / Sign up
             </Button>
           )}
+          <AdminLoginDialog />
         </div>
       </nav>
     </header>

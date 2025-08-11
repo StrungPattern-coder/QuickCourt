@@ -99,13 +99,13 @@ const AdminDashboard: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('facilities');
   
   // Filters
   const [userFilter, setUserFilter] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [facilityFilter, setFacilityFilter] = useState('');
-  const [facilityStatusFilter, setFacilityStatusFilter] = useState('all');
+  const [facilityStatusFilter, setFacilityStatusFilter] = useState('PENDING');
   const [bookingFilter, setBookingFilter] = useState('');
   const [bookingStatusFilter, setBookingStatusFilter] = useState('all');
 
