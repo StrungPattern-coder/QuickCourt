@@ -29,82 +29,8 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  // Mock bookings data for demonstration
-  const mockBookings: Booking[] = [
-    {
-      id: '1',
-      userId: user?.id || '1',
-      courtId: '1',
-      startTime: '2025-06-18T17:00:00Z',
-      endTime: '2025-06-18T18:00:00Z',
-      status: 'CONFIRMED',
-      price: 500,
-      createdAt: '2025-06-15T10:00:00Z',
-      updatedAt: '2025-06-15T10:00:00Z',
-      court: {
-        id: '1',
-        name: 'Court 1',
-        facilityId: '1',
-        pricePerHour: 500,
-        openTime: 480,
-        closeTime: 1320,
-        createdAt: '2025-06-01T00:00:00Z',
-        updatedAt: '2025-06-01T00:00:00Z',
-        facility: {
-          id: '1',
-          name: 'Skyline Badminton Court (Badminton)',
-          location: 'Rajkot, Gujarat',
-          description: 'Premium badminton facility',
-          sports: ['Badminton'],
-          amenities: ['Parking', 'AC'],
-          images: [],
-          status: 'APPROVED',
-          ownerId: '1',
-          courts: [],
-          createdAt: '2025-06-01T00:00:00Z',
-          updatedAt: '2025-06-01T00:00:00Z'
-        }
-      }
-    },
-    {
-      id: '2',
-      userId: user?.id || '1',
-      courtId: '2',
-      startTime: '2025-06-19T17:00:00Z',
-      endTime: '2025-06-19T18:00:00Z',
-      status: 'CONFIRMED',
-      price: 500,
-      createdAt: '2025-06-15T10:00:00Z',
-      updatedAt: '2025-06-15T10:00:00Z',
-      court: {
-        id: '2',
-        name: 'Court 2',
-        facilityId: '1',
-        pricePerHour: 500,
-        openTime: 480,
-        closeTime: 1320,
-        createdAt: '2025-06-01T00:00:00Z',
-        updatedAt: '2025-06-01T00:00:00Z',
-        facility: {
-          id: '1',
-          name: 'Skyline Badminton Court (Badminton)',
-          location: 'Rajkot, Gujarat',
-          description: 'Premium badminton facility',
-          sports: ['Badminton'],
-          amenities: ['Parking', 'AC'],
-          images: [],
-          status: 'APPROVED',
-          ownerId: '1',
-          courts: [],
-          createdAt: '2025-06-01T00:00:00Z',
-          updatedAt: '2025-06-01T00:00:00Z'
-        }
-      }
-    }
-  ];
-
   // Fetch user bookings
-  const { data: bookings = mockBookings, isLoading: isLoadingBookings, refetch } = useQuery({
+  const { data: bookings = [], isLoading: isLoadingBookings, refetch } = useQuery({
     queryKey: ['my-bookings'],
     queryFn: bookingsApi.getMy,
     enabled: isAuthenticated,

@@ -11,6 +11,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Components
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import Index from "./pages/Index";
@@ -74,12 +75,43 @@ const AppContent = () => (
         <Route path="/otp-login" element={<OtpLogin />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/my-bookings" element={<MyBookings />} />
-        <Route path="/book/:venueId/:courtId" element={<BookingPage />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        
+        {/* Protected Routes */}
+        <Route path="/profile" element={
+          <ProtectedRoute allowedRoles={['USER', 'OWNER', 'ADMIN']}>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/my-bookings" element={
+          <ProtectedRoute allowedRoles={['USER', 'OWNER', 'ADMIN']}>
+            <MyBookings />
+          </ProtectedRoute>
+        } />
+        <Route path="/book/:venueId/:courtId" element={
+          <ProtectedRoute allowedRoles={['USER', 'OWNER', 'ADMIN']}>
+            <BookingPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin Routes */}
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="ADMIN">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute requiredRole="ADMIN">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        {/* Owner Routes */}
+        <Route path="/owner/dashboard" element={
+          <ProtectedRoute requiredRole="OWNER">
+            <OwnerDashboard />
+          </ProtectedRoute>
+        } />
+        
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

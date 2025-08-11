@@ -44,6 +44,23 @@ interface Sport {
   venueCount: number;
 }
 
+// Utility function to get sport icons
+const getSportIcon = (sport: string): string => {
+  const sportIcons: Record<string, string> = {
+    'Badminton': '🏸',
+    'Tennis': '🎾',
+    'Football': '⚽',
+    'Cricket': '🏏',
+    'Basketball': '🏀',
+    'Table Tennis': '🏓',
+    'Squash': '🎾',
+    'Swimming': '🏊',
+    'Volleyball': '🏐',
+    'Pickleball': '🏓',
+  };
+  return sportIcons[sport] || '🏟️';
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -84,34 +101,56 @@ const HomePage = () => {
     }
   };
 
-  // Mock data - replace with API calls in production
-  const mockSports: Sport[] = [
-    { id: '1', name: 'Badminton', icon: '🏸', image: '/placeholder.svg', venueCount: 45 },
-    { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 32 },
-    { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 28 },
-    { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 24 },
-    { id: '5', name: 'Basketball', icon: '🏀', image: '/placeholder.svg', venueCount: 18 },
-    { id: '6', name: 'Table Tennis', icon: '🏓', image: '/placeholder.svg', venueCount: 15 },
-    { id: '7', name: 'Squash', icon: '🎾', image: '/placeholder.svg', venueCount: 12 },
-    { id: '8', name: 'Swimming', icon: '🏊', image: '/placeholder.svg', venueCount: 8 }
-  ];
-
-  const mockVenues: Venue[] = [
-    { id: '1', name: 'Elite Sports Complex', location: 'Bandra West, Mumbai', sport: 'Badminton', rating: 4.8, pricePerHour: 500 },
-    { id: '2', name: 'SportZone Arena', location: 'Andheri East, Mumbai', sport: 'Football', rating: 4.7, pricePerHour: 400 },
-    { id: '3', name: 'Court Masters', location: 'Powai, Mumbai', sport: 'Tennis', rating: 4.6, pricePerHour: 600 }
-  ];
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Replace with actual API calls
-        setPopularSports(mockSports);
-        setTopRatedVenues(mockVenues);
+        // Fetch real data from API
+        const facilitiesResponse = await facilitiesApi.list({ pageSize: 20 });
+        const facilities = facilitiesResponse.items;
+
+        // Generate sports data from facilities
+        const sportsMap = new Map<string, number>();
+        facilities.forEach(facility => {
+          facility.sports.forEach(sport => {
+            sportsMap.set(sport, (sportsMap.get(sport) || 0) + 1);
+          });
+        });
+
+        const sportsData: Sport[] = Array.from(sportsMap.entries()).map(([sport, count], index) => ({
+          id: (index + 1).toString(),
+          name: sport,
+          icon: getSportIcon(sport),
+          image: '/placeholder.svg',
+          venueCount: count
+        })).slice(0, 8); // Take top 8 sports
+
+        // Generate venues data from facilities
+        const venuesData: Venue[] = facilities
+          .filter(facility => facility.status === 'APPROVED')
+          .slice(0, 3)
+          .map(facility => ({
+            id: facility.id,
+            name: facility.name,
+            location: facility.location,
+            sport: facility.sports[0] || 'General',
+            rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
+            pricePerHour: facility.courts.length > 0 ? 
+              facility.courts.reduce((sum, court) => sum + court.pricePerHour, 0) / facility.courts.length :
+              500
+          }));
+
+        setPopularSports(sportsData);
+        setTopRatedVenues(venuesData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        setPopularSports(mockSports);
-        setTopRatedVenues(mockVenues);
+        // Fallback to default data if API fails
+        setPopularSports([
+          { id: '1', name: 'Badminton', icon: '🏸', image: '/placeholder.svg', venueCount: 0 },
+          { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
+          { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 0 },
+          { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 0 },
+        ]);
+        setTopRatedVenues([]);
       } finally {
         setIsLoading(false);
       }

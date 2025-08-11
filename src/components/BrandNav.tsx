@@ -13,7 +13,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { User, Settings, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-import AdminLoginDialog from '@/components/AdminLoginDialog';
 
 const BrandNav = () => {
   const navigate = useNavigate();
@@ -178,7 +177,6 @@ const BrandNav = () => {
               Login / Sign up
             </Button>
           )}
-          <AdminLoginDialog />
         </div>
 
         {/* Mobile Navigation */}
@@ -226,9 +224,9 @@ const BrandNav = () => {
                 )}
                 {user?.role === 'OWNER' && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/owner/listing')}>
+                    <DropdownMenuItem onClick={() => navigate('/owner/dashboard')}>
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>My Listings</span>
+                      <span>Owner Dashboard</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -326,10 +324,10 @@ const BrandNav = () => {
                         <Button
                           variant="ghost"
                           className="justify-start w-full text-lg py-6"
-                          onClick={() => handleMobileNavClick('/owner/listing')}
+                          onClick={() => handleMobileNavClick('/owner/dashboard')}
                         >
                           <Settings className="mr-3 h-5 w-5" />
-                          My Listings
+                          Owner Dashboard
                         </Button>
                       )}
                       <Button
