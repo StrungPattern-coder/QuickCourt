@@ -272,7 +272,7 @@ const Profile = () => {
       <SEO title="Profile - QuickCourt" description="Manage your QuickCourt profile" path="/profile" />
       <BrandNav />
       
-      <main className="container mx-auto px-4 py-6 max-w-6xl">
+      <main className="container mx-auto px-4 pt-24 pb-8 max-w-6xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Profile Page</h1>
         </div>

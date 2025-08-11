@@ -180,7 +180,7 @@ const MyBookings = () => {
     return (
       <div className="min-h-screen bg-background">
         <BrandNav />
-        <main className="container mx-auto px-4 py-10">
+        <main className="container mx-auto px-4 pt-24 pb-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <p>Please sign in to view your bookings.</p>
@@ -199,7 +199,7 @@ const MyBookings = () => {
       <SEO title="My Bookings - QuickCourt" description="View and manage your court bookings" path="/my-bookings" />
       <BrandNav />
       
-      <main className="container mx-auto px-4 py-10 max-w-4xl">
+      <main className="container mx-auto px-4 pt-24 pb-8 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">My Bookings</h1>
           <p className="text-muted-foreground">

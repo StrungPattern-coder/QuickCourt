@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
 // Contexts
@@ -63,13 +63,41 @@ const AppContent = () => (
     <div className="flex-1">
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/play" element={<VenuesPage />} />
-        <Route path="/book" element={<VenuesPage />} />
-        <Route path="/train" element={<VenuesPage />} />
-        <Route path="/venues" element={<Venues />} />
-        <Route path="/venues-search" element={<VenuesPage />} />
-        <Route path="/venue/:id" element={<VenueDetail />} />
-        <Route path="/venue-details/:id" element={<VenueDetailsPage />} />
+        <Route path="/play" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenuesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/book" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenuesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/train" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenuesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/venues" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <Venues />
+          </ProtectedRoute>
+        } />
+        <Route path="/venues-search" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenuesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/venue/:id" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenueDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/venue-details/:id" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenueDetailsPage />
+          </ProtectedRoute>
+        } />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp-login" element={<OtpLogin />} />
@@ -83,12 +111,12 @@ const AppContent = () => (
           </ProtectedRoute>
         } />
         <Route path="/my-bookings" element={
-          <ProtectedRoute allowedRoles={['USER', 'OWNER', 'ADMIN']}>
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
             <MyBookings />
           </ProtectedRoute>
         } />
         <Route path="/book/:venueId/:courtId" element={
-          <ProtectedRoute allowedRoles={['USER', 'OWNER', 'ADMIN']}>
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
             <BookingPage />
           </ProtectedRoute>
         } />
@@ -106,6 +134,11 @@ const AppContent = () => (
         } />
         
         {/* Owner Routes */}
+        <Route path="/owner" element={
+          <ProtectedRoute requiredRole="OWNER">
+            <Navigate to="/owner/dashboard" replace />
+          </ProtectedRoute>
+        } />
         <Route path="/owner/dashboard" element={
           <ProtectedRoute requiredRole="OWNER">
             <OwnerDashboard />

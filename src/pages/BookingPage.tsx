@@ -12,7 +12,7 @@ const BookingPage = () => {
       <SEO title="Book Court - QuickCourt" description="Complete your court booking" />
       <BrandNav />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -22,9 +22,8 @@ const BookingPage = () => {
             <p className="text-gray-600 mb-4">
               The booking functionality is currently being developed. Please check back later.
             </p>
-                        <Button onClick={() => navigate('/book')}>
+            <Button onClick={() => navigate('/venues')}>
               Back to Venues
-              Browse Venues
             </Button>
           </div>
         </div>

@@ -90,27 +90,31 @@ const BrandNav = () => {
         
         {/* Desktop Navigation */}
         <div className={`hidden lg:flex rounded-full p-1 items-center gap-1 border transition-all duration-300 ${navStyle.navBackground}`}>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/play')}
-          >
-            Play
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/book')}
-          >
-            Book
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/train')}
-          >
-            Train
-          </Button>
+          {user?.role !== 'OWNER' && (
+            <>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/play')}
+              >
+                Play
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/book')}
+              >
+                Book
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/train')}
+              >
+                Train
+              </Button>
+            </>
+          )}
           
           {isAuthenticated ? (
             <DropdownMenu>
@@ -140,10 +144,12 @@ const BrandNav = () => {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>My Bookings</span>
-                </DropdownMenuItem>
+                {user?.role !== 'OWNER' && (
+                  <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>My Bookings</span>
+                  </DropdownMenuItem>
+                )}
                 {user?.role === 'ADMIN' && (
                   <>
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
@@ -209,10 +215,12 @@ const BrandNav = () => {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>My Bookings</span>
-                </DropdownMenuItem>
+                {user?.role !== 'OWNER' && (
+                  <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>My Bookings</span>
+                  </DropdownMenuItem>
+                )}
                 {user?.role === 'ADMIN' && (
                   <>
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
@@ -253,27 +261,31 @@ const BrandNav = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <div className="flex flex-col space-y-4 mt-8">
-                <Button
-                  variant="ghost"
-                  className="justify-start text-lg py-6"
-                  onClick={() => handleMobileNavClick('/play')}
-                >
-                  🏸 Play
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start text-lg py-6"
-                  onClick={() => handleMobileNavClick('/book')}
-                >
-                  📅 Book
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start text-lg py-6"
-                  onClick={() => handleMobileNavClick('/train')}
-                >
-                  🏆 Train
-                </Button>
+                {user?.role !== 'OWNER' && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-lg py-6"
+                      onClick={() => handleMobileNavClick('/play')}
+                    >
+                      🏸 Play
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-lg py-6"
+                      onClick={() => handleMobileNavClick('/book')}
+                    >
+                      📅 Book
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-lg py-6"
+                      onClick={() => handleMobileNavClick('/train')}
+                    >
+                      🏆 Train
+                    </Button>
+                  </>
+                )}
 
                 <div className="border-t pt-4 mt-6">
                   {!isAuthenticated ? (
@@ -302,14 +314,16 @@ const BrandNav = () => {
                         <User className="mr-3 h-5 w-5" />
                         Profile
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start w-full text-lg py-6"
-                        onClick={() => handleMobileNavClick('/my-bookings')}
-                      >
-                        <Settings className="mr-3 h-5 w-5" />
-                        My Bookings
-                      </Button>
+                      {user?.role !== 'OWNER' && (
+                        <Button
+                          variant="ghost"
+                          className="justify-start w-full text-lg py-6"
+                          onClick={() => handleMobileNavClick('/my-bookings')}
+                        >
+                          <Settings className="mr-3 h-5 w-5" />
+                          My Bookings
+                        </Button>
+                      )}
                       {user?.role === 'ADMIN' && (
                         <Button
                           variant="ghost"

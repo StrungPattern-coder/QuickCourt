@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,10 +25,12 @@ import {
   ShieldCheck,
   Coffee,
   AirVent,
-  Dumbbell
+  Dumbbell,
+  Upload,
+  Image as ImageIcon,
+  Building
 } from 'lucide-react';
 import { facilitiesApi, courtsApi } from '@/lib/api';
-import ImageUpload from './ImageUpload';
 
 interface AddCourtFormProps {
   onCourtAdded?: () => void;
@@ -37,9 +39,9 @@ interface AddCourtFormProps {
 
 const SPORTS_OPTIONS = [
   'Tennis',
-  'Basketball',
+  'Basketball', 
   'Badminton',
-  'Squash', 
+  'Squash',
   'Football',
   'Cricket',
   'Volleyball',
@@ -69,15 +71,17 @@ const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
 export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [step, setStep] = useState(1);
   const [images, setImages] = useState<string[]>([]);
 
-  // Form state
+  // Form state - simplified with no required fields
   const [formData, setFormData] = useState({
     // Facility details
     facilityName: '',
     location: '',
     description: '',
+    contactPhone: '',
+    contactEmail: '',
+    address: '',
     sports: [] as string[],
     amenities: [] as string[],
     
@@ -86,9 +90,12 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
     pricePerHour: '',
     openTime: 6 * 60, // 6:00 AM in minutes
     closeTime: 22 * 60, // 10:00 PM in minutes
+    capacity: '',
+    courtType: 'indoor' as 'indoor' | 'outdoor',
     
-    // Booking status (mock for now)
-    status: 'Available' as 'Available' | 'Booked' | 'Cancelled' | 'Completed'
+    // Additional details
+    rules: '',
+    notes: ''
   });
 
   const updateFormData = (field: string, value: any) => {
@@ -120,176 +127,214 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
     return `${displayHours}:${mins.toString().padStart(2, '0')} ${ampm}`;
   };
 
-  const validateStep1 = () => {
-    const isValid = formData.facilityName.trim() && 
-           formData.location.trim() && 
-           formData.description.trim().length >= 10 &&
-           formData.sports.length > 0;
-    
-    return isValid;
+  // Image upload handlers
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setImages(prev => [...prev, result]);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
   };
 
-  const validateStep2 = () => {
-    return formData.courtName.trim() && 
-           formData.pricePerHour && 
-           parseFloat(formData.pricePerHour) > 0 &&
-           formData.closeTime > formData.openTime;
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
-    if (!validateStep1() || !validateStep2()) {
-      toast.error('Please fill in all required fields');
+    // Basic validation - only check if at least facility name or court name exists
+    if (!formData.facilityName.trim() && !formData.courtName.trim()) {
+      toast.error('Please provide either a facility name or court name');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // First create the facility
+      // Prepare facility data
       const facilityData = {
-        name: formData.facilityName,
-        location: formData.location,
-        description: formData.description,
-        sports: formData.sports,
+        name: formData.facilityName || 'New Facility',
+        location: formData.location || 'Location TBD',
+        description: formData.description || 'No description provided',
+        sports: formData.sports.length > 0 ? formData.sports : ['General'],
         amenities: formData.amenities,
-        images: images
+        images: images,
+        address: formData.address,
+        contactPhone: formData.contactPhone,
+        contactEmail: formData.contactEmail || user?.email || ''
       };
 
       const facility = await facilitiesApi.create(facilityData) as any;
       
-      // Then create the court
+      // Prepare court data
       const courtData = {
-        name: formData.courtName,
+        name: formData.courtName || 'Court 1',
         facilityId: facility.id,
-        pricePerHour: parseFloat(formData.pricePerHour),
+        pricePerHour: parseFloat(formData.pricePerHour) || 0,
         openTime: formData.openTime,
-        closeTime: formData.closeTime
+        closeTime: formData.closeTime,
+        capacity: parseInt(formData.capacity) || 10,
+        courtType: formData.courtType
       };
 
       await courtsApi.create(courtData);
 
-      toast.success('Court added successfully! Your facility is now pending admin approval.');
+      toast.success('Venue added successfully! Your facility is now pending admin approval.');
       
       // Reset form
       setFormData({
         facilityName: '',
         location: '',
         description: '',
+        contactPhone: '',
+        contactEmail: '',
+        address: '',
         sports: [],
         amenities: [],
         courtName: '',
         pricePerHour: '',
         openTime: 6 * 60,
         closeTime: 22 * 60,
-        status: 'Available'
+        capacity: '',
+        courtType: 'indoor',
+        rules: '',
+        notes: ''
       });
       setImages([]);
-      setStep(1);
       
       onCourtAdded?.();
     } catch (error: any) {
-      console.error('Failed to create court:', error);
-      toast.error(error.message || 'Failed to create court. Please try again.');
+      console.error('Failed to create venue:', error);
+      toast.error(error.message || 'Failed to create venue. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const nextStep = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-    } else if (step === 1) {
-      toast.error('Please complete all required fields in Step 1');
-    }
-  };
-
-  const prevStep = () => {
-    setStep(Math.max(1, step - 1));
-  };
-
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PlusCircle className="h-5 w-5" />
-          Add New Court
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant={step === 1 ? "default" : "secondary"}>
-            1. Facility Details
-          </Badge>
-          <Badge variant={step === 2 ? "default" : "secondary"}>
-            2. Court Configuration
-          </Badge>
-        </div>
-      </CardHeader>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PlusCircle className="h-5 w-5 text-green-600" />
+            Add New Venue
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Create a new sports facility. All fields are optional - add as much detail as you'd like.
+          </p>
+        </CardHeader>
 
-      <CardContent className="space-y-6">
-        {step === 1 && (
+        <CardContent className="space-y-8">
+          {/* Facility Information */}
           <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold">Facility Information</h3>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Facility Name */}
               <div className="space-y-2">
-                <Label htmlFor="facilityName" className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Facility Name *
+                <Label htmlFor="facilityName" className="text-sm font-medium">
+                  Facility Name
                 </Label>
                 <Input
                   id="facilityName"
                   placeholder="e.g., Elite Sports Complex"
                   value={formData.facilityName}
                   onChange={(e) => updateFormData('facilityName', e.target.value)}
-                  className="w-full"
                 />
               </div>
 
               {/* Location */}
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Location *
+                <Label htmlFor="location" className="text-sm font-medium">
+                  Location
                 </Label>
                 <Input
                   id="location"
-                  placeholder="e.g., Downtown Sports District, City Center"
+                  placeholder="e.g., Downtown, City Center"
                   value={formData.location}
                   onChange={(e) => updateFormData('location', e.target.value)}
-                  className="w-full"
                 />
               </div>
+
+              {/* Contact Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone" className="text-sm font-medium">
+                  Contact Phone
+                </Label>
+                <Input
+                  id="contactPhone"
+                  type="tel"
+                  placeholder="e.g., +1 (555) 123-4567"
+                  value={formData.contactPhone}
+                  onChange={(e) => updateFormData('contactPhone', e.target.value)}
+                />
+              </div>
+
+              {/* Contact Email */}
+              <div className="space-y-2">
+                <Label htmlFor="contactEmail" className="text-sm font-medium">
+                  Contact Email
+                </Label>
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  placeholder="e.g., info@facility.com"
+                  value={formData.contactEmail}
+                  onChange={(e) => updateFormData('contactEmail', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Full Address */}
+            <div className="space-y-2">
+              <Label htmlFor="address" className="text-sm font-medium">
+                Full Address
+              </Label>
+              <Textarea
+                id="address"
+                placeholder="e.g., 123 Sports Street, Downtown District, City 12345"
+                value={formData.address}
+                onChange={(e) => updateFormData('address', e.target.value)}
+                rows={2}
+              />
             </div>
 
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-medium">
-                Description *
+                Description
               </Label>
               <Textarea
                 id="description"
                 placeholder="Describe your facility, its features, and what makes it special..."
                 value={formData.description}
                 onChange={(e) => updateFormData('description', e.target.value)}
-                className="min-h-[100px]"
+                rows={3}
               />
-              <p className="text-xs text-muted-foreground">
-                {formData.description.length}/10 characters minimum
-                {formData.description.trim().length < 10 && (
-                  <span className="text-destructive ml-2">
-                    Need {10 - formData.description.trim().length} more characters
-                  </span>
-                )}
-              </p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Sports & Amenities */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold">Sports & Amenities</h3>
             </div>
 
-            {/* Sports Supported */}
+            {/* Sports */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">
-                Sports Supported * 
-                {formData.sports.length === 0 && (
-                  <span className="text-destructive ml-2 font-normal">
-                    Please select at least one sport
-                  </span>
-                )}
-              </Label>
+              <Label className="text-sm font-medium">Sports Offered</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                 {SPORTS_OPTIONS.map((sport) => (
                   <Button
@@ -305,7 +350,7 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                 ))}
               </div>
               {formData.sports.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {formData.sports.map((sport) => (
                     <Badge key={sport} variant="secondary" className="gap-1">
                       {sport}
@@ -323,7 +368,7 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
 
             {/* Amenities */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Amenities Offered</Label>
+              <Label className="text-sm font-medium">Amenities Available</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {AMENITIES_OPTIONS.map((amenity) => {
                   const Icon = amenity.icon;
@@ -346,50 +391,22 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                 })}
               </div>
             </div>
-
-            {/* Images */}
-            <ImageUpload
-              images={images}
-              onImagesChange={setImages}
-              maxImages={10}
-            />
-
-            {/* Step 1 Validation Summary */}
-            <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-4">
-                <div className="text-sm space-y-2">
-                  <h4 className="font-medium">Step 1 Requirements:</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className={`flex items-center gap-2 ${formData.facilityName.trim() ? 'text-green-600' : 'text-destructive'}`}>
-                      <div className={`w-2 h-2 rounded-full ${formData.facilityName.trim() ? 'bg-green-600' : 'bg-destructive'}`}></div>
-                      Facility Name
-                    </div>
-                    <div className={`flex items-center gap-2 ${formData.location.trim() ? 'text-green-600' : 'text-destructive'}`}>
-                      <div className={`w-2 h-2 rounded-full ${formData.location.trim() ? 'bg-green-600' : 'bg-destructive'}`}></div>
-                      Location
-                    </div>
-                    <div className={`flex items-center gap-2 ${formData.description.trim().length >= 10 ? 'text-green-600' : 'text-destructive'}`}>
-                      <div className={`w-2 h-2 rounded-full ${formData.description.trim().length >= 10 ? 'bg-green-600' : 'bg-destructive'}`}></div>
-                      Description (10+ chars)
-                    </div>
-                    <div className={`flex items-center gap-2 ${formData.sports.length > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                      <div className={`w-2 h-2 rounded-full ${formData.sports.length > 0 ? 'bg-green-600' : 'bg-destructive'}`}></div>
-                      Sports Selected
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
-        )}
 
-        {step === 2 && (
+          <Separator />
+
+          {/* Court Details */}
           <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Building className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold">Court Details</h3>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Court Name */}
               <div className="space-y-2">
                 <Label htmlFor="courtName" className="text-sm font-medium">
-                  Court Name *
+                  Court Name
                 </Label>
                 <Input
                   id="courtName"
@@ -399,20 +416,52 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                 />
               </div>
 
+              {/* Court Type */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Court Type</Label>
+                <Select
+                  value={formData.courtType}
+                  onValueChange={(value: 'indoor' | 'outdoor') => updateFormData('courtType', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indoor">Indoor</SelectItem>
+                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Price per Hour */}
               <div className="space-y-2">
                 <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Price per Hour ($) *
+                  Price per Hour ($)
                 </Label>
                 <Input
                   id="price"
                   type="number"
-                  min="1"
-                  max="1000"
-                  placeholder="e.g., 50"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g., 50.00"
                   value={formData.pricePerHour}
                   onChange={(e) => updateFormData('pricePerHour', e.target.value)}
+                />
+              </div>
+
+              {/* Capacity */}
+              <div className="space-y-2">
+                <Label htmlFor="capacity" className="text-sm font-medium">
+                  Max Capacity (people)
+                </Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 10"
+                  value={formData.capacity}
+                  onChange={(e) => updateFormData('capacity', e.target.value)}
                 />
               </div>
             </div>
@@ -421,7 +470,7 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
             <div className="space-y-3">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Operating Hours *
+                Operating Hours
               </Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -467,86 +516,139 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Operating: {formatTime(formData.openTime)} - {formatTime(formData.closeTime)}
+                Hours: {formatTime(formData.openTime)} - {formatTime(formData.closeTime)}
               </p>
             </div>
+          </div>
 
-            {/* Status */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Initial Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: any) => updateFormData('status', value)}
-              >
-                <SelectTrigger className="w-full md:w-64">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Available">Available</SelectItem>
-                  <SelectItem value="Booked">Booked</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+          <Separator />
+
+          {/* Images Upload */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <ImageIcon className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold">Photos</h3>
             </div>
 
-            {/* Summary */}
-            <Card className="bg-muted/50">
-              <CardHeader>
-                <CardTitle className="text-lg">Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><span className="font-medium">Facility:</span> {formData.facilityName}</p>
-                    <p><span className="font-medium">Location:</span> {formData.location}</p>
-                    <p><span className="font-medium">Court:</span> {formData.courtName}</p>
-                  </div>
-                  <div>
-                    <p><span className="font-medium">Price:</span> ${formData.pricePerHour}/hour</p>
-                    <p><span className="font-medium">Hours:</span> {formatTime(formData.openTime)} - {formatTime(formData.closeTime)}</p>
-                    <p><span className="font-medium">Sports:</span> {formData.sports.join(', ')}</p>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <div className="space-y-2">
+                    <Label htmlFor="image-upload" className="cursor-pointer">
+                      <span className="text-sm font-medium text-green-600 hover:text-green-700">
+                        Upload photos
+                      </span>
+                      <span className="text-sm text-gray-500 ml-1">
+                        or drag and drop
+                      </span>
+                    </Label>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, GIF up to 10MB each
+                    </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              </div>
 
-        <Separator />
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between">
-          <div className="flex gap-2">
-            {step > 1 && (
-              <Button variant="outline" onClick={prevStep}>
-                Previous
-              </Button>
-            )}
-            {onCancel && (
-              <Button variant="ghost" onClick={onCancel}>
-                Cancel
-              </Button>
-            )}
+              {/* Image Preview */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {images.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeImage(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          
-          <div className="flex gap-2">
-            {step < 2 ? (
-              <Button onClick={nextStep} disabled={!validateStep1()}>
-                Next Step
-              </Button>
-            ) : (
+
+          <Separator />
+
+          {/* Additional Information */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold">Additional Information</h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {/* Rules */}
+              <div className="space-y-2">
+                <Label htmlFor="rules" className="text-sm font-medium">
+                  Rules & Guidelines
+                </Label>
+                <Textarea
+                  id="rules"
+                  placeholder="e.g., No outside food allowed, Proper sports attire required..."
+                  value={formData.rules}
+                  onChange={(e) => updateFormData('rules', e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-sm font-medium">
+                  Additional Notes
+                </Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Any other information about your facility..."
+                  value={formData.notes}
+                  onChange={(e) => updateFormData('notes', e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Submit Actions */}
+          <div className="flex justify-between items-center pt-6">
+            <div className="text-sm text-muted-foreground">
+              Your venue will be reviewed by our team before being published.
+            </div>
+            
+            <div className="flex gap-3">
+              {onCancel && (
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !validateStep2()}
+                disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isSubmitting ? 'Creating...' : 'Create Court'}
+                {isSubmitting ? 'Creating...' : 'Create Venue'}
               </Button>
-            )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -40,7 +40,7 @@ const VenueDetail = () => {
       <div className="min-h-screen bg-background">
         <SEO title="Venue Details - QuickCourt" description="View venue details and book courts" />
         <BrandNav />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-24 pb-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
@@ -58,7 +58,7 @@ const VenueDetail = () => {
       <div className="min-h-screen bg-background">
         <SEO title="Venue Not Found - QuickCourt" description="The requested venue could not be found" />
         <BrandNav />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 pt-24 pb-8">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">Venue Not Found</h2>
@@ -106,7 +106,7 @@ const VenueDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <BrandNav />
-        <main className="container mx-auto px-4 py-10">
+        <main className="container mx-auto px-4 pt-24 pb-8">
           <div className="animate-pulse">
             <div className="h-64 bg-muted rounded-lg mb-8"></div>
             <div className="h-8 bg-muted rounded w-1/2 mb-4"></div>
@@ -122,7 +122,7 @@ const VenueDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <BrandNav />
-        <main className="container mx-auto px-4 py-10">
+        <main className="container mx-auto px-4 pt-24 pb-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <p>Venue not found.</p>
@@ -145,7 +145,7 @@ const VenueDetail = () => {
       />
       <BrandNav />
       
-      <main className="container mx-auto px-4 py-6 sm:py-8 md:py-10 max-w-6xl">
+      <main className="container mx-auto px-4 pt-24 pb-8 max-w-6xl">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">{venue.name}</h1>

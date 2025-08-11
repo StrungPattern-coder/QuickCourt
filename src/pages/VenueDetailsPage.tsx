@@ -399,12 +399,15 @@ const VenueDetailsPage = () => {
 
   if (!venue) {
     return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Venue Not Found</h1>
-          <Button onClick={() => navigate('/book')}>
-            Browse Other Venues
-          </Button>
+      <div className="min-h-screen bg-green-50">
+        <BrandNav />
+        <div className="pt-24 pb-8 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Venue Not Found</h1>
+            <Button onClick={() => navigate('/book')}>
+              Browse Other Venues
+            </Button>
+          </div>
         </div>
       </div>
     );
