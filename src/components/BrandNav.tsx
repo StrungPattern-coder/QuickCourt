@@ -87,7 +87,7 @@ const BrandNav = () => {
           <Button 
             variant="ghost" 
             className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/venues')}
+            onClick={() => navigate('/book')}
           >
             Book
           </Button>

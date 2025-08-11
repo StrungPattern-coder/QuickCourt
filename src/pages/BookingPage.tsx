@@ -22,7 +22,8 @@ const BookingPage = () => {
             <p className="text-gray-600 mb-4">
               The booking functionality is currently being developed. Please check back later.
             </p>
-            <Button onClick={() => navigate('/venues')}>
+                        <Button onClick={() => navigate('/book')}>
+              Back to Venues
               Browse Venues
             </Button>
           </div>

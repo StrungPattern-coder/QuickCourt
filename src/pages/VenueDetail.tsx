@@ -65,7 +65,8 @@ const VenueDetail = () => {
               <p className="text-gray-600 mb-4">
                 The venue you're looking for doesn't exist or has been removed.
               </p>
-              <Button onClick={() => navigate('/venues')}>
+                            <Button onClick={() => navigate('/book')}>
+                Back to Venues
                 Browse Other Venues
               </Button>
             </div>
@@ -125,7 +126,7 @@ const VenueDetail = () => {
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
               <p>Venue not found.</p>
-              <Button className="mt-4" onClick={() => navigate('/venues')}>
+              <Button className="mt-4" onClick={() => navigate('/book')}>
                 Back to Venues
               </Button>
             </CardContent>
