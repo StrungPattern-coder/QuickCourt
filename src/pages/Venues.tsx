@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import SEO from "@/components/SEO";
 import BrandNav from "@/components/BrandNav";
 import VenueCard, { Venue } from "@/components/VenueCard";
@@ -20,22 +21,9 @@ import {
   Map,
   List
 } from 'lucide-react';
-
-const venues: Venue[] = [
-  { id: '1', name: 'Central Park Courts', sport: 'tennis', pricePerHour: 25, rating: 4.7, location: 'New York, NY' },
-  { id: '2', name: 'Harbor Badminton Hub', sport: 'badminton', pricePerHour: 18, rating: 4.6, location: 'India, CA' },
-  { id: '3', name: 'Downtown Hoops', sport: 'basketball', pricePerHour: 30, rating: 4.8, location: 'Los Angeles, CA' },
-  { id: '4', name: 'Riverside Soccer Arena', sport: 'soccer', pricePerHour: 28, rating: 4.5, location: 'Austin, TX' },
-  { id: '5', name: 'Elite Squash Center', sport: 'squash', pricePerHour: 22, rating: 4.4, location: 'Chicago, IL' },
-  { id: '6', name: 'City Volleyball Courts', sport: 'volleyball', pricePerHour: 20, rating: 4.3, location: 'Seattle, WA' },
-  { id: '7', name: 'Premier Tennis Club', sport: 'tennis', pricePerHour: 35, rating: 4.9, location: 'Miami, FL' },
-  { id: '8', name: 'Phoenix Basketball Center', sport: 'basketball', pricePerHour: 26, rating: 4.2, location: 'Phoenix, AZ' },
-  { id: '9', name: 'Metro Badminton Hall', sport: 'badminton', pricePerHour: 16, rating: 4.1, location: 'Denver, CO' },
-  { id: '10', name: 'Olympic Training Facility', sport: 'tennis', pricePerHour: 40, rating: 4.8, location: 'Boston, MA' },
-];
+import { facilitiesApi } from '@/lib/api';
 
 const sports = ['tennis', 'basketball', 'badminton', 'soccer', 'squash', 'volleyball'];
-const cities = [...new Set(venues.map(v => v.location))].sort();
 
 const Venues = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,6 +36,19 @@ const Venues = () => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Fetch venues from API
+  const { data: venuesData, isLoading, error } = useQuery({
+    queryKey: ['venues'],
+    queryFn: () => facilitiesApi.getAll(),
+  });
+
+  const venues = venuesData?.items || [];
+
+  // Extract unique cities from venues data
+  const cities = useMemo(() => {
+    return [...new Set(venues.map((v: any) => v.location))].sort();
+  }, [venues]);
+
   // Initialize from URL params
   useEffect(() => {
     const locationParam = searchParams.get('location');
@@ -56,63 +57,67 @@ const Venues = () => {
     }
   }, [searchParams]);
 
-  // Filter and sort venues
-  const filteredVenues = useMemo(() => {
-    let filtered = venues.filter((venue) => {
-      // Search term filter
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        if (
-          !venue.name.toLowerCase().includes(term) &&
-          !venue.location.toLowerCase().includes(term) &&
-          !venue.sport.toLowerCase().includes(term)
-        ) {
-          return false;
-        }
-      }
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
+        <BrandNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading venues...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      // Sports filter
-      if (selectedSports.length > 0 && !selectedSports.includes(venue.sport)) {
-        return false;
-      }
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
+        <BrandNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">Failed to load venues</p>
+              <Button onClick={() => window.location.reload()}>Try Again</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      // City filter
-      if (selectedCity && venue.location !== selectedCity) {
-        return false;
-      }
+  // Show empty state when no venues available
+  if (!venues || venues.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
+        <BrandNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-8 w-8 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Venues Available</h2>
+              <p className="text-gray-600 mb-4">
+                There are no sports venues available at the moment. Please check back later.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      // Price range filter
-      if (venue.pricePerHour < priceRange[0] || venue.pricePerHour > priceRange[1]) {
-        return false;
-      }
-
-      // Rating filter
-      if (venue.rating < minRating) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // Sort venues
-    switch (sortBy) {
-      case 'name':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'price-low':
-        filtered.sort((a, b) => a.pricePerHour - b.pricePerHour);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.pricePerHour - a.pricePerHour);
-        break;
-      case 'rating':
-      default:
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-    }
-
-    return filtered;
-  }, [searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy]);
+  // For now, return empty venues since we're removing static data
+  const filteredVenues: any[] = [];
 
   const handleSportFilter = (sport: string, checked: boolean) => {
     if (checked) {
@@ -263,7 +268,7 @@ const Venues = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">All cities</SelectItem>
-                        {cities.map((city) => (
+                        {cities.map((city: string) => (
                           <SelectItem key={city} value={city}>
                             {city}
                           </SelectItem>

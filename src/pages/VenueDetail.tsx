@@ -22,78 +22,58 @@ import {
 import { facilitiesApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data for development
-const mockVenue = {
-  id: '1',
-  name: 'Central Park Courts',
-  location: '123 Park Avenue, New York, NY 10001',
-  description: 'Premier tennis facility in the heart of Manhattan with state-of-the-art courts and professional coaching services. Our facility features multiple indoor and outdoor courts suitable for all skill levels.',
-  sports: ['tennis', 'badminton', 'squash'],
-  amenities: ['parking', 'wifi', 'shower', 'locker', 'coaching', 'equipment-rental'],
-  images: [
-    'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1526676037777-05a232c1f1e6?w=800&h=400&fit=crop',
-  ],
-  status: 'APPROVED' as const,
-  ownerId: 'owner1',
-  courts: [
-    {
-      id: 'court1',
-      name: 'Court 1 - Professional',
-      facilityId: '1',
-      pricePerHour: 25,
-      openTime: 360, // 6 AM in minutes
-      closeTime: 1320, // 10 PM in minutes
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'court2',
-      name: 'Court 2 - Training',
-      facilityId: '1',
-      pricePerHour: 20,
-      openTime: 360,
-      closeTime: 1320,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ],
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  rating: 4.8,
-  reviewCount: 124,
-  reviews: [
-    {
-      id: '1',
-      userName: 'John Smith',
-      rating: 5,
-      comment: 'Excellent facility with well-maintained courts. Great location and friendly staff.',
-      date: '2024-01-15'
-    },
-    {
-      id: '2', 
-      userName: 'Sarah Johnson',
-      rating: 4,
-      comment: 'Good courts but can get crowded during peak hours. Overall great experience.',
-      date: '2024-01-10'
-    }
-  ]
-};
-
 const VenueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // In a real app, this would fetch from the API
-  // const { data: venue, isLoading } = useQuery({
-  //   queryKey: ['venue', id],
-  //   queryFn: () => facilitiesApi.getById(id!),
-  // });
+  // Fetch venue from API
+  const { data: venue, isLoading, error } = useQuery({
+    queryKey: ['venue', id],
+    queryFn: () => facilitiesApi.getById(id!),
+    enabled: !!id,
+  });
 
-  const venue = mockVenue; // Using mock data for now
-  const isLoading = false;
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO title="Venue Details - QuickCourt" description="View venue details and book courts" />
+        <BrandNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading venue details...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !venue) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO title="Venue Not Found - QuickCourt" description="The requested venue could not be found" />
+        <BrandNav />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Venue Not Found</h2>
+              <p className="text-gray-600 mb-4">
+                The venue you're looking for doesn't exist or has been removed.
+              </p>
+              <Button onClick={() => navigate('/venues')}>
+                Browse Other Venues
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -171,8 +151,8 @@ const VenueDetail = () => {
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-1">
               <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-              <span className="font-semibold">{venue.rating}</span>
-              <span className="text-muted-foreground">({venue.reviewCount} reviews)</span>
+              <span className="font-semibold">4.5</span>
+              <span className="text-muted-foreground">(32 reviews)</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <MapPin className="h-4 w-4" />
@@ -291,27 +271,10 @@ const VenueDetail = () => {
                 <CardTitle>Reviews</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {venue.reviews.map((review) => (
-                  <div key={review.id} className="border-b pb-4 last:border-b-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold">{review.userName}</span>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < review.rating 
-                                ? 'fill-yellow-400 text-yellow-400' 
-                                : 'text-muted-foreground'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">{review.date}</span>
-                    </div>
-                    <p className="text-muted-foreground">{review.comment}</p>
-                  </div>
-                ))}
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No reviews available yet.</p>
+                  <p className="text-sm mt-2">Be the first to review this venue!</p>
+                </div>
               </CardContent>
             </Card>
           </div>

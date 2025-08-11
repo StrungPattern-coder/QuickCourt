@@ -164,44 +164,6 @@ const Footer = () => {
             ))}
           </div>
         </div>
-
-        {/* App Download Section */}
-        <div className="mt-8 pt-8 border-t">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-center md:text-left">
-              <h3 className="font-semibold mb-2">Get the QuickCourt App</h3>
-              <p className="text-sm text-muted-foreground">
-                Book courts faster with our mobile app. Available on iOS and Android.
-              </p>
-            </div>
-            
-            <div className="flex gap-3">
-              <Button variant="outline" size="sm" className="h-auto py-2 px-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-black rounded-sm flex items-center justify-center">
-                    <span className="text-white text-xs">📱</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs text-muted-foreground">Download on the</div>
-                    <div className="text-sm font-semibold">App Store</div>
-                  </div>
-                </div>
-              </Button>
-              
-              <Button variant="outline" size="sm" className="h-auto py-2 px-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-green-600 rounded-sm flex items-center justify-center">
-                    <span className="text-white text-xs">▶</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs text-muted-foreground">Get it on</div>
-                    <div className="text-sm font-semibold">Google Play</div>
-                  </div>
-                </div>
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
     </footer>
   );

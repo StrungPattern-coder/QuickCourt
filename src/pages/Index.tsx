@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import BrandNav from "@/components/BrandNav";
 import BackgroundGlow from "@/components/BackgroundGlow";
 import Hero from "@/components/Hero";
-import VenueCard, { Venue } from "@/components/VenueCard";
+import CourtsCarousel from "@/components/CourtsCarousel";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,15 +23,6 @@ import {
   Target,
   Zap
 } from 'lucide-react';
-
-const featured: Venue[] = [
-  { id: '1', name: 'Central Park Courts', sport: 'tennis', pricePerHour: 25, rating: 4.7, location: 'NYC' },
-  { id: '2', name: 'Harbor Badminton Hub', sport: 'badminton', pricePerHour: 18, rating: 4.6, location: 'SF' },
-  { id: '3', name: 'Downtown Hoops', sport: 'basketball', pricePerHour: 30, rating: 4.8, location: 'LA' },
-  { id: '4', name: 'Sunset Squash', sport: 'squash', pricePerHour: 22, rating: 4.5, location: 'Miami' },
-  { id: '5', name: 'Elite Training Center', sport: 'tennis', pricePerHour: 35, rating: 4.9, location: 'Chicago' },
-  { id: '6', name: 'City Sports Complex', sport: 'basketball', pricePerHour: 28, rating: 4.4, location: 'Austin' },
-];
 
 const sports = [
   { name: 'Tennis', icon: '🎾', count: '1,200+ courts' },
@@ -73,13 +64,6 @@ const features = [
     title: 'Community Driven',
     description: 'Connect with other players and discover local sports communities'
   }
-];
-
-const stats = [
-  { label: 'Active Courts', value: '3,500+' },
-  { label: 'Happy Players', value: '50K+' },
-  { label: 'Cities Covered', value: '25+' },
-  { label: 'Bookings Made', value: '1M+' },
 ];
 
 const Index = () => {
@@ -144,41 +128,8 @@ const Index = () => {
             </div>
           </section>
 
-          {/* Featured Venues */}
-          <section className="container mx-auto px-4 mb-16">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h2 className="text-2xl font-semibold mb-2">Trending Courts</h2>
-                <p className="text-muted-foreground">Popular venues in your area</p>
-              </div>
-              <Button variant="outline" onClick={() => navigate('/venues')}>
-                View All Courts
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featured.map((venue) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))}
-            </div>
-          </section>
-
-          {/* Stats Section */}
-          <section className="bg-muted/30 py-16 mb-16">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-2">Trusted by Sports Enthusiasts</h2>
-                <p className="text-muted-foreground">Join thousands of players who book with QuickCourt</p>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="text-center">
-                    <div className="text-4xl font-bold text-primary mb-2">{stat.value}</div>
-                    <div className="text-muted-foreground">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          {/* Beautiful Courts Carousel */}
+          <CourtsCarousel />
 
           {/* Features Section */}
           <section className="container mx-auto px-4 mb-16">
