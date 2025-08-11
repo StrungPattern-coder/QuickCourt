@@ -79,8 +79,8 @@ const HomePage = () => {
     images: ['/placeholder.svg'], // Default placeholder
     sports: [venue.sport],
     pricePerHour: venue.pricePerHour,
-    rating: venue.rating,
-    reviewCount: Math.floor(Math.random() * 100) + 10, // Mock review count
+    rating: 0, // No fake ratings - only real user ratings
+    reviewCount: 0, // No fake review count
     amenities: ['Parking', 'Changing Room'], // Mock amenities
     type: Math.random() > 0.5 ? 'indoor' : 'outdoor', // Random type
     isVerified: Math.random() > 0.3 // 70% chance of being verified
@@ -133,7 +133,7 @@ const HomePage = () => {
             name: facility.name,
             location: facility.location,
             sport: facility.sports[0] || 'General',
-            rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
+            rating: 0, // No fake ratings - only real user ratings from database
             pricePerHour: facility.courts.length > 0 ? 
               facility.courts.reduce((sum, court) => sum + court.pricePerHour, 0) / facility.courts.length :
               500
