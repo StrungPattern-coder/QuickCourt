@@ -53,8 +53,8 @@ const Venues = () => {
     images: facility.images.length > 0 ? facility.images : ['/placeholder.svg'],
     sports: facility.sports,
     pricePerHour: facility.courts?.[0]?.pricePerHour || 0,
-    rating: Math.random() * 2 + 3.5,
-    reviewCount: Math.floor(Math.random() * 100) + 10,
+    rating: 0, // No fake ratings - will be calculated from actual reviews
+    reviewCount: 0, // No fake review counts - will be from actual reviews
     amenities: facility.amenities,
     type: Math.random() > 0.5 ? 'indoor' : 'outdoor',
     isVerified: facility.status === 'APPROVED'

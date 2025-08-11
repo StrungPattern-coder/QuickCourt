@@ -509,36 +509,6 @@ const HomePage = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* Stats Section */}
-      <section className="py-12 sm:py-16 bg-white border-t border-gray-100">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
-            {[
-              { number: "500+", label: "Sports Venues", icon: <Trophy className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "10K+", label: "Happy Players", icon: <Users className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "25+", label: "Cities", icon: <MapPin className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "4.8★", label: "Average Rating", icon: <Star className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> }
-            ].map((stat, index) => (
-              <motion.div key={index} variants={fadeInUp} className="p-3 sm:p-6">
-                {stat.icon}
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-sm sm:text-lg text-gray-600">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
     </div>
   );
 };
