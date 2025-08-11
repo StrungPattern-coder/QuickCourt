@@ -90,7 +90,7 @@ export const authApi = {
   refresh: (refreshToken: string) =>
     apiRequest<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify(refreshToken),
+      body: JSON.stringify({ refreshToken }),
     }),
 
   logout: (refreshToken: string) =>
