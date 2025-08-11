@@ -140,7 +140,7 @@ const OtpVerification = ({
               navigate('/admin/dashboard');
               break;
             default:
-              navigate('/book');
+              navigate('/');
           }
         }, 1000);
       }

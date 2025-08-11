@@ -61,7 +61,7 @@ const OtpLogin = () => {
         navigate('/admin/dashboard');
         break;
       default:
-        navigate('/book');
+        navigate('/');
     }
   };
 
