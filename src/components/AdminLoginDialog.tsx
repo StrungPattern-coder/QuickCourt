@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ const AdminLoginDialog: React.FC = () => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Admin Login</DialogTitle>
+          <DialogDescription>Sign in with your admin email and password to manage facility approvals.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">

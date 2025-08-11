@@ -148,83 +148,37 @@ const VenuesPage = () => {
   };
 
   // Mock data - replace with actual API call
-  const mockVenues: Venue[] = [
-    {
-      id: '1',
-      name: 'Elite Sports Complex',
-      location: 'Bandra West, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Badminton', 'Tennis'],
-      pricePerHour: 500,
-      rating: 4.8,
-      reviewCount: 127,
-      amenities: ['Parking', 'Changing Room', 'Water', 'First Aid'],
-      type: 'indoor',
-      isVerified: true
-    },
-    {
-      id: '2',
-      name: 'SportZone Arena',
-      location: 'Andheri East, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Football', 'Cricket'],
-      pricePerHour: 400,
-      rating: 4.7,
-      reviewCount: 89,
-      amenities: ['Parking', 'Floodlights', 'Seating'],
-      type: 'outdoor',
-      isVerified: true
-    },
-    {
-      id: '3',
-      name: 'Court Masters',
-      location: 'Powai, Mumbai',
-      images: ['/placeholder.svg'],
-      sports: ['Tennis', 'Squash'],
-      pricePerHour: 600,
-      rating: 4.6,
-      reviewCount: 156,
-      amenities: ['AC', 'Parking', 'Cafeteria', 'Pro Shop'],
-      type: 'indoor',
-      isVerified: true
-    }
-  ];
+  // Removed mockVenues. Use real API below.
 
   // Fetch venues
   const fetchVenues = async () => {
     setIsLoading(true);
     try {
-      // For now, use mock data
-      // Replace with actual API call:
-      // const response = await facilitiesApi.getAll({
-      //   ...filters,
-      //   sort: sortBy,
-      //   page: currentPage,
-      //   limit: 12
-      // });
-      
-      // Simulate API delay
-      setTimeout(() => {
-        const filteredVenues = mockVenues.filter(venue => {
-          if (filters.sportType && filters.sportType !== 'All Sports') {
-            if (!venue.sports.includes(filters.sportType)) return false;
-          }
-          if (filters.location) {
-            if (!venue.location.toLowerCase().includes(filters.location.toLowerCase())) return false;
-          }
-          if (venue.pricePerHour < filters.priceMin || venue.pricePerHour > filters.priceMax) return false;
-          if (venue.rating < filters.rating) return false;
-          if (filters.venueType && venue.type !== filters.venueType) return false;
-          
-          return true;
-        });
-        
-        setVenues(filteredVenues);
-        setTotalResults(filteredVenues.length);
-        setTotalPages(Math.ceil(filteredVenues.length / 12));
-        setIsLoading(false);
-      }, 800);
-      
+      // Use real API call
+      const response = await facilitiesApi.list({
+        sport: filters.sportType,
+        q: filters.location,
+        page: currentPage,
+        pageSize: 12
+      });
+      // Map Facility[] to Venue[] for frontend
+      const mappedVenues = (response.items || []).map((facility) => ({
+        id: facility.id,
+        name: facility.name,
+        location: facility.location,
+        images: facility.images || [],
+        sports: facility.sports || [],
+        pricePerHour: facility.courts?.[0]?.pricePerHour ?? 0,
+        rating: 0, // No rating field in Court, set to 0 or fetch from reviews
+        reviewCount: 0, // You can update this if you have review data
+        amenities: facility.amenities || [],
+        type: 'indoor' as 'indoor' | 'outdoor',
+        isVerified: facility.status === 'APPROVED',
+      }));
+      setVenues(mappedVenues);
+      setTotalResults(response.total || mappedVenues.length);
+      setTotalPages(Math.ceil((response.total || mappedVenues.length) / 12));
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching venues:', error);
       toast({
