@@ -60,7 +60,7 @@ const Venues = () => {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pt-[72px]">
         <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
         <BrandNav />
         <div className="container mx-auto px-4 py-8">
@@ -78,7 +78,7 @@ const Venues = () => {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pt-[72px]">
         <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
         <BrandNav />
         <div className="container mx-auto px-4 py-8">
@@ -96,7 +96,7 @@ const Venues = () => {
   // Show empty state when no venues available
   if (!venues || venues.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pt-[72px]">
         <SEO title="Sports Venues - QuickCourt" description="Find and book sports facilities near you" />
         <BrandNav />
         <div className="container mx-auto px-4 py-8">
@@ -145,78 +145,60 @@ const Venues = () => {
     (minRating > 0 ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[72px]">
       <SEO title="Find Sports Venues – QuickCourt" description="Browse all nearby sports facilities and check live availability." path="/venues" />
       <BrandNav />
       
-      <main className="container mx-auto px-4 py-10">
+      <main className="container mx-auto px-4 py-6 sm:py-8 md:py-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Find Sports Venues</h1>
-          <p className="text-muted-foreground">Discover and book the perfect court for your next game</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Find Sports Venues</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Discover and book the perfect court for your next game</p>
         </div>
 
         {/* Search and Controls */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 {/* Search Bar */}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by venue name, location, or sport..."
+                    placeholder="Search by venue name, location..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-10 sm:h-auto"
                   />
                 </div>
 
-                {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rating">Sort by Rating</SelectItem>
-                    <SelectItem value="name">Sort by Name</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Sort and Filters - Mobile */}
+                <div className="flex gap-2 sm:contents">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rating">Sort by Rating</SelectItem>
+                      <SelectItem value="name">Sort by Name</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                {/* Filters Toggle */}
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="relative"
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                  {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
-                      {activeFiltersCount}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* View Mode Toggle */}
-                <div className="flex border rounded-lg">
+                  {/* Filters Toggle */}
                   <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="rounded-r-none"
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="relative flex-shrink-0"
                   >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'map' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('map')}
-                    className="rounded-l-none"
-                  >
-                    <Map className="h-4 w-4" />
+                    <Filter className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Filters</span>
+                    {activeFiltersCount > 0 && (
+                      <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
                   </Button>
                 </div>
               </div>

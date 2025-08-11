@@ -308,7 +308,7 @@ const VenuesPage = () => {
   }, [currentPage]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-[72px]">
       <SEO 
         title={`${pageContext.title} - QuickCourt`}
         description={`${pageContext.subtitle}. Filter by sport, location, price and more.`}
@@ -317,24 +317,24 @@ const VenuesPage = () => {
       <BrandNav />
       
       {/* Search Bar - Sticky */}
-      <div className="sticky top-20 z-40 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
+      <div className="sticky top-[72px] z-40 bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search Inputs */}
-            <div className="flex flex-1 gap-3 w-full lg:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <div className="relative flex-1">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search location"
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
-                  className="pl-10 h-12"
+                  className="pl-10 h-10 sm:h-12"
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
               
               <Select value={selectedSport} onValueChange={setSelectedSport}>
-                <SelectTrigger className="w-40 h-12">
+                <SelectTrigger className="w-full sm:w-40 h-10 sm:h-12">
                   <SelectValue placeholder="Sport" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,14 +350,14 @@ const VenuesPage = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="pl-10 w-40 h-12"
+                  className="pl-10 w-full sm:w-40 h-10 sm:h-12"
                 />
               </div>
             </div>
 
             {/* Search Button & Mobile Filter Toggle */}
-            <div className="flex gap-3">
-              <Button onClick={handleSearch} className="h-12 px-8">
+            <div className="flex gap-2 sm:gap-3">
+              <Button onClick={handleSearch} className="flex-1 sm:flex-none h-10 sm:h-12 px-6 sm:px-8">
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
@@ -365,7 +365,7 @@ const VenuesPage = () => {
               <Button
                 variant="outline"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="lg:hidden h-12"
+                className="lg:hidden h-10 sm:h-12 px-4"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
@@ -419,19 +419,35 @@ const VenuesPage = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Results Header */}
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <span className="text-2xl">{pageContext.icon}</span>
-                  {pageContext.title} {filters.location && `in ${filters.location}`}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="text-xl sm:text-2xl">{pageContext.icon}</span>
+                  <span className="line-clamp-1">
+                    {pageContext.title} {filters.location && `in ${filters.location}`}
+                  </span>
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">
                   {isLoading ? 'Loading...' : `${totalResults} venues found`} • {pageContext.subtitle}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* View Toggle */}
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                {/* Sort Dropdown */}
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-full sm:w-48 h-9 text-sm">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* View Toggle - Hidden on mobile */}
                 <div className="hidden md:flex border rounded-lg p-1">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -450,21 +466,6 @@ const VenuesPage = () => {
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
-
-                {/* Sort Dropdown */}
-                <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-48">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SORT_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
