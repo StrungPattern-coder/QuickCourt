@@ -33,6 +33,7 @@ import {
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import BrandNav from '@/components/BrandNav';
+import AdminAnalytics from '@/components/AdminAnalytics';
 import SEO from '@/components/SEO';
 
 interface DashboardStats {
@@ -335,7 +336,7 @@ const AdminDashboard = () => {
 
           {/* Main Content Tabs */}
           <Tabs defaultValue="facilities" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-white p-1 rounded-lg shadow-sm border-0">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4 bg-white p-1 rounded-lg shadow-sm border-0">
               <TabsTrigger value="facilities" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
                 <Building className="h-4 w-4 mr-2" />
                 Facilities
@@ -347,6 +348,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="bookings" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
                 <Calendar className="h-4 w-4 mr-2" />
                 Bookings
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
               </TabsTrigger>
             </TabsList>
 
@@ -776,6 +781,18 @@ const AdminDashboard = () => {
                       </TableBody>
                     </Table>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics">
+              <Card className="bg-white shadow-sm border-0">
+                <CardHeader className="border-b border-gray-100">
+                  <CardTitle className="text-xl font-semibold text-gray-900">Data Analytics</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <AdminAnalytics />
                 </CardContent>
               </Card>
             </TabsContent>

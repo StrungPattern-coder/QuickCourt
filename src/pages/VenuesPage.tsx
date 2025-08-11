@@ -55,7 +55,9 @@ const SPORTS_OPTIONS = [
   'Basketball',
   'Table Tennis',
   'Squash',
-  'Swimming'
+  'Swimming',
+  'Volleyball',
+  'Pickleball'
 ];
 
 const VenuesPage = () => {

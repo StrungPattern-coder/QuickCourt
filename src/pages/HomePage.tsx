@@ -116,13 +116,19 @@ const HomePage = () => {
           });
         });
 
-        const sportsData: Sport[] = Array.from(sportsMap.entries()).map(([sport, count], index) => ({
+        // Define all available sports that should always be shown
+        const allAvailableSports = [
+          'Badminton', 'Tennis', 'Football', 'Cricket', 'Basketball', 
+          'Table Tennis', 'Squash', 'Swimming', 'Volleyball', 'Pickleball'
+        ];
+
+        const sportsData: Sport[] = allAvailableSports.map((sport, index) => ({
           id: (index + 1).toString(),
           name: sport,
           icon: getSportIcon(sport),
           image: '/placeholder.svg',
-          venueCount: count
-        })).slice(0, 8); // Take top 8 sports
+          venueCount: sportsMap.get(sport) || 0 // Show 0 if no venues found
+        }));
 
         // Generate venues data from facilities
         const venuesData: Venue[] = facilities
@@ -149,6 +155,12 @@ const HomePage = () => {
           { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
           { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 0 },
           { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 0 },
+          { id: '5', name: 'Basketball', icon: '🏀', image: '/placeholder.svg', venueCount: 0 },
+          { id: '6', name: 'Table Tennis', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
+          { id: '7', name: 'Squash', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
+          { id: '8', name: 'Swimming', icon: '🏊', image: '/placeholder.svg', venueCount: 0 },
+          { id: '9', name: 'Volleyball', icon: '🏐', image: '/placeholder.svg', venueCount: 0 },
+          { id: '10', name: 'Pickleball', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
         ]);
         setTopRatedVenues([]);
       } finally {
@@ -332,7 +344,9 @@ const HomePage = () => {
                         <CardContent className="p-3 sm:p-4 md:p-6 text-center">
                           <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3">{sport.icon}</div>
                           <h3 className="font-semibold text-gray-900 mb-1 text-xs sm:text-sm md:text-base">{sport.name}</h3>
-                          <p className="text-xs sm:text-sm text-gray-500">{sport.venueCount} venues</p>
+                          <p className="text-xs sm:text-sm text-gray-500">
+                            {sport.venueCount === 0 ? 'No venues found' : `${sport.venueCount} venues`}
+                          </p>
                         </CardContent>
                       </Card>
                     </motion.div>
