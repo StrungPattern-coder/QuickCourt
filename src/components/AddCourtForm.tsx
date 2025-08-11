@@ -126,15 +126,6 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
            formData.description.trim().length >= 10 &&
            formData.sports.length > 0;
     
-    // Debug logging
-    console.log('Step 1 Validation:', {
-      facilityName: formData.facilityName.trim(),
-      location: formData.location.trim(),
-      descriptionLength: formData.description.trim().length,
-      sportsCount: formData.sports.length,
-      isValid
-    });
-    
     return isValid;
   };
 
