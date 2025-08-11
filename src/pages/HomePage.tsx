@@ -418,31 +418,33 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Join Community Banner */}
-      <section className="py-12 sm:py-16 md:py-20 bg-green-600 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-500"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            className="text-center text-white"
-            {...fadeInUp}
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
-              Join Thousands of Players and Facility Owners
-            </h2>
-            <p className="text-lg sm:text-xl text-green-100 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-              Become part of India's largest sports community. Play, connect, and grow together.
-            </p>
-            <Button
-              onClick={() => navigate('/signup')}
-              size="lg"
-              className="bg-white text-green-600 hover:bg-gray-100 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+      {/* Join Community Banner - hidden when logged in */}
+      {!user && (
+        <section className="py-12 sm:py-16 md:py-20 bg-green-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-500"></div>
+          <div className="container mx-auto px-4 relative z-10">
+            <motion.div
+              className="text-center text-white"
+              {...fadeInUp}
             >
-              <Users className="h-5 sm:h-6 w-5 sm:w-6 mr-2" />
-              Sign Up for Free
-            </Button>
-          </motion.div>
-        </div>
-      </section>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
+                Join Thousands of Players and Facility Owners
+              </h2>
+              <p className="text-lg sm:text-xl text-green-100 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
+                Become part of India's largest sports community. Play, connect, and grow together.
+              </p>
+              <Button
+                onClick={() => navigate('/signup')}
+                size="lg"
+                className="bg-white text-green-600 hover:bg-gray-100 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Users className="h-5 sm:h-6 w-5 sm:w-6 mr-2" />
+                Sign Up for Free
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* How It Works */}
       <section className="py-12 sm:py-16 md:py-20 bg-gray-50">

@@ -83,14 +83,15 @@ const BrandNav = () => {
       <nav className="container mx-auto flex items-center justify-between px-4 py-4">
         {/* Logo */}
         <div className="px-2 sm:px-6 py-3 flex items-center">
-          <Link to="/" className={`text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}>
-            QuickCourt
+          <Link to="/" className={`flex items-center gap-2 text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}>
+            <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-white text-sm">QC</span>
+            <span>QuickCourt</span>
           </Link>
         </div>
         
         {/* Desktop Navigation */}
         <div className={`hidden lg:flex rounded-full p-1 items-center gap-1 border transition-all duration-300 ${navStyle.navBackground}`}>
-          {user?.role !== 'OWNER' && (
+          {isAuthenticated && user?.role !== 'OWNER' && (
             <>
               <Button 
                 variant="ghost" 
@@ -260,8 +261,17 @@ const BrandNav = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col space-y-4 mt-8">
-                {user?.role !== 'OWNER' && (
+              <div className="mt-4 mb-4 flex items-center justify-between">
+                <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
+                  <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-white text-sm font-bold">QC</span>
+                  <span className="font-semibold">QuickCourt</span>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex flex-col space-y-4 mt-2">
+                {isAuthenticated && user?.role !== 'OWNER' && (
                   <>
                     <Button
                       variant="ghost"
