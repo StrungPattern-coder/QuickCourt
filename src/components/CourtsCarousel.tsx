@@ -108,7 +108,7 @@ const CourtsCarousel = () => {
   );
 
   const handleBookCourt = (courtId: string) => {
-    navigate(`/venues/${courtId}`);
+    navigate('/book');
   };
 
   const handleViewAll = () => {

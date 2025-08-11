@@ -19,7 +19,6 @@ import {
   Building, 
   MapPin, 
   Clock, 
-  DollarSign, 
   Users, 
   TrendingUp,
   Eye,
@@ -30,7 +29,8 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  MoreHorizontal
+  MoreHorizontal,
+  IndianRupee
 } from 'lucide-react';
 import SEO from '@/components/SEO';
 import BrandNav from '@/components/BrandNav';
@@ -278,11 +278,11 @@ const OwnerDashboard: React.FC = () => {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Average Price</CardTitle>
                   <div className="p-2 bg-yellow-100 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    <IndianRupee className="h-5 w-5 text-yellow-600" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">${dashboardStats.avgPrice}</div>
+                  <div className="text-3xl font-bold text-gray-900">₹{dashboardStats.avgPrice}</div>
                   <p className="text-sm text-yellow-600 font-medium">Per hour rate</p>
                 </CardContent>
               </Card>
@@ -297,7 +297,7 @@ const OwnerDashboard: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">${dashboardStats.monthlyRevenue.toLocaleString()}</div>
+                  <div className="text-3xl font-bold text-gray-900">₹{dashboardStats.monthlyRevenue.toLocaleString()}</div>
                   <p className="text-sm text-purple-600 font-medium">Estimated monthly</p>
                 </CardContent>
               </Card>
@@ -524,8 +524,8 @@ const OwnerDashboard: React.FC = () => {
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-1">
-                                      <DollarSign className="h-4 w-4 text-green-600" />
-                                      <span className="font-medium">${Number(court.pricePerHour)}/hr</span>
+                                      <IndianRupee className="h-4 w-4 text-green-600" />
+                                      <span className="font-medium">₹{Number(court.pricePerHour)}/hr</span>
                                     </div>
                                   </TableCell>
                                   <TableCell>
@@ -643,4 +643,4 @@ const OwnerDashboard: React.FC = () => {
   );
 };
 
-export default OwnerDashboard; 
+export default OwnerDashboard;

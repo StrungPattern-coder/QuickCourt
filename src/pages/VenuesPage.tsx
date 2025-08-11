@@ -524,7 +524,7 @@ const VenuesPage = () => {
                     <VenueCard 
                       venue={venue} 
                       viewMode={viewMode}
-                      onClick={() => navigate(`/venues/${venue.id}`)}
+                      onClick={() => navigate(`/venue-details/${venue.id}`)}
                     />
                   </motion.div>
                 ))}

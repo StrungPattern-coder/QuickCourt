@@ -39,6 +39,8 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
     if (onClick) {
       onClick();
     } else {
+      // Previously: navigate(`/venue-details/${venue.id}`) or `/venue/${venue.id}`
+      // Ensure we use the defined route in App.tsx: /venue-details/:id
       navigate(`/venue-details/${venue.id}`);
     }
   };
@@ -71,7 +73,8 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
           <div className="flex">
             {/* Image */}
             <div className="relative w-64 h-48 flex-shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+              {/* Loading overlay below image */}
+              <div className={`absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center transition-opacity duration-300 ${isImageLoaded ? 'opacity-0' : 'opacity-100'}`}>
                 {!isImageLoaded && (
                   <div className="text-white text-4xl">🏟️</div>
                 )}
@@ -79,14 +82,14 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
               <img
                 src={venue.images[0] || '/placeholder.svg'}
                 alt={venue.name}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                className={`relative z-10 w-full h-full object-cover transition-opacity duration-300 ${
                   isImageLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
                 onLoad={handleImageLoad}
               />
               
               {/* Overlay Actions */}
-              <div className="absolute top-3 right-3 flex gap-2">
+              <div className="absolute z-20 top-3 right-3 flex gap-2">
                 <button
                   onClick={handleFavoriteClick}
                   className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
@@ -106,7 +109,7 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
               </div>
               
               {/* Type Badge */}
-              <div className="absolute bottom-3 left-3">
+              <div className="absolute z-20 bottom-3 left-3">
                 <Badge 
                   variant="secondary" 
                   className="bg-white/90 text-gray-700 capitalize"
@@ -199,7 +202,8 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
       <Card className="overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 group">
         {/* Image */}
         <div className="relative h-48 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+          {/* Loading overlay below image */}
+          <div className={`absolute inset-0 z-0 pointer-events-none bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center transition-opacity duration-300 ${isImageLoaded ? 'opacity-0' : 'opacity-100'}`}>
             {!isImageLoaded && (
               <div className="text-white text-4xl">🏟️</div>
             )}
@@ -207,14 +211,14 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
           <img
             src={venue.images[0] || '/placeholder.svg'}
             alt={venue.name}
-            className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-300 ${
+            className={`relative z-10 w-full h-full object-cover group-hover:scale-110 transition-all duration-300 ${
               isImageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             onLoad={handleImageLoad}
           />
           
           {/* Overlay Actions */}
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute z-20 top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleFavoriteClick}
               className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
@@ -234,7 +238,7 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
           </div>
           
           {/* Type Badge */}
-          <div className="absolute bottom-3 left-3">
+          <div className="absolute z-20 bottom-3 left-3">
             <Badge 
               variant="secondary" 
               className="bg-white/90 text-gray-700 capitalize"

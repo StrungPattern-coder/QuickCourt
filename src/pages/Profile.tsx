@@ -306,10 +306,6 @@ const Profile = () => {
                 >
                   Edit Profile
                 </Button>
-                
-                <Button variant="outline" className="w-full justify-start">
-                  All Bookings
-                </Button>
               </div>
             </Card>
           </div>

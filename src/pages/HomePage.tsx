@@ -130,6 +130,15 @@ const HomePage = () => {
           venueCount: sportsMap.get(sport) || 0 // Show 0 if no venues found
         }));
 
+        // Fallback sports when none available
+        const defaultSports: Sport[] = [
+          { id: '1', name: 'Badminton', icon: '🏸', image: '/placeholder.svg', venueCount: 0 },
+          { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
+          { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 0 },
+          { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 0 },
+        ];
+        const finalSports = sportsData.length > 0 ? sportsData : defaultSports;
+
         // Generate venues data from facilities
         const venuesData: Venue[] = facilities
           .filter(facility => facility.status === 'APPROVED')
@@ -139,14 +148,22 @@ const HomePage = () => {
             name: facility.name,
             location: facility.location,
             sport: facility.sports[0] || 'General',
-            rating: 0, // No fake ratings - only real user ratings from database
+            rating: 0, // only real user ratings in future
             pricePerHour: facility.courts.length > 0 ? 
               facility.courts.reduce((sum, court) => sum + court.pricePerHour, 0) / facility.courts.length :
               500
           }));
 
-        setPopularSports(sportsData);
-        setTopRatedVenues(venuesData);
+        // Fallback venues when none available
+        const defaultVenues: Venue[] = [
+          { id: 'placeholder-1', name: 'Sample Sports Arena', location: 'Your City', sport: 'Badminton', rating: 0, pricePerHour: 500 },
+          { id: 'placeholder-2', name: 'Community Courts', location: 'Your City', sport: 'Tennis', rating: 0, pricePerHour: 500 },
+          { id: 'placeholder-3', name: 'Urban Play Zone', location: 'Your City', sport: 'Football', rating: 0, pricePerHour: 500 },
+        ];
+        const finalVenues = venuesData.length > 0 ? venuesData : defaultVenues;
+
+        setPopularSports(finalSports);
+        setTopRatedVenues(finalVenues);
       } catch (error) {
         console.error('Error fetching data:', error);
         // Fallback to default data if API fails
@@ -162,7 +179,11 @@ const HomePage = () => {
           { id: '9', name: 'Volleyball', icon: '🏐', image: '/placeholder.svg', venueCount: 0 },
           { id: '10', name: 'Pickleball', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
         ]);
-        setTopRatedVenues([]);
+        setTopRatedVenues([
+          { id: 'placeholder-1', name: 'Sample Sports Arena', location: 'Your City', sport: 'Badminton', rating: 0, pricePerHour: 500 },
+          { id: 'placeholder-2', name: 'Community Courts', location: 'Your City', sport: 'Tennis', rating: 0, pricePerHour: 500 },
+          { id: 'placeholder-3', name: 'Urban Play Zone', location: 'Your City', sport: 'Football', rating: 0, pricePerHour: 500 },
+        ]);
       } finally {
         setIsLoading(false);
       }
