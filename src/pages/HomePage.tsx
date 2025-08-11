@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import SEO from '@/components/SEO';
 
 interface Venue {
@@ -171,13 +172,13 @@ const HomePage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
           >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight px-2">
               Book Sports Facilities
               <span className="block text-green-400">Near You</span>
             </h1>
             
             <motion.p
-              className="text-xl md:text-2xl mb-12 text-gray-200 max-w-3xl mx-auto"
+              className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-12 text-gray-200 max-w-3xl mx-auto px-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.8 }}
@@ -185,63 +186,67 @@ const HomePage = () => {
               Choose a sport, find a court, and start playing
             </motion.p>
 
-            {/* Search Bar - Playo Style */}
+            {/* Search Bar - Mobile Optimized */}
             <motion.div
-              className="bg-white rounded-2xl p-4 md:p-6 max-w-5xl mx-auto shadow-2xl"
+              className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 max-w-5xl mx-auto shadow-2xl"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 {/* Location */}
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <div className="relative sm:col-span-2 md:col-span-1">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
                   <Input
                     type="text"
                     placeholder="Enter location"
                     value={searchLocation}
                     onChange={(e) => setSearchLocation(e.target.value)}
-                    className="pl-10 h-14 text-gray-900 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl"
+                    className="pl-9 sm:pl-10 h-12 sm:h-14 text-gray-900 placeholder:text-gray-500 bg-white border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base"
                   />
                 </div>
 
                 {/* Sport Selection */}
-                <Select value={selectedSport} onValueChange={setSelectedSport}>
-                  <SelectTrigger className="h-14 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl">
-                    <SelectValue placeholder="Select sport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {popularSports.map((sport) => (
-                      <SelectItem key={sport.id} value={sport.name}>
-                        <span className="flex items-center gap-2">
-                          <span>{sport.icon}</span>
-                          {sport.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="sm:col-span-1 md:col-span-1">
+                  <Select value={selectedSport} onValueChange={setSelectedSport}>
+                    <SelectTrigger className="h-12 sm:h-14 bg-white text-gray-900 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base">
+                      <SelectValue placeholder="Select sport" className="text-gray-500" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {popularSports.map((sport) => (
+                        <SelectItem key={sport.id} value={sport.name}>
+                          <span className="flex items-center gap-2">
+                            <span>{sport.icon}</span>
+                            {sport.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 {/* Date */}
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <div className="relative sm:col-span-1 md:col-span-1">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
                   <Input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="pl-10 h-14 text-gray-900 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl"
+                    className="pl-9 sm:pl-10 h-12 sm:h-14 text-gray-900 placeholder:text-gray-500 bg-white border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base"
                   />
                 </div>
 
                 {/* Search Button */}
-                <Button
-                  onClick={handleSearch}
-                  size="lg"
-                  className="h-14 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Search className="h-5 w-5 mr-2" />
-                  Search
-                </Button>
+                <div className="sm:col-span-2 md:col-span-1">
+                  <Button
+                    onClick={handleSearch}
+                    size="lg"
+                    className="w-full h-12 sm:h-14 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
+                  >
+                    <Search className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                    Search
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -252,66 +257,73 @@ const HomePage = () => {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <motion.div
-            className="text-center mb-12"
+            className="text-center mb-8 sm:mb-12 px-4"
             {...fadeInUp}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Choose Your Sport
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg sm:text-xl text-gray-600">
               Browse by sport and find the perfect venue
             </p>
           </motion.div>
 
-          {/* Horizontal Scrollable Sports */}
-          <motion.div
-            className="flex overflow-x-auto pb-6 gap-6 scrollbar-hide"
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
+          {/* Sports Carousel */}
+          <Carousel
+            className="w-full max-w-7xl mx-auto"
+            opts={{
+              align: "start",
+              loop: true,
+            }}
           >
-            {popularSports.map((sport) => (
-              <motion.div
-                key={sport.id}
-                className="flex-shrink-0 w-32 md:w-40"
-                variants={fadeInUp}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Card 
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-green-200"
-                  onClick={() => handleSportClick(sport.name)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-3">{sport.icon}</div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{sport.name}</h3>
-                    <p className="text-sm text-gray-500">{sport.venueCount} venues</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
+            <div className="relative">
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {popularSports.map((sport) => (
+                  <CarouselItem key={sport.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                    <motion.div
+                      className="p-1"
+                      variants={fadeInUp}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Card 
+                        className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-green-200"
+                        onClick={() => handleSportClick(sport.name)}
+                      >
+                        <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+                          <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3">{sport.icon}</div>
+                          <h3 className="font-semibold text-gray-900 mb-1 text-xs sm:text-sm md:text-base">{sport.name}</h3>
+                          <p className="text-xs sm:text-sm text-gray-500">{sport.venueCount} venues</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex -left-4 lg:-left-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+              <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+            </div>
+          </Carousel>
         </div>
       </section>
 
       {/* Featured Venues Section */}
-      <section className="py-20 bg-white">
+      <section className="py-12 sm:py-16 md:py-20 bg-white">
         <div className="container mx-auto px-4">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-8 sm:mb-12 md:mb-16 px-4"
             {...fadeInUp}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Top Rated Venues Near You
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg sm:text-xl text-gray-600">
               Discover highly-rated sports facilities in your area
             </p>
           </motion.div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="animate-pulse">
                   <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
@@ -321,19 +333,33 @@ const HomePage = () => {
               ))}
             </div>
           ) : (
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-              variants={staggerContainer}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
+            <Carousel
+              className="w-full max-w-7xl mx-auto"
+              opts={{
+                align: "start",
+                loop: true,
+              }}
             >
-              {topRatedVenues.map((venue) => (
-                <motion.div key={venue.id} variants={fadeInUp}>
-                  <VenueCard venue={convertVenueFormat(venue)} />
-                </motion.div>
-              ))}
-            </motion.div>
+              <div className="relative">
+                <CarouselContent className="-ml-2 md:-ml-4">
+                  {topRatedVenues.map((venue) => (
+                    <CarouselItem key={venue.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                      <motion.div
+                        className="p-1"
+                        variants={fadeInUp}
+                        initial="initial"
+                        whileInView="animate"
+                        viewport={{ once: true }}
+                      >
+                        <VenueCard venue={convertVenueFormat(venue)} />
+                      </motion.div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex -left-4 lg:-left-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+                <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+              </div>
+            </Carousel>
           )}
 
           <motion.div
@@ -354,25 +380,25 @@ const HomePage = () => {
       </section>
 
       {/* Join Community Banner */}
-      <section className="py-20 bg-green-600 relative overflow-hidden">
+      <section className="py-12 sm:py-16 md:py-20 bg-green-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-500"></div>
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             className="text-center text-white"
             {...fadeInUp}
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
               Join Thousands of Players and Facility Owners
             </h2>
-            <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
+            <p className="text-lg sm:text-xl text-green-100 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
               Become part of India's largest sports community. Play, connect, and grow together.
             </p>
             <Button
               onClick={() => navigate('/signup')}
               size="lg"
-              className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              className="bg-white text-green-600 hover:bg-gray-100 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              <Users className="h-6 w-6 mr-2" />
+              <Users className="h-5 sm:h-6 w-5 sm:w-6 mr-2" />
               Sign Up for Free
             </Button>
           </motion.div>
@@ -380,22 +406,22 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
             {...fadeInUp}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg sm:text-xl text-gray-600">
               Get on the field in 3 simple steps
             </p>
           </motion.div>
 
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-12"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12"
             variants={staggerContainer}
             initial="initial"
             whileInView="animate"
@@ -426,18 +452,18 @@ const HomePage = () => {
                 className="text-center relative"
                 variants={fadeInUp}
               >
-                <div className="bg-green-500 text-white rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <div className="bg-green-500 text-white rounded-full w-16 sm:w-20 h-16 sm:h-20 flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg">
                   {item.icon}
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-gray-900">
                   {item.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                   {item.description}
                 </p>
                 
                 {index < 2 && (
-                  <ArrowRight className="hidden md:block absolute top-10 -right-6 h-8 w-8 text-green-400" />
+                  <ArrowRight className="hidden md:block absolute top-8 sm:top-10 -right-6 h-6 sm:h-8 w-6 sm:w-8 text-green-400" />
                 )}
               </motion.div>
             ))}
@@ -446,27 +472,27 @@ const HomePage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white border-t border-gray-100">
+      <section className="py-12 sm:py-16 bg-white border-t border-gray-100">
         <div className="container mx-auto px-4">
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center"
             variants={staggerContainer}
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
           >
             {[
-              { number: "500+", label: "Sports Venues", icon: <Trophy className="h-8 w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "10K+", label: "Happy Players", icon: <Users className="h-8 w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "25+", label: "Cities", icon: <MapPin className="h-8 w-8 text-green-500 mx-auto mb-2" /> },
-              { number: "4.8★", label: "Average Rating", icon: <Star className="h-8 w-8 text-green-500 mx-auto mb-2" /> }
+              { number: "500+", label: "Sports Venues", icon: <Trophy className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
+              { number: "10K+", label: "Happy Players", icon: <Users className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
+              { number: "25+", label: "Cities", icon: <MapPin className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> },
+              { number: "4.8★", label: "Average Rating", icon: <Star className="h-6 sm:h-8 w-6 sm:w-8 text-green-500 mx-auto mb-2" /> }
             ].map((stat, index) => (
-              <motion.div key={index} variants={fadeInUp} className="p-6">
+              <motion.div key={index} variants={fadeInUp} className="p-3 sm:p-6">
                 {stat.icon}
-                <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
                   {stat.number}
                 </div>
-                <div className="text-lg text-gray-600">
+                <div className="text-sm sm:text-lg text-gray-600">
                   {stat.label}
                 </div>
               </motion.div>
