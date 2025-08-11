@@ -130,5 +130,14 @@ All colors MUST be HSL. */
   }
   .text-brand { color: hsl(var(--brand)); }
   .bg-brand { background-color: hsl(var(--brand)); }
+  
+  /* Scrollbar utilities */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 

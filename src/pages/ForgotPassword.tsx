@@ -1,155 +1,264 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import SEO from '@/components/SEO';
-import BrandNav from '@/components/BrandNav';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { Mail, ArrowLeft, Send, CheckCircle, RotateCcw } from 'lucide-react';
+import { api } from '@/lib/api';
+import SEO from '@/components/SEO';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
-  const [error, setError] = useState('');
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setIsLoading(true);
     try {
-      // TODO: Implement actual password reset API call
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      await api.post('/auth/forgot-password', { email });
       
       setIsSent(true);
       toast({
         title: "Reset link sent!",
-        description: `We've sent a password reset link to ${email}`,
+        description: "We've sent password reset instructions to your email.",
       });
-    } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+    } catch (error: any) {
+      toast({
+        title: "Failed to send reset link",
+        description: error.response?.data?.message || "Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleTryDifferentEmail = () => {
+    setIsSent(false);
+    setEmail('');
+  };
+
   if (isSent) {
     return (
-      <div className="min-h-screen bg-background">
-        <SEO
-          title="Check Your Email - QuickCourt"
-          description="Password reset instructions sent to your email"
-          path="/forgot-password"
-        />
-        <BrandNav />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <SEO title="Check Your Email - QuickCourt" description="Password reset instructions sent" path="/forgot-password" />
         
-        <main className="container mx-auto px-4 py-20 max-w-md">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <motion.div 
+          className="w-full max-w-md"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Success Card */}
+          <motion.div 
+            className="bg-white rounded-2xl shadow-lg p-8 w-full text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            {/* Success Icon */}
+            <motion.div 
+              className="mx-auto w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+            >
+              <CheckCircle className="h-10 w-10 text-[#2ECC71]" />
+            </motion.div>
+
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              Check Your Email
+            </h1>
+            <p className="text-gray-500 mb-2">
+              We've sent password reset instructions to
+            </p>
+            <p className="text-sm text-gray-600 font-medium mb-8">
+              {email}
+            </p>
+
+            {/* Email Info Alert */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <Mail className="h-5 w-5 text-blue-500 mt-0.5" />
+                <div className="text-left">
+                  <p className="text-sm text-blue-700 font-medium mb-1">
+                    Didn't receive the email?
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    Check your spam folder or try again in a few minutes.
+                  </p>
+                </div>
               </div>
-              <CardTitle>Check your email</CardTitle>
-              <CardDescription>
-                We've sent password reset instructions to <strong>{email}</strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Mail className="h-4 w-4" />
-                <AlertDescription>
-                  Didn't receive the email? Check your spam folder or try again in a few minutes.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="flex flex-col gap-2">
-                <Button onClick={() => setIsSent(false)} variant="outline">
-                  Try different email
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={handleTryDifferentEmail}
+                  variant="outline"
+                  className="w-full h-12 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-semibold rounded-lg transition-all duration-200"
+                >
+                  <RotateCcw className="h-5 w-5 mr-2" />
+                  Try Different Email
                 </Button>
-                <Button asChild>
-                  <Link to="/login">Back to Login</Link>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  onClick={() => navigate('/login')}
+                  className="w-full h-12 bg-[#2ECC71] hover:bg-[#27AE60] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <ArrowLeft className="h-5 w-5 mr-2" />
+                  Back to Login
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+              </motion.div>
+            </div>
+          </motion.div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEO
-        title="Forgot Password - QuickCourt"
-        description="Reset your QuickCourt password"
-        path="/forgot-password"
-      />
-      <BrandNav />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <SEO title="Forgot Password - QuickCourt" description="Reset your QuickCourt password" path="/forgot-password" />
       
-      <main className="container mx-auto px-4 py-20 max-w-md">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle>Forgot your password?</CardTitle>
-            <CardDescription>
-              Enter your email address and we'll send you a link to reset your password
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
+      <motion.div 
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        {/* Logo */}
+        <motion.div 
+          className="text-center mb-8"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-white font-bold text-2xl">QC</span>
+          </div>
+          <h1 className="text-gray-600 font-medium">QuickCourt</h1>
+        </motion.div>
+
+        {/* Forgot Password Card */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-lg p-8 w-full"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <Mail className="h-8 w-8 text-blue-500" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Forgot Your Password?
+            </h2>
+            <p className="text-gray-500">
+              Enter your registered email to receive reset instructions
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email Input */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-700 font-medium">
+                Email Address
+              </Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <Input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-12 border-gray-200 focus:border-[#2ECC71] focus:ring-[#2ECC71] transition-colors"
                   required
                   disabled={isLoading}
                 />
               </div>
+            </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
+            {/* Send Reset Link Button */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-12 bg-[#2ECC71] hover:bg-[#27AE60] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading || !email.trim()}
               >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
-                    Sending reset link...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send reset link
-                  </>
-                )}
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.span
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center space-x-2"
+                    >
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Sending Reset Link...</span>
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="send"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center space-x-2"
+                    >
+                      <Send className="h-5 w-5" />
+                      <span>Send Reset Link</span>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
+            </motion.div>
+          </form>
 
-              <div className="text-center">
-                <Button variant="ghost" asChild>
-                  <Link to="/login" className="inline-flex items-center gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Login
-                  </Link>
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
+          {/* Back to Login */}
+          <div className="mt-8 text-center">
+            <Link 
+              to="/login"
+              className="inline-flex items-center space-x-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Login</span>
+            </Link>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
