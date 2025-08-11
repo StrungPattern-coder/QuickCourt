@@ -6,7 +6,6 @@ import BrandNav from "@/components/BrandNav";
 import VenueCard, { Venue } from "@/components/VenueCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -40,7 +39,7 @@ const Venues = () => {
   // Fetch venues from API
   const { data: venuesData, isLoading, error } = useQuery({
     queryKey: ['venues'],
-    queryFn: () => facilitiesApi.list({ pageSize: 100 }),
+    queryFn: () => facilitiesApi.list({ pageSize: 100 }), // Get more venues for better search experience
   });
 
   const venues = venuesData?.items || [];
@@ -53,7 +52,7 @@ const Venues = () => {
     images: facility.images.length > 0 ? facility.images : ['/placeholder.svg'],
     sports: facility.sports,
     pricePerHour: facility.courts?.[0]?.pricePerHour || 0,
-    rating: Math.random() * 2 + 3.5,
+    rating: Math.random() * 2 + 3.5, // Mock rating between 3.5-5.5
     reviewCount: Math.floor(Math.random() * 100) + 10,
     amenities: facility.amenities,
     type: Math.random() > 0.5 ? 'indoor' : 'outdoor',
@@ -67,9 +66,11 @@ const Venues = () => {
 
   // Filter and sort venues based on current criteria
   const filteredVenues = useMemo(() => {
+    // First convert facilities to venue format
     const convertedVenues = venues.map(convertFacilityToVenue);
     let filtered = [...convertedVenues];
 
+    // Filter by search term (name and location)
     if (searchTerm) {
       filtered = filtered.filter((venue: Venue) =>
         venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,6 +78,7 @@ const Venues = () => {
       );
     }
 
+    // Filter by selected sports
     if (selectedSports.length > 0) {
       filtered = filtered.filter((venue: Venue) =>
         selectedSports.some(sport => 
@@ -87,23 +89,27 @@ const Venues = () => {
       );
     }
 
+    // Filter by selected city
     if (selectedCity) {
       filtered = filtered.filter((venue: Venue) =>
         venue.location.toLowerCase().includes(selectedCity.toLowerCase())
       );
     }
 
+    // Filter by price range
     filtered = filtered.filter((venue: Venue) => {
       const price = venue.pricePerHour || 0;
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
+    // Filter by minimum rating
     if (minRating > 0) {
       filtered = filtered.filter((venue: Venue) => 
         venue.rating >= minRating
       );
     }
 
+    // Sort venues
     filtered.sort((a: Venue, b: Venue) => {
       switch (sortBy) {
         case 'name':
@@ -119,7 +125,7 @@ const Venues = () => {
     });
 
     return filtered;
-  }, [venues, searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy]);
+  }, [venues, convertFacilityToVenue, searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy]);
 
   // Initialize from URL params
   useEffect(() => {
@@ -211,8 +217,6 @@ const Venues = () => {
         </div>
       </div>
     );
-  }
-
   return (
     <div className="min-h-screen bg-background pt-[72px]">
       <SEO title="Find Sports Venues – QuickCourt" description="Browse all nearby sports facilities and check live availability." path="/venues" />
@@ -269,136 +273,200 @@ const Venues = () => {
                       </Badge>
                     )}
                   </Button>
-
-                  {/* View Toggle - Desktop Only */}
-                  <div className="hidden sm:flex border rounded-lg overflow-hidden">
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                      className="rounded-none border-r"
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'map' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('map')}
-                      className="rounded-none"
-                    >
-                      <Map className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Advanced Filters Panel */}
-        {showFilters && (
-          <Card className="mb-6 sm:mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between text-lg">
-                <span>Advanced Filters</span>
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  Clear All
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Sports Filter */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Sports</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                  {sports.map((sport) => (
-                    <div key={sport} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={sport}
-                        checked={selectedSports.includes(sport)}
-                        onCheckedChange={(checked) => handleSportFilter(sport, checked as boolean)}
-                      />
-                      <Label htmlFor={sport} className="text-sm capitalize cursor-pointer">
-                        {sport}
-                      </Label>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Filters Sidebar */}
+          {showFilters && (
+            <div className="lg:col-span-1">
+              <Card className="sticky top-24">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Filters</CardTitle>
+                  {activeFiltersCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      Clear All
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Sports Filter */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Sports</h4>
+                    <div className="space-y-2">
+                      {sports.map((sport) => (
+                        <div key={sport} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={sport}
+                            checked={selectedSports.includes(sport)}
+                            onCheckedChange={(checked) => handleSportFilter(sport, checked as boolean)}
+                          />
+                          <label htmlFor={sport} className="text-sm capitalize cursor-pointer">
+                            {sport}
+                          </label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* City Filter */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">City</Label>
-                <Select value={selectedCity} onValueChange={setSelectedCity}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Cities</SelectItem>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Price Range: ₹{priceRange[0]} - ₹{priceRange[1]} per hour
-                </Label>
-                <Slider
-                  value={priceRange}
-                  onValueChange={setPriceRange}
-                  max={100}
-                  min={0}
-                  step={5}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Rating Filter */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">
-                  Minimum Rating: {minRating > 0 ? `${minRating}+ stars` : 'Any rating'}
-                </Label>
-                <Slider
-                  value={[minRating]}
-                  onValueChange={(value) => setMinRating(value[0])}
-                  max={5}
-                  min={0}
-                  step={0.5}
-                  className="w-full"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results Section */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* Results Header */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {filteredVenues.length} {filteredVenues.length === 1 ? 'venue' : 'venues'} found
-              {searchTerm && ` for "${searchTerm}"`}
-            </p>
-          </div>
-
-          {/* Venues Grid/List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredVenues.length > 0 ? (
-              filteredVenues.map((venue) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))
-            ) : (
-              <Card className="col-span-full">
-                <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Search className="h-8 w-8 text-gray-400" />
                   </div>
+
+                  <Separator />
+
+                  {/* City Filter */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Location</h4>
+                    <Select value={selectedCity} onValueChange={setSelectedCity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All cities" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All cities</SelectItem>
+                        {cities.map((city: string) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Separator />
+
+                  {/* Price Range Filter */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Price per Hour</h4>
+                    <div className="px-2">
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        max={50}
+                        step={5}
+                        className="mb-4"
+                      />
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>${priceRange[0]}</span>
+                        <span>${priceRange[1]}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Rating Filter */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Minimum Rating</h4>
+                    <div className="space-y-2">
+                      {[4, 3, 2, 1, 0].map((rating) => (
+                        <div key={rating} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`rating-${rating}`}
+                            checked={minRating === rating}
+                            onCheckedChange={(checked) => setMinRating(checked ? rating : 0)}
+                          />
+                          <label htmlFor={`rating-${rating}`} className="flex items-center gap-1 text-sm cursor-pointer">
+                            {rating > 0 ? (
+                              <>
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                {rating}+ stars
+                              </>
+                            ) : (
+                              'Any rating'
+                            )}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Results */}
+          <div className={showFilters ? "lg:col-span-3" : "lg:col-span-4"}>
+            {/* Results Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-muted-foreground">
+                  Showing {filteredVenues.length} of {venues.length} venues
+                </p>
+              </div>
+              
+              {/* Active Filters */}
+              {activeFiltersCount > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {searchTerm && (
+                    <Badge variant="secondary" className="gap-1">
+                      Search: {searchTerm}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-transparent"
+                        onClick={() => setSearchTerm('')}
+                      >
+                        ×
+                      </Button>
+                    </Badge>
+                  )}
+                  {selectedSports.map((sport) => (
+                    <Badge key={sport} variant="secondary" className="gap-1 capitalize">
+                      {sport}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-transparent"
+                        onClick={() => handleSportFilter(sport, false)}
+                      >
+                        ×
+                      </Button>
+                    </Badge>
+                  ))}
+                  {selectedCity && (
+                    <Badge variant="secondary" className="gap-1">
+                      {selectedCity}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-transparent"
+                        onClick={() => setSelectedCity('')}
+                      >
+                        ×
+                      </Button>
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Venue Grid */}
+            {viewMode === 'list' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredVenues.map((venue) => (
+                  <VenueCard key={venue.id} venue={venue} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Map className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">Map View Coming Soon</h3>
+                  <p className="text-muted-foreground mb-4">
+                    We're working on an interactive map to help you visualize venue locations.
+                  </p>
+                  <Button onClick={() => setViewMode('list')}>
+                    Switch to List View
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No Results */}
+            {filteredVenues.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-xl font-semibold mb-2">No venues found</h3>
                   <p className="text-muted-foreground mb-4">
                     Try adjusting your filters or search terms to find more venues.

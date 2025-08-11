@@ -42,7 +42,7 @@ const Login = () => {
             navigate('/owner/dashboard', { replace: true });
             break;
           default:
-            navigate('/venues', { replace: true });
+            navigate('/', { replace: true });
         }
       } else {
         navigate(from, { replace: true });
