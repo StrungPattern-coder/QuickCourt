@@ -20,6 +20,7 @@ const Login = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/';
+  const isAdminLogin = new URLSearchParams(location.search).get('role') === 'admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,18 +135,35 @@ const Login = () => {
             <div className="text-center mb-6 sm:mb-8">
               {/* Logo */}
               <motion.div 
-                className="mx-auto h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-[#2ECC71] to-[#27AE60] flex items-center justify-center mb-4 sm:mb-6 shadow-lg"
+                className={`mx-auto h-14 w-14 sm:h-16 sm:w-16 rounded-full ${
+                  isAdminLogin 
+                    ? 'bg-gradient-to-br from-purple-600 to-purple-700' 
+                    : 'bg-gradient-to-br from-[#2ECC71] to-[#27AE60]'
+                } flex items-center justify-center mb-4 sm:mb-6 shadow-lg`}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 400 }}
               >
-                <span className="text-white font-bold text-xl sm:text-2xl">QC</span>
+                <span className="text-white font-bold text-xl sm:text-2xl">
+                  {isAdminLogin ? 'A' : 'QC'}
+                </span>
               </motion.div>
 
+              {isAdminLogin && (
+                <div className="mb-4">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    Administrator Access
+                  </span>
+                </div>
+              )}
+
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-                Welcome Back to QuickCourt
+                {isAdminLogin ? 'Admin Portal Access' : 'Welcome Back to QuickCourt'}
               </h1>
               <p className="text-gray-500 text-sm sm:text-base">
-                Book your favorite sports venue in seconds.
+                {isAdminLogin 
+                  ? 'Enter your administrator credentials to access the admin dashboard.' 
+                  : 'Book your favorite sports venue in seconds.'
+                }
               </p>
             </div>
 
@@ -237,10 +255,14 @@ const Login = () => {
               >
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-[#2ECC71] hover:bg-[#27AE60] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                  className={`w-full h-12 ${
+                    isAdminLogin 
+                      ? 'bg-purple-600 hover:bg-purple-700' 
+                      : 'bg-[#2ECC71] hover:bg-[#27AE60]'
+                  } text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200`}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Login'}
+                  {isLoading ? 'Signing in...' : (isAdminLogin ? 'Access Admin Portal' : 'Login')}
                 </Button>
               </motion.div>
 

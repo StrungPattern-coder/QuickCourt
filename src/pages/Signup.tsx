@@ -15,7 +15,7 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'USER' | 'OWNER' | 'ADMIN'>('USER');
+  const [role, setRole] = useState<'USER' | 'OWNER'>('USER');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -292,7 +292,7 @@ const Signup = () => {
                 <Label htmlFor="role" className="text-gray-700 font-medium">
                   Account Type
                 </Label>
-                <Select value={role} onValueChange={(value) => setRole(value as 'USER' | 'OWNER' | 'ADMIN')}>
+                <Select value={role} onValueChange={(value) => setRole(value as 'USER' | 'OWNER')}>
                   <SelectTrigger className="h-12 border-gray-200 focus:border-[#2ECC71] focus:ring-[#2ECC71]">
                     <SelectValue />
                   </SelectTrigger>
@@ -307,12 +307,6 @@ const Signup = () => {
                       <div className="flex items-center space-x-2">
                         <span>🏢</span>
                         <span>Facility Owner - List your venues</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="ADMIN">
-                      <div className="flex items-center space-x-2">
-                        <span>👑</span>
-                        <span>Admin - Manage platform</span>
                       </div>
                     </SelectItem>
                   </SelectContent>

@@ -33,7 +33,8 @@ const Footer = () => {
       { label: 'Safety Guidelines', href: '/safety' },
       { label: 'Cancellation Policy', href: '/cancellation-policy' },
       { label: 'Terms of Service', href: '/terms' },
-      { label: 'Privacy Policy', href: '/privacy' }
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Admin Access', href: '/login?role=admin' }
     ]
   };
 
