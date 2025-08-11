@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { facilityRouter } from './modules/facility/facility.routes.js';
+import { courtRouter } from './modules/court/court.routes.js';
 import { bookingRouter } from './modules/booking/booking.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import { errorHandler, notFound } from './middleware/error.js';
@@ -22,6 +23,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', time: new Date().toIS
 
 app.use('/auth', authRouter);
 app.use('/facilities', facilityRouter);
+app.use('/courts', courtRouter);
 app.use('/bookings', bookingRouter);
 app.use('/admin', adminRouter);
 

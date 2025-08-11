@@ -71,7 +71,7 @@ export const authApi = {
 
 // Facilities API
 export const facilitiesApi = {
-  getAll: (params?: {
+  list: (params?: {
     sport?: string;
     q?: string;
     page?: number;
@@ -98,13 +98,63 @@ export const facilitiesApi = {
     location: string;
     description: string;
     sports: string[];
-    amenities: string[];
-    images: string[];
-  }) =>
-    apiRequest('/facilities', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    amenities?: string[];
+    images?: string[];
+  }) => apiRequest('/facilities', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+};
+
+// Courts API
+export const courtsApi = {
+  create: (data: {
+    name: string;
+    facilityId: string;
+    pricePerHour: number;
+    openTime: number;
+    closeTime: number;
+  }) => apiRequest('/courts', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  getByFacility: (facilityId: string) => apiRequest<Court[]>(`/courts/facility/${facilityId}`),
+
+  getOwnerCourts: () => apiRequest<(Court & {
+    facility: {
+      name: string;
+      location: string;
+      status: string;
+    };
+    _count: {
+      bookings: number;
+    };
+  })[]>('/courts/owner'),
+
+  getById: (id: string) => apiRequest<Court & {
+    facility: {
+      name: string;
+      location: string;
+      status: string;
+      sports: string[];
+      amenities: string[];
+    };
+  }>(`/courts/${id}`),
+
+  update: (id: string, data: {
+    name?: string;
+    pricePerHour?: number;
+    openTime?: number;
+    closeTime?: number;
+  }) => apiRequest(`/courts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  delete: (id: string) => apiRequest(`/courts/${id}`, {
+    method: 'DELETE',
+  }),
 };
 
 // Bookings API

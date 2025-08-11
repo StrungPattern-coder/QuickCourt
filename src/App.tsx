@@ -32,6 +32,7 @@ import Profile from "./pages/Profile";
 import MyBookings from "./pages/MyBookings";
 import BookingPage from "./pages/BookingPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import OwnerDashboard from "./pages/OwnerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,8 @@ const AppContent = () => (
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/book/:venueId/:courtId" element={<BookingPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

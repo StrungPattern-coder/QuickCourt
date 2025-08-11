@@ -142,9 +142,9 @@ const BrandNav = () => {
                 )}
                 {user?.role === 'OWNER' && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/owner/listing')}>
+                    <DropdownMenuItem onClick={() => navigate('/owner/dashboard')}>
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>My Listings</span>
+                      <span>Owner Dashboard</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
