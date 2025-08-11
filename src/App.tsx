@@ -16,7 +16,9 @@ import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Venues from "./pages/Venues";
+import VenuesPage from "./pages/VenuesPage";
 import VenueDetail from "./pages/VenueDetail";
+import VenueDetailsPage from "./pages/VenueDetailsPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import OtpLogin from "./pages/OtpLogin";
@@ -59,8 +61,13 @@ const AppContent = () => (
     <div className="flex-1">
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/play" element={<VenuesPage />} />
+        <Route path="/book" element={<VenuesPage />} />
+        <Route path="/train" element={<VenuesPage />} />
         <Route path="/venues" element={<Venues />} />
+        <Route path="/venues-search" element={<VenuesPage />} />
         <Route path="/venue/:id" element={<VenueDetail />} />
+        <Route path="/venue-details/:id" element={<VenueDetailsPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp-login" element={<OtpLogin />} />

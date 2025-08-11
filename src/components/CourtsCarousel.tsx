@@ -112,7 +112,7 @@ const CourtsCarousel = () => {
   };
 
   const handleViewAll = () => {
-    navigate('/venues');
+    navigate('/book');
   };
 
   return (

@@ -21,6 +21,20 @@ interface Venue {
   pricePerHour: number;
 }
 
+interface VenueCardData {
+  id: string;
+  name: string;
+  location: string;
+  images: string[];
+  sports: string[];
+  pricePerHour: number;
+  rating: number;
+  reviewCount: number;
+  amenities: string[];
+  type: 'indoor' | 'outdoor';
+  isVerified: boolean;
+}
+
 interface Sport {
   id: string;
   name: string;
@@ -38,6 +52,21 @@ const HomePage = () => {
   const [topRatedVenues, setTopRatedVenues] = useState<Venue[]>([]);
   const [popularSports, setPopularSports] = useState<Sport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Convert old venue format to new VenueCard format
+  const convertVenueFormat = (venue: Venue): VenueCardData => ({
+    id: venue.id,
+    name: venue.name,
+    location: venue.location,
+    images: ['/placeholder.svg'], // Default placeholder
+    sports: [venue.sport],
+    pricePerHour: venue.pricePerHour,
+    rating: venue.rating,
+    reviewCount: Math.floor(Math.random() * 100) + 10, // Mock review count
+    amenities: ['Parking', 'Changing Room'], // Mock amenities
+    type: Math.random() > 0.5 ? 'indoor' : 'outdoor', // Random type
+    isVerified: Math.random() > 0.3 // 70% chance of being verified
+  });
 
   // Animation variants
   const fadeInUp = {
@@ -301,7 +330,7 @@ const HomePage = () => {
             >
               {topRatedVenues.map((venue) => (
                 <motion.div key={venue.id} variants={fadeInUp}>
-                  <VenueCard venue={venue} />
+                  <VenueCard venue={convertVenueFormat(venue)} />
                 </motion.div>
               ))}
             </motion.div>
@@ -312,7 +341,7 @@ const HomePage = () => {
             {...fadeInUp}
           >
             <Button
-              onClick={() => navigate('/venues')}
+              onClick={() => navigate('/book')}
               size="lg"
               variant="outline"
               className="border-green-500 text-green-600 hover:bg-green-50 px-8 py-3 rounded-xl font-semibold"

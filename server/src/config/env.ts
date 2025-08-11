@@ -29,7 +29,9 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '4000', 10),
   dbUrl: process.env.DATABASE_URL!,
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  corsOrigin: process.env.NODE_ENV === 'development' 
+    ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082']
+    : (process.env.CORS_ORIGIN || 'http://localhost:3000'),
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
