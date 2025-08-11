@@ -42,6 +42,10 @@ export default function ImageUpload({
     const newImages: string[] = [];
 
     try {
+      // Upload multiple files at once
+      const formData = new FormData();
+      const validFiles: File[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
@@ -57,16 +61,35 @@ export default function ImageUpload({
           continue;
         }
 
-        // Convert to base64 for demo purposes
-        // In production, you'd upload to a cloud service like AWS S3, Cloudinary, etc.
-        const base64 = await fileToBase64(file);
-        newImages.push(base64);
+        validFiles.push(file);
+        formData.append('images', file);
       }
 
-      if (newImages.length > 0) {
-        onImagesChange([...images, ...newImages]);
-        toast.success(`${newImages.length} image(s) uploaded successfully`);
+      if (validFiles.length === 0) {
+        setUploading(false);
+        return;
       }
+
+      // Upload to server
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('http://localhost:4000/upload/images', {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const uploadedUrls = result.images.map((img: any) => img.url);
+      
+      onImagesChange([...images, ...uploadedUrls]);
+      toast.success(`${validFiles.length} image(s) uploaded successfully`);
+
     } catch (error) {
       console.error('Error uploading images:', error);
       toast.error('Failed to upload images');
@@ -77,15 +100,6 @@ export default function ImageUpload({
         fileInputRef.current.value = '';
       }
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const triggerFileUpload = () => {

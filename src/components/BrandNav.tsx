@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { User, Settings, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import AdminLoginDialog from '@/components/AdminLoginDialog';
 
 const BrandNav = () => {
   const navigate = useNavigate();
@@ -177,6 +178,7 @@ const BrandNav = () => {
               Login / Sign up
             </Button>
           )}
+          <AdminLoginDialog />
         </div>
 
         {/* Mobile Navigation */}
