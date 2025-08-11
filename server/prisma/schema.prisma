@@ -1,0 +1,155 @@
+// QuickCourt Prisma schema
+// PostgreSQL database
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole { 
+  USER
+  OWNER
+  ADMIN
+}
+
+enum UserStatus { 
+  ACTIVE
+  BANNED
+}
+
+enum FacilityStatus { 
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus { 
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus { 
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  avatarUrl    String? 
+  role         UserRole      @default(USER)
+  status       UserStatus    @default(ACTIVE)
+  facilities   Facility[]    @relation("OwnerFacilities")
+  bookings     Booking[]
+  refreshTokens RefreshToken[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  verificationTokens VerificationToken[]
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  otpHash   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+
+model Facility {
+  id          String          @id @default(cuid())
+  name        String
+  location    String
+  description String
+  sports      String[]
+  amenities   String[]
+  images      String[]
+  status      FacilityStatus  @default(PENDING)
+  owner       User            @relation("OwnerFacilities", fields: [ownerId], references: [id])
+  ownerId     String
+  courts      Court[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  @@index([status])
+  @@index([ownerId])
+}
+
+model Court {
+  id          String    @id @default(cuid())
+  name        String
+  facility    Facility  @relation(fields: [facilityId], references: [id])
+  facilityId  String
+  pricePerHour Decimal   @db.Decimal(10,2)
+  openTime    Int        // minutes from midnight
+  closeTime   Int
+  bookings    Booking[]
+  maintenance MaintenanceBlock[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@index([facilityId])
+}
+
+model MaintenanceBlock {
+  id        String   @id @default(cuid())
+  court     Court    @relation(fields: [courtId], references: [id])
+  courtId   String
+  startTime DateTime
+  endTime   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+  @@index([courtId])
+  @@index([startTime,endTime])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  court       Court         @relation(fields: [courtId], references: [id])
+  courtId     String
+  startTime   DateTime
+  endTime     DateTime
+  status      BookingStatus @default(PENDING)
+  price       Decimal       @db.Decimal(10,2)
+  payment     Payment?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  @@index([courtId,startTime,endTime])
+  @@index([userId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  bookingId     String        @unique
+  amount        Decimal       @db.Decimal(10,2)
+  provider      String
+  providerRef   String?
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  @@index([status])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+}
