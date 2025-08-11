@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SEO from "@/components/SEO";
 import BrandNav from "@/components/BrandNav";
-import VenueCard, { Venue } from "@/components/VenueCard";
+import FacilityCard from "@/components/FacilityCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,8 +116,60 @@ const Venues = () => {
     );
   }
 
-  // For now, return empty venues since we're removing static data
-  const filteredVenues: any[] = [];
+  // Filter and search venues
+  const filteredVenues = useMemo(() => {
+    let filtered = [...venues];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter((venue: any) =>
+        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.sports.some((sport: string) => sport.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Filter by selected sports
+    if (selectedSports.length > 0) {
+      filtered = filtered.filter((venue: any) =>
+        selectedSports.some(sport => venue.sports.includes(sport))
+      );
+    }
+
+    // Filter by city
+    if (selectedCity) {
+      filtered = filtered.filter((venue: any) =>
+        venue.location.toLowerCase().includes(selectedCity.toLowerCase())
+      );
+    }
+
+    // Filter by price range
+    if (priceRange[0] > 0 || priceRange[1] < 50) {
+      filtered = filtered.filter((venue: any) => {
+        if (!venue.priceRange) return false;
+        return venue.priceRange.min >= priceRange[0] && venue.priceRange.max <= priceRange[1];
+      });
+    }
+
+    // Sort venues
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        break;
+      case 'price-low':
+        filtered.sort((a: any, b: any) => (a.priceRange?.min || 0) - (b.priceRange?.min || 0));
+        break;
+      case 'price-high':
+        filtered.sort((a: any, b: any) => (b.priceRange?.max || 0) - (a.priceRange?.max || 0));
+        break;
+      default:
+        // Default sort by creation date (newest first)
+        filtered.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return filtered;
+  }, [venues, searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy]);
 
   const handleSportFilter = (sport: string, checked: boolean) => {
     if (checked) {
@@ -389,7 +441,7 @@ const Venues = () => {
             {viewMode === 'list' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredVenues.map((venue) => (
-                  <VenueCard key={venue.id} venue={venue} />
+                  <FacilityCard key={venue.id} venue={venue} />
                 ))}
               </div>
             ) : (

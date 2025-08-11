@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 
 const BrandNav = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
   const [scrollY, setScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -38,8 +39,24 @@ const BrandNav = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Determine navbar style based on scroll position
+  // Check if we're on owner-specific pages
+  const isOwnerPage = location.pathname.includes('/owner-dashboard') || 
+                     location.pathname.includes('/manage-venues');
+
+  // Determine navbar style based on scroll position and page type
   const getNavbarStyle = () => {
+    // Force green theme for owner pages
+    if (isOwnerPage) {
+      return {
+        background: 'bg-green-600 shadow-lg',
+        textColor: 'text-white',
+        logoColor: 'text-white',
+        buttonStyle: 'text-white hover:bg-white/20',
+        navBackground: 'bg-white/10 backdrop-blur-sm border-white/20',
+        loginButton: 'bg-white text-green-600 hover:bg-gray-100'
+      };
+    }
+
     if (scrollY < window.innerHeight * 0.8) {
       // In hero section - transparent with white text
       return {
@@ -65,39 +82,75 @@ const BrandNav = () => {
 
   const navStyle = getNavbarStyle();
 
+  const handleLogoClick = () => {
+    if (user?.role === 'OWNER') {
+      navigate('/owner-dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navStyle.background}`}>
       <nav className="container mx-auto flex items-center justify-between px-4 py-4">
         {/* Simple Logo */}
         <div className="px-6 py-3 flex items-center">
-          <Link to="/" className={`text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}>
+          <button 
+            onClick={handleLogoClick}
+            className={`text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}
+          >
             QuickCourt
-          </Link>
+          </button>
         </div>
         
         {/* Navigation Options */}
         <div className={`rounded-full p-1 flex items-center gap-1 border transition-all duration-300 ${navStyle.navBackground}`}>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/play')}
-          >
-            Play
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/book')}
-          >
-            Book
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
-            onClick={() => navigate('/train')}
-          >
-            Train
-          </Button>
+          {/* Hide Play/Book/Train for owners */}
+          {user?.role !== 'OWNER' && (
+            <>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/play')}
+              >
+                Play
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/book')}
+              >
+                Book
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/train')}
+              >
+                Train
+              </Button>
+            </>
+          )}
+          
+          {/* Owner specific navigation */}
+          {user?.role === 'OWNER' && (
+            <>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/owner-dashboard')}
+              >
+                Dashboard
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+                onClick={() => navigate('/manage-venues')}
+              >
+                Manage Venues
+              </Button>
+            </>
+          )}
           
           {isAuthenticated ? (
             <DropdownMenu>
@@ -105,7 +158,13 @@ const BrandNav = () => {
                 <Button variant="ghost" className={`relative h-9 w-9 rounded-full ml-2 transition-colors duration-300 ${navStyle.buttonStyle}`}>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={user?.avatarUrl} alt={user?.fullName} />
-                    <AvatarFallback className={`transition-colors duration-300 ${scrollY < window.innerHeight * 0.8 ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                    <AvatarFallback className={`transition-colors duration-300 ${
+                      isOwnerPage 
+                        ? 'bg-white/20 text-white' 
+                        : scrollY < window.innerHeight * 0.8 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-gray-200 text-gray-700'
+                    }`}>
                       {user?.fullName ? getInitials(user.fullName) : 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -142,9 +201,13 @@ const BrandNav = () => {
                 )}
                 {user?.role === 'OWNER' && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/owner/listing')}>
+                    <DropdownMenuItem onClick={() => navigate('/owner-dashboard')}>
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>My Listings</span>
+                      <span>Owner Dashboard</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/manage-venues')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Manage Venues</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>

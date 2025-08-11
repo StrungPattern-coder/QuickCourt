@@ -30,7 +30,7 @@ export const env = {
   port: parseInt(process.env.PORT || '4000', 10),
   dbUrl: process.env.DATABASE_URL!,
   corsOrigin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082']
+    ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083', 'http://localhost:5173']
     : (process.env.CORS_ORIGIN || 'http://localhost:3000'),
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,

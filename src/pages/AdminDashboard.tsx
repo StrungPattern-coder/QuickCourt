@@ -29,7 +29,8 @@ import {
   Ban,
   CheckCircle
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, adminApi } from '@/lib/api';
+import { AdminNotifications } from '@/components/AdminNotifications';
 
 interface DashboardStats {
   totalUsers: number;
@@ -38,8 +39,8 @@ interface DashboardStats {
   totalRevenue: number;
   pendingFacilities: number;
   activeBookings: number;
-  userGrowth: number;
-  revenueGrowth: number;
+  usersLastMonth: number;
+  revenueLastMonth: number;
 }
 
 interface User {
@@ -60,17 +61,19 @@ interface Facility {
   name: string;
   description: string;
   location: string;
-  pricePerHour: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   images: string[];
-  owner: {
+  sports: string[];
+  amenities: string[];
+  owner?: {
     id: string;
     fullName: string;
-    email: string;
+    email?: string;
   };
   createdAt: string;
-  _count: {
-    bookings: number;
+  _count?: {
+    bookings?: number;
+    courts?: number;
   };
 }
 
@@ -117,15 +120,15 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       const [statsRes, usersRes, facilitiesRes, bookingsRes] = await Promise.all([
-        api.get<DashboardStats>('/admin/stats'),
+        adminApi.getStats(),
         api.get<User[]>('/admin/users'),
-        api.get<Facility[]>('/admin/facilities'),
+        adminApi.getFacilities(),
         api.get<Booking[]>('/admin/bookings')
       ]);
 
-      setStats(statsRes.data);
+      setStats(statsRes);
       setUsers(usersRes.data);
-      setFacilities(facilitiesRes.data);
+      setFacilities(facilitiesRes.items);
       setBookings(bookingsRes.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -137,7 +140,7 @@ const AdminDashboard: React.FC = () => {
 
   const approveFacility = async (facilityId: string) => {
     try {
-      await api.put(`/admin/facilities/${facilityId}/approve`);
+      await adminApi.approveFacility(facilityId);
       toast.success('Facility approved successfully');
       fetchDashboardData();
     } catch (error) {
@@ -148,7 +151,7 @@ const AdminDashboard: React.FC = () => {
 
   const rejectFacility = async (facilityId: string, reason: string) => {
     try {
-      await api.put(`/admin/facilities/${facilityId}/reject`, { reason });
+      await adminApi.rejectFacility(facilityId, reason);
       toast.success('Facility rejected');
       fetchDashboardData();
     } catch (error) {
@@ -219,10 +222,13 @@ const AdminDashboard: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <Button onClick={fetchDashboardData} variant="outline">
-          <Activity className="mr-2 h-4 w-4" />
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-4">
+          <AdminNotifications />
+          <Button onClick={fetchDashboardData} variant="outline">
+            <Activity className="mr-2 h-4 w-4" />
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -245,9 +251,9 @@ const AdminDashboard: React.FC = () => {
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalUsers}</div>
                     <p className="text-xs text-muted-foreground">
-                      <span className={`inline-flex items-center ${stats.userGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="inline-flex items-center text-green-600">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        {stats.userGrowth >= 0 ? '+' : ''}{stats.userGrowth}% from last month
+                        {stats.usersLastMonth} new this month
                       </span>
                     </p>
                   </CardContent>
@@ -287,9 +293,9 @@ const AdminDashboard: React.FC = () => {
                   <CardContent>
                     <div className="text-2xl font-bold">${stats.totalRevenue}</div>
                     <p className="text-xs text-muted-foreground">
-                      <span className={`inline-flex items-center ${stats.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="inline-flex items-center text-green-600">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth}% from last month
+                        ${stats.revenueLastMonth} this month
                       </span>
                     </p>
                   </CardContent>
@@ -520,7 +526,7 @@ const AdminDashboard: React.FC = () => {
                     <TableHead>Facility</TableHead>
                     <TableHead>Owner</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Price/Hour</TableHead>
+                    <TableHead>Sports</TableHead>
                     <TableHead>Bookings</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -551,8 +557,10 @@ const AdminDashboard: React.FC = () => {
                           {facility.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>${facility.pricePerHour}/hr</TableCell>
-                      <TableCell>{facility._count.bookings}</TableCell>
+                      <TableCell>
+                        {facility.sports?.join(', ') || 'General'}
+                      </TableCell>
+                      <TableCell>{facility._count?.bookings || 0}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           {facility.status === 'PENDING' && (
@@ -608,8 +616,8 @@ const AdminDashboard: React.FC = () => {
                                     <p className="text-sm text-muted-foreground">{facility.location}</p>
                                   </div>
                                   <div>
-                                    <h4 className="font-semibold">Price</h4>
-                                    <p className="text-sm text-muted-foreground">${facility.pricePerHour}/hour</p>
+                                    <h4 className="font-semibold">Sports</h4>
+                                    <p className="text-sm text-muted-foreground">{facility.sports?.join(', ') || 'General'}</p>
                                   </div>
                                 </div>
                                 <div>

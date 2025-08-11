@@ -321,7 +321,13 @@ const VenueDetailsPage = () => {
 
     const slot = timeSlots.find(s => s.id === selectedSlot);
     if (slot) {
-      navigate(`/book/${venue?.id}/${slot.courtId}?slot=${selectedSlot}&date=${selectedDate}&sport=${selectedSport}`);
+      // Navigate to booking page with pre-selected values
+      const params = new URLSearchParams({
+        sport: selectedSport,
+        date: selectedDate,
+        time: slot.startTime
+      });
+      navigate(`/book/${venue?.id}?${params.toString()}`);
     }
   };
 

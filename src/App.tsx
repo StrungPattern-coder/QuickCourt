@@ -19,6 +19,8 @@ import Venues from "./pages/Venues";
 import VenuesPage from "./pages/VenuesPage";
 import VenueDetail from "./pages/VenueDetail";
 import VenueDetailsPage from "./pages/VenueDetailsPage";
+import VenueManagement from "./pages/VenueManagement";
+import OwnerDashboard from "./pages/OwnerDashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import OtpLogin from "./pages/OtpLogin";
@@ -68,6 +70,8 @@ const AppContent = () => (
         <Route path="/venues-search" element={<VenuesPage />} />
         <Route path="/venue/:id" element={<VenueDetail />} />
         <Route path="/venue-details/:id" element={<VenueDetailsPage />} />
+        <Route path="/manage-venues" element={<VenueManagement />} />
+        <Route path="/owner-dashboard" element={<OwnerDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/otp-login" element={<OtpLogin />} />
@@ -76,6 +80,7 @@ const AppContent = () => (
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-bookings" element={<MyBookings />} />
         <Route path="/book/:venueId/:courtId" element={<BookingPage />} />
+        <Route path="/book/:venueId" element={<BookingPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

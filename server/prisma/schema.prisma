@@ -40,6 +40,21 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum NotificationType {
+  BOOKING_CREATED
+  BOOKING_CANCELLED
+  BOOKING_CONFIRMED
+  FACILITY_APPROVED
+  FACILITY_REJECTED
+  ADMIN_ALERT
+  SYSTEM_UPDATE
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -50,6 +65,7 @@ model User {
   status       UserStatus    @default(ACTIVE)
   facilities   Facility[]    @relation("OwnerFacilities")
   bookings     Booking[]
+  notifications Notification[] @relation("UserNotifications")
   refreshTokens RefreshToken[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -140,6 +156,21 @@ model Payment {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   @@index([status])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  user      User               @relation("UserNotifications", fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  status    NotificationStatus @default(UNREAD)
+  title     String
+  message   String
+  metadata  Json?              // Store booking ID, facility ID, etc.
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+  @@index([userId, status])
+  @@index([createdAt])
 }
 
 model RefreshToken {

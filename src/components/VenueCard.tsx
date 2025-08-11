@@ -43,6 +43,11 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
     }
   };
 
+  const handleBookNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/book/${venue.id}`);
+  };
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsFavorite(!isFavorite);
@@ -178,7 +183,7 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
                 )}
               </div>
 
-              <Button className="w-full sm:w-auto px-8">
+              <Button className="w-full sm:w-auto px-8" onClick={handleBookNow}>
                 Book Now
               </Button>
             </div>
@@ -296,7 +301,7 @@ const VenueCard = ({ venue, viewMode = 'grid', onClick }: VenueCardProps) => {
               </div>
               <div className="text-xs text-gray-500">per hour</div>
             </div>
-            <Button size="sm" className="px-4">
+            <Button size="sm" className="px-4" onClick={handleBookNow}>
               Book Now
             </Button>
           </div>

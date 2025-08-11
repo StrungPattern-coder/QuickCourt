@@ -39,7 +39,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        
+        // Check if token is expired and try to refresh
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const isExpired = Date.now() >= payload.exp * 1000;
+        
+        if (isExpired) {
+          console.log('🔄 Token expired on startup, attempting refresh...');
+          const refreshToken = localStorage.getItem('refreshToken');
+          
+          if (refreshToken) {
+            authApi.refresh(refreshToken)
+              .then((response: any) => {
+                localStorage.setItem('accessToken', response.accessToken);
+                console.log('✅ Token refreshed on startup');
+              })
+              .catch(() => {
+                console.log('❌ Token refresh failed on startup, logging out');
+                logout();
+              });
+          } else {
+            logout();
+          }
+        }
       } catch (error) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');

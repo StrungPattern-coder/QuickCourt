@@ -1,13 +1,15 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js';
+import { z } from 'zod';
+import { requireAuth, requireRoles } from '../../middleware/auth.js';
 import { UserRole } from '../../types/enums.js';
+import { NotificationService } from '../../services/notification.js';
 
 const prisma = new PrismaClient();
 const router = Router();
 
 // Get dashboard statistics
-router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const [
       totalUsers,
@@ -91,7 +93,7 @@ router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: Auth
 });
 
 // Get all users with counts
-router.get('/users', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.get('/users', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       include: {
@@ -112,8 +114,8 @@ router.get('/users', requireAuth, requireRoles(UserRole.ADMIN), async (req: Auth
   }
 });
 
-// Get all facilities with owner info
-router.get('/facilities', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+// Get all facilities with filtering  
+router.get('/facilities', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const facilities = await prisma.facility.findMany({
       include: {
@@ -150,8 +152,8 @@ router.get('/facilities', requireAuth, requireRoles(UserRole.ADMIN), async (req:
   }
 });
 
-// Get all bookings with user and facility info
-router.get('/bookings', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+// Get all bookings with filtering
+router.get('/bookings', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const bookings = await prisma.booking.findMany({
       include: {
@@ -202,7 +204,7 @@ router.get('/bookings', requireAuth, requireRoles(UserRole.ADMIN), async (req: A
 });
 
 // Approve facility
-router.put('/facilities/:id/approve', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.put('/facilities/:id/approve', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -227,7 +229,7 @@ router.put('/facilities/:id/approve', requireAuth, requireRoles(UserRole.ADMIN),
 });
 
 // Reject facility
-router.put('/facilities/:id/reject', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.put('/facilities/:id/reject', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -253,7 +255,7 @@ router.put('/facilities/:id/reject', requireAuth, requireRoles(UserRole.ADMIN), 
 });
 
 // Ban user
-router.put('/users/:id/ban', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.put('/users/:id/ban', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -274,7 +276,7 @@ router.put('/users/:id/ban', requireAuth, requireRoles(UserRole.ADMIN), async (r
 });
 
 // Unban user
-router.put('/users/:id/unban', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
+router.put('/users/:id/unban', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -290,6 +292,95 @@ router.put('/users/:id/unban', requireAuth, requireRoles(UserRole.ADMIN), async 
   } catch (error) {
     console.error('Failed to unban user:', error);
     res.status(500).json({ error: 'Failed to unban user' });
+  }
+});
+
+// ================= ADMIN NOTIFICATION ENDPOINTS =================
+
+/**
+ * GET /admin/notifications
+ * Get admin notifications (venue approval requests, system alerts, etc.)
+ */
+router.get('/notifications', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
+  try {
+    const { unreadOnly = 'false', limit = '50', priority } = req.query;
+
+    const notifications = await NotificationService.getAdminNotifications(req.user!.id, {
+      unreadOnly: unreadOnly === 'true',
+      limit: parseInt(limit as string),
+      priority: priority as 'HIGH' | 'MEDIUM' | 'LOW'
+    });
+
+    // Get unread count
+    const unreadCount = await NotificationService.getUnreadCount(req.user!.id);
+
+    res.json({
+      success: true,
+      data: {
+        notifications,
+        unreadCount,
+        total: notifications.length
+      }
+    });
+  } catch (error) {
+    console.error('Failed to fetch admin notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+/**
+ * PUT /admin/notifications/:id/read
+ * Mark a notification as read
+ */
+router.put('/notifications/:id/read', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await NotificationService.markAsRead(id, req.user!.id);
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read'
+    });
+  } catch (error) {
+    console.error('Failed to mark notification as read:', error);
+    res.status(500).json({ error: 'Failed to update notification' });
+  }
+});
+
+/**
+ * PUT /admin/notifications/read-all
+ * Mark all notifications as read for the admin
+ */
+router.put('/notifications/read-all', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
+  try {
+    await NotificationService.markAllAsRead(req.user!.id);
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read'
+    });
+  } catch (error) {
+    console.error('Failed to mark all notifications as read:', error);
+    res.status(500).json({ error: 'Failed to update notifications' });
+  }
+});
+
+/**
+ * GET /admin/notifications/unread-count
+ * Get count of unread notifications
+ */
+router.get('/notifications/unread-count', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
+  try {
+    const unreadCount = await NotificationService.getUnreadCount(req.user!.id);
+
+    res.json({
+      success: true,
+      data: { unreadCount }
+    });
+  } catch (error) {
+    console.error('Failed to get unread count:', error);
+    res.status(500).json({ error: 'Failed to get unread count' });
   }
 });
 
