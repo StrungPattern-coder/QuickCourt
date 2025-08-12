@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { 
   Activity, 
   PlusCircle, 
-  BarChart3, 
   Calendar, 
   Trophy, 
   Building, 
@@ -21,8 +20,6 @@ import {
   Clock, 
   Users, 
   TrendingUp,
-  Eye,
-  Edit,
   Trash2,
   Star,
   CheckCircle,
@@ -35,8 +32,10 @@ import {
 import SEO from '@/components/SEO';
 import BrandNav from '@/components/BrandNav';
 import AddCourtForm from '@/components/AddCourtForm';
-import { courtsApi } from '@/lib/api';
+import { courtsApi, bookingsApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { io as ioClient, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '@/lib/api';
 
 const OwnerDashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -47,6 +46,8 @@ const OwnerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [ownerStats, setOwnerStats] = useState<{ totalBookings: number; payments: { succeeded: number; refunded: number; net: number } } | null>(null);
 
   // Animation variants
   const fadeInUp = {
@@ -68,6 +69,21 @@ const OwnerDashboard: React.FC = () => {
     animate: { opacity: 1, y: 0 }
   };
 
+  const loadOwnerStats = async () => {
+    try {
+      const stats = await bookingsApi.getOwnerStats();
+      setOwnerStats(stats);
+    } catch (e) {
+      // ignore silently
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoading && user?.role === 'OWNER') {
+      loadOwnerStats();
+    }
+  }, [isLoading, user]);
+
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
@@ -76,6 +92,27 @@ const OwnerDashboard: React.FC = () => {
         navigate('/', { replace: true });
       } else {
         fetchOwnerCourts();
+        // connect socket for owner
+        const token = localStorage.getItem('accessToken');
+        const s = ioClient(API_BASE_URL, { auth: { token } });
+        setSocket(s);
+        s.on('connect', () => {
+          console.log('Socket connected (owner)');
+        });
+        s.on('booking:new', (payload: any) => {
+          // New booking on any of my facilities
+          toast.success('New booking received');
+          fetchOwnerCourts();
+          loadOwnerStats();
+        });
+        s.on('booking:cancelled', (payload: any) => {
+          toast('A booking was cancelled');
+          fetchOwnerCourts();
+          loadOwnerStats();
+        });
+        return () => {
+          s.disconnect();
+        };
       }
     }
   }, [user, isLoading, navigate]);
@@ -140,11 +177,11 @@ const OwnerDashboard: React.FC = () => {
     totalCourts: courts.length,
     approvedCourts: courts.filter(c => c.facility.status === 'APPROVED').length,
     pendingCourts: courts.filter(c => c.facility.status === 'PENDING').length,
-    totalBookings: courts.reduce((sum, court) => sum + court._count.bookings, 0),
+    totalBookings: ownerStats?.totalBookings ?? courts.reduce((sum, court) => sum + court._count.bookings, 0),
     avgPrice: courts.length > 0 
       ? (courts.reduce((sum, court) => sum + Number(court.pricePerHour), 0) / courts.length).toFixed(0)
       : '0',
-    monthlyRevenue: courts.reduce((sum, court) => sum + (Number(court.pricePerHour) * court._count.bookings * 2), 0) // Estimated
+    monthlyRevenue: ownerStats?.payments.net ?? courts.reduce((sum, court) => sum + (Number(court.pricePerHour) * court._count.bookings * 2), 0)
   };
 
   // Filter courts based on search and status
@@ -312,7 +349,7 @@ const OwnerDashboard: React.FC = () => {
             transition={{ delay: 0.3 }}
           >
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 bg-white/50 backdrop-blur-sm border-0 shadow-lg">
+              <TabsList className="grid w-full grid-cols-2 bg-white/50 backdrop-blur-sm border-0 shadow-lg">
                 <TabsTrigger 
                   value="overview" 
                   className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
@@ -324,12 +361,6 @@ const OwnerDashboard: React.FC = () => {
                   className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
                 >
                   My Venues
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="analytics" 
-                  className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
-                >
-                  Analytics
                 </TabsTrigger>
               </TabsList>
 
@@ -347,7 +378,7 @@ const OwnerDashboard: React.FC = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Button 
                           onClick={() => setShowAddForm(true)}
                           className="h-20 flex-col gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 hover:border-green-300"
@@ -355,24 +386,6 @@ const OwnerDashboard: React.FC = () => {
                         >
                           <PlusCircle className="h-6 w-6" />
                           Add New Venue
-                        </Button>
-                        
-                        <Button 
-                          onClick={() => setActiveTab('venues')}
-                          className="h-20 flex-col gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-2 border-blue-200 hover:border-blue-300"
-                          variant="outline"
-                        >
-                          <Building className="h-6 w-6" />
-                          Manage Venues
-                        </Button>
-                        
-                        <Button 
-                          onClick={() => setActiveTab('analytics')}
-                          className="h-20 flex-col gap-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border-2 border-purple-200 hover:border-purple-300"
-                          variant="outline"
-                        >
-                          <BarChart3 className="h-6 w-6" />
-                          View Analytics
                         </Button>
                       </div>
                     </CardContent>
@@ -503,7 +516,7 @@ const OwnerDashboard: React.FC = () => {
                                 <TableHead>Hours</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Bookings</TableHead>
-                                <TableHead>Actions</TableHead>
+                                {/* Removed Actions column */}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -548,16 +561,7 @@ const OwnerDashboard: React.FC = () => {
                                       <span className="font-medium">{court._count.bookings}</span>
                                     </div>
                                   </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
+                                  {/* Removed Actions cell */}
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -567,73 +571,6 @@ const OwnerDashboard: React.FC = () => {
                     </CardContent>
                   </Card>
                 </motion.div>
-              </TabsContent>
-
-              <TabsContent value="analytics" className="space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                  <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-600">Revenue Trends</CardTitle>
-                      <BarChart3 className="h-5 w-5 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-gray-900">Coming Soon</div>
-                      <p className="text-sm text-gray-500">Detailed revenue analytics</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-600">Top Performing Venue</CardTitle>
-                      <Trophy className="h-5 w-5 text-yellow-600" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-lg font-bold text-gray-900">
-                        {courts.length > 0 
-                          ? courts.reduce((prev, curr) => 
-                              prev._count.bookings > curr._count.bookings ? prev : curr
-                            ).facility.name
-                          : '—'}
-                      </div>
-                      <p className="text-sm text-gray-500">Most popular venue</p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-600">Growth Rate</CardTitle>
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-gray-900">📈</div>
-                      <p className="text-sm text-gray-500">Analytics coming soon</p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold">Business Insights</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-gray-600 space-y-3">
-                      <p>📊 Comprehensive analytics dashboard coming soon with:</p>
-                      <ul className="list-disc list-inside space-y-2 ml-4">
-                        <li>Booking trends and seasonal patterns</li>
-                        <li>Revenue analytics and profit margins</li>
-                        <li>Peak hours and demand analysis</li>
-                        <li>Customer demographics and behavior</li>
-                        <li>Performance comparisons across venues</li>
-                        <li>Occupancy rates and optimization suggestions</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
               </TabsContent>
             </Tabs>
           </motion.div>

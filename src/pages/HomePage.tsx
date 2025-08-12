@@ -365,9 +365,6 @@ const HomePage = () => {
                         <CardContent className="p-3 sm:p-4 md:p-6 text-center">
                           <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3">{sport.icon}</div>
                           <h3 className="font-semibold text-gray-900 mb-1 text-xs sm:text-sm md:text-base">{sport.name}</h3>
-                          <p className="text-xs sm:text-sm text-gray-500">
-                            {sport.venueCount === 0 ? 'No venues found' : `${sport.venueCount} venues`}
-                          </p>
                         </CardContent>
                       </Card>
                     </motion.div>

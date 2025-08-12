@@ -107,10 +107,8 @@ const CourtsCarousel = () => {
     Autoplay({ delay: 4000, stopOnInteraction: true })
   );
 
-  const handleBookCourt = (courtId: string) => {
-    // This carousel uses sample courts; sending users to a generic browse page
-    // avoids broken routes when courtId isn't a venue id.
-    navigate('/play');
+  const handleBookCourt = (_courtId: string) => {
+    navigate('/book');
   };
 
   const handleViewAll = () => {
@@ -121,7 +119,6 @@ const CourtsCarousel = () => {
     <section className="relative container mx-auto px-4 mb-16">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-purple-50/50 rounded-3xl -mx-4 -my-8" />
-      
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -154,7 +151,10 @@ const CourtsCarousel = () => {
         <CarouselContent className="-ml-2 md:-ml-4">
           {courts.map((court) => (
             <CarouselItem key={court.id} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
-              <Card className="group cursor-pointer overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border-0 bg-white/50 backdrop-blur-sm">
+              <Card 
+                className="group cursor-pointer overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border-0 bg-white/50 backdrop-blur-sm"
+                onClick={() => navigate('/book')}
+              >
                 <div className="relative overflow-hidden">
                   <div 
                     className="aspect-[4/3] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
@@ -194,7 +194,7 @@ const CourtsCarousel = () => {
                   </div>
                 </div>
                 
-                <CardContent className="p-6 bg-gradient-to-br from-white via-white to-gray-50">
+                <CardContent className="p-6 bg-gradient-to-br from-white via-white to-gray-50" onClick={(e) => e.stopPropagation()}>
                   <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
                     {court.description}
                   </p>

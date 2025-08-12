@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:4000';
+export const API_BASE_URL = 'http://localhost:4000';
 
 // API utility functions
 export class ApiError extends Error {
@@ -135,6 +135,16 @@ export const facilitiesApi = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+
+  getAvailability: (facilityId: string, date: string) => apiRequest<{
+    id: string;
+    startTime: string;
+    endTime: string;
+    price: number;
+    isAvailable: boolean;
+    courtId: string;
+    courtName: string;
+  }[]>(`/facilities/${facilityId}/availability?date=${encodeURIComponent(date)}`),
 };
 
 // Courts API
@@ -190,18 +200,18 @@ export const courtsApi = {
 
 // Bookings API
 export const bookingsApi = {
-  create: (data: {
-    courtId: string;
-    startTime: string;
-    endTime: string;
-  }) =>
-    apiRequest('/bookings', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  create: (data: { courtId: string; startTime: string; endTime: string; }) =>
+    apiRequest<Booking>('/bookings', { method: 'POST', body: JSON.stringify(data) }),
 
-  getMy: () =>
-    apiRequest<Booking[]>('/bookings/my'),
+  cancel: (id: string) => apiRequest<Booking>(`/bookings/${id}/cancel`, { method: 'PUT' }),
+
+  delete: (id: string) => apiRequest<{ success: true }>(`/bookings/${id}`, { method: 'DELETE' }),
+
+  getMy: () => apiRequest<Booking[]>('/bookings/my'),
+
+  getOwnerStats: () => apiRequest<{ totalBookings: number; payments: { succeeded: number; refunded: number; net: number } }>(
+    '/bookings/owner/stats'
+  ),
 };
 
 // Types

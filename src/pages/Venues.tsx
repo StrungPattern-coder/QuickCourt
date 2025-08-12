@@ -170,6 +170,15 @@ const Venues = () => {
     if (locationParam) {
       setSearchTerm(locationParam);
     }
+    const sportParam = searchParams.get('sport');
+    if (sportParam) {
+      // support comma-separated list and normalize to lowercase
+      const sportsFromParam = sportParam
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      setSelectedSports(sportsFromParam);
+    }
   }, [searchParams]);
 
   const handleSportFilter = (sport: string, checked: boolean) => {

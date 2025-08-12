@@ -28,6 +28,7 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch user bookings
   const { data: bookings = [], isLoading: isLoadingBookings, refetch } = useQuery({
@@ -140,23 +141,26 @@ const Profile = () => {
   const handleCancelBooking = async (bookingId: string) => {
     setCancellingId(bookingId);
     try {
-      // TODO: Implement cancel booking API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Booking cancelled',
-        description: 'Your booking has been cancelled successfully.',
-      });
-      
+      await bookingsApi.cancel(bookingId);
+      toast({ title: 'Booking cancelled', description: 'Your booking has been cancelled successfully.' });
       refetch();
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to cancel booking. Please try again.',
-      });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.message || 'Failed to cancel booking. Please try again.' });
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    setDeletingId(bookingId);
+    try {
+      await bookingsApi.delete(bookingId);
+      toast({ title: 'Booking deleted', description: 'The booking has been removed.' });
+      refetch();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error?.message || 'Failed to delete booking.' });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -182,9 +186,10 @@ const Profile = () => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    return new Date(dateString).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   };
 
@@ -254,12 +259,35 @@ const Profile = () => {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            
-            {booking.status === 'COMPLETED' && (
-              <Button variant="outline" size="sm">
-                <MessageSquare className="mr-1 h-4 w-4" />
-                Write Review
-              </Button>
+            {(booking.status === 'CANCELLED' || booking.status === 'COMPLETED') && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled={deletingId === booking.id}
+                  >
+                    {deletingId === booking.id ? 'Deleting...' : 'Delete'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove the booking from your list.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => handleDeleteBooking(booking.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
