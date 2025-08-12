@@ -20,6 +20,7 @@ interface Venue {
   sport: string;
   rating: number;
   pricePerHour: number;
+  images?: string[]; // Add images property
 }
 
 interface VenueCardData {
@@ -76,7 +77,7 @@ const HomePage = () => {
     id: venue.id,
     name: venue.name,
     location: venue.location,
-    images: ['/placeholder.svg'], // Default placeholder
+    images: venue.images && venue.images.length > 0 ? venue.images : ['/placeholder.svg'], // Use actual images or fallback
     sports: [venue.sport],
     pricePerHour: venue.pricePerHour,
     rating: 0, // No fake ratings - only real user ratings
@@ -151,7 +152,8 @@ const HomePage = () => {
             rating: 0, // only real user ratings in future
             pricePerHour: facility.courts.length > 0 ? 
               facility.courts.reduce((sum, court) => sum + court.pricePerHour, 0) / facility.courts.length :
-              500
+              500,
+            images: facility.images || [] // Include actual images from facility data
           }));
 
         // Fallback venues when none available
