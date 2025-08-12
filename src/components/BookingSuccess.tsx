@@ -32,6 +32,13 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Debug: Log the booking data when component mounts
+  React.useEffect(() => {
+    if (isOpen && bookingData) {
+      console.log('BookingSuccess component opened with data:', bookingData);
+    }
+  }, [isOpen, bookingData]);
+
   const formatDate = (dateString: string) => {
     try {
       const iso = /^\d{4}-\d{2}-\d{2}$/;
@@ -84,8 +91,23 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   };
 
   const handleDownloadReceipt = () => {
+    console.log('PDF download initiated', { bookingData });
+    
     const w = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
-    if (!w) return;
+    if (!w) {
+      console.error('Failed to open print window - likely blocked by popup blocker');
+      // Show user-friendly error if popup is blocked
+      toast({
+        title: "PDF Download Failed",
+        description: "Unable to open print window. Please allow popups for this site and try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('Print window opened successfully');
+    
+    try {
     const price = Number(bookingData.price) || 0;
     const durationHours = (() => {
       const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
@@ -194,13 +216,100 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
             <div>quickcourt.example • support@quickcourt.example</div>
           </div>
         </div>
-        <script>window.print()</script>
+        <script>
+          window.print();
+          // Close window after user finishes with print dialog
+          window.onafterprint = function() {
+            window.close();
+          };
+          // Fallback: close after 3 seconds if onafterprint is not supported
+          setTimeout(function() {
+            window.close();
+          }, 3000);
+        </script>
       </body>
       </html>`;
     w.document.write(html);
     w.document.close();
     w.focus();
-    w.close();
+    console.log('PDF generation completed successfully');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "An error occurred while creating the receipt. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Alternative download method using HTML download attribute
+  const handleDownloadReceiptHtml = () => {
+    try {
+      const price = Number(bookingData.price) || 0;
+      const durationHours = (() => {
+        const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
+        const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
+        return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
+      })();
+      const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
+      const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+
+      const html = `<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receipt - QuickCourt</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+            .receipt { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .details { margin: 20px 0; }
+            .total { font-weight: bold; font-size: 18px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <h1>QuickCourt Receipt</h1>
+              <p>Booking ID: ${bookingData.id.slice(-8).toUpperCase()}</p>
+            </div>
+            <div class="details">
+              <p><strong>Venue:</strong> ${bookingData.facilityName}</p>
+              <p><strong>Court:</strong> ${bookingData.courtName}</p>
+              <p><strong>Date:</strong> ${formatDate(bookingData.date)}</p>
+              <p><strong>Time:</strong> ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}</p>
+              <p><strong>Location:</strong> ${bookingData.location}</p>
+            </div>
+            <div class="total">
+              <p>Total Paid: ${currency(price)}</p>
+            </div>
+          </div>
+        </body>
+        </html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QuickCourt-Receipt-${bookingData.id.slice(-8)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Receipt Downloaded",
+        description: "Receipt has been downloaded as an HTML file.",
+      });
+    } catch (error) {
+      console.error('Alternative download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: "Unable to download receipt. Please try the print option.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewBookings = () => {
