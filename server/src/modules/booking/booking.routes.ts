@@ -29,10 +29,46 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
       if (!court) throw new Error('Court not found');
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const price = hours * Number(court.pricePerHour);
-  return tx.booking.create({ data: { courtId, userId: req.user!.id, startTime: start, endTime: end, price: price.toFixed(2) as any, status: BookingStatus.CONFIRMED } });
+      // Create booking with PENDING status - payment will confirm it
+      return tx.booking.create({ 
+        data: { 
+          courtId, 
+          userId: req.user!.id, 
+          startTime: start, 
+          endTime: end, 
+          price: price.toFixed(2) as any, 
+          status: BookingStatus.PENDING 
+        },
+        include: {
+          court: {
+            include: {
+              facility: true
+            }
+          }
+        }
+      });
     });
-    res.status(201).json(booking);
-  } catch (e: any) { res.status(400).json({ message: e.message }); }
+    
+    res.status(201).json({
+      success: true,
+      message: 'Booking created successfully. Please complete payment to confirm.',
+      data: {
+        booking: {
+          id: booking.id,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          price: booking.price,
+          status: booking.status,
+          court: booking.court,
+        }
+      }
+    });
+  } catch (e: any) { 
+    res.status(400).json({ 
+      success: false,
+      message: e.message 
+    }); 
+  }
 });
 
 bookingRouter.get('/my', requireAuth, async (req: AuthRequest, res: Response) => {

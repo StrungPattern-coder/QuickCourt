@@ -108,7 +108,9 @@ const CourtsCarousel = () => {
   );
 
   const handleBookCourt = (courtId: string) => {
-    navigate(`/venues/${courtId}`);
+    // This carousel uses sample courts; sending users to a generic browse page
+    // avoids broken routes when courtId isn't a venue id.
+    navigate('/play');
   };
 
   const handleViewAll = () => {

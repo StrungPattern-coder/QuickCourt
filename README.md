@@ -49,7 +49,18 @@ Tokens currently returned in body for speed; production: move refresh to HttpOnl
 - Owners create facilities (PENDING until admin approval).
 - Admin approves/rejects facility.
 - Public list of APPROVED facilities with filters (sport, query, pagination).
-- Users create bookings; transaction prevents overlapping (double) bookings.
+- Users create bookings with integrated Razorpay payment gateway.
+- Transaction prevents overlapping (double) bookings.
+- Full payment lifecycle: order creation → verification → webhooks → refunds.
+
+## Payment Gateway (Production Ready)
+
+- **Razorpay Integration**: Complete production-ready implementation
+- **Security**: Payment signature verification, webhook validation, CSRF protection
+- **Features**: Order creation, payment verification, refund processing, webhook handling
+- **UI Components**: Payment modal, success screens, booking flow
+- **Testing**: Comprehensive test suite and documentation
+- **Documentation**: See `RAZORPAY_INTEGRATION.md` for detailed setup guide
 
 ## Real-time (Scaffold)
 
@@ -62,7 +73,7 @@ Socket.IO server ready. Upcoming events:
 
 ## Roadmap (Next Milestones)
 
-1. Stripe test payments & Payment Intent webhooks.
+1. ✅ **COMPLETED**: Razorpay payment gateway integration with full webhook support
 2. Court CRUD & maintenance block logic.
 3. Admin user management (ban/unban) + facility analytics.
 4. Dashboard stats aggregation queries (owner & admin).

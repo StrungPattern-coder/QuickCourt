@@ -32,6 +32,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import MyBookings from "./pages/MyBookings";
 import BookingPage from "./pages/BookingPage";
+import BookingPageNew from "./pages/BookingPageNew";
 import AdminDashboard from "./pages/AdminDashboard";
 import OwnerDashboard from "./pages/OwnerDashboard";
 
@@ -90,7 +91,12 @@ const AppContent = () => (
         } />
         <Route path="/venue/:id" element={
           <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
-            <VenueDetail />
+            <VenueDetailsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/venues/:id" element={
+          <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
+            <VenueDetailsPage />
           </ProtectedRoute>
         } />
         <Route path="/venue-details/:id" element={
@@ -117,7 +123,7 @@ const AppContent = () => (
         } />
         <Route path="/book/:venueId/:courtId" element={
           <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
-            <BookingPage />
+            <BookingPageNew />
           </ProtectedRoute>
         } />
         

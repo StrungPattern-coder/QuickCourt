@@ -30,15 +30,17 @@ export const env = {
   port: parseInt(process.env.PORT || '4000', 10),
   dbUrl: process.env.DATABASE_URL!,
   corsOrigin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082']
+    ? ['http://localhost:8080']
     : (process.env.CORS_ORIGIN || 'http://localhost:3000'),
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
   refreshTokenTtl: process.env.REFRESH_TOKEN_TTL || '7d',
   otpTtlMinutes: parseInt(process.env.OTP_TTL_MINUTES || '10', 10),
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  // Razorpay configuration
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   smtpHost: process.env.SMTP_HOST,
   smtpPort: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined,
   smtpUser: process.env.SMTP_USER,

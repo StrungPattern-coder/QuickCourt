@@ -194,15 +194,48 @@ const VenueDetailsPage = () => {
   const fetchVenueDetails = async () => {
     try {
       setIsLoadingVenue(true);
-      // TODO: Replace with actual API call
-      // const response = await facilitiesApi.getVenueDetails(id);
-      // setVenue(response.data);
       
-      // Using mock data for now
-      setTimeout(() => {
-        setVenue(mockVenue);
-        setIsLoadingVenue(false);
-      }, 1000);
+      // Fetch real venue data from API
+      const response = await facilitiesApi.getById(id!);
+      
+      // Transform the API response to match the component interface
+      const transformedVenue: VenueDetails = {
+        id: response.id,
+        name: response.name,
+        location: response.location,
+        address: response.location, // Using location as address for now
+        rating: 4.5, // You may want to calculate this from reviews
+        reviewCount: 12, // You may want to get this from reviews count
+        images: response.images || ['/placeholder.svg'],
+        videos: [],
+        sports: response.sports.map((sport: string, index: number) => ({
+          id: `sport_${index}`,
+          name: sport,
+          icon: sport === 'Tennis' ? '🎾' : sport === 'Badminton' ? '🏸' : sport === 'Squash' ? '🥎' : '⚽',
+          isActive: true
+        })),
+        amenities: response.amenities.map((amenity: string, index: number) => ({
+          id: `amenity_${index}`,
+          name: amenity,
+          icon: amenity === 'Parking' ? '🅿️' : amenity === 'WiFi' ? '📶' : amenity === 'Cafeteria' ? '☕' : '✨',
+          category: 'general'
+        })),
+        description: response.description,
+        priceRange: {
+          min: response.courts?.length > 0 ? Math.min(...response.courts.map((court: any) => Number(court.pricePerHour))) : 500,
+          max: response.courts?.length > 0 ? Math.max(...response.courts.map((court: any) => Number(court.pricePerHour))) : 1000
+        },
+        operatingHours: {
+          open: "06:00",
+          close: "22:00"
+        },
+        isVerified: response.status === 'APPROVED',
+        ownerId: response.ownerId || 'unknown',
+        createdAt: response.createdAt || new Date().toISOString()
+      };
+      
+      setVenue(transformedVenue);
+      setIsLoadingVenue(false);
     } catch (error) {
       console.error('Error fetching venue details:', error);
       toast({
@@ -217,15 +250,38 @@ const VenueDetailsPage = () => {
   const fetchTimeSlots = async () => {
     try {
       setIsLoadingSlots(true);
-      // TODO: Replace with actual API call
-      // const response = await facilitiesApi.getVenueAvailability(id, selectedSport, selectedDate);
-      // setTimeSlots(response.data);
       
-      // Using mock data for now
-      setTimeout(() => {
-        setTimeSlots(mockTimeSlots);
+      if (!venue || !selectedSport || !selectedDate) {
+        setTimeSlots([]);
         setIsLoadingSlots(false);
-      }, 500);
+        return;
+      }
+
+      // Get facility with courts
+      const response = await facilitiesApi.getById(id!);
+      
+      // Generate time slots for each court
+      const slots: TimeSlot[] = [];
+      const selectedHours = [9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20]; // Available hours
+      
+      if (response.courts) {
+        response.courts.forEach((court: any) => {
+          selectedHours.forEach(hour => {
+            slots.push({
+              id: `${court.id}_${hour}`,
+              startTime: `${hour.toString().padStart(2, '0')}:00`,
+              endTime: `${(hour + 1).toString().padStart(2, '0')}:00`,
+              price: Number(court.pricePerHour),
+              isAvailable: Math.random() > 0.3, // 70% availability for demo
+              courtId: court.id,
+              courtName: court.name
+            });
+          });
+        });
+      }
+      
+      setTimeSlots(slots);
+      setIsLoadingSlots(false);
     } catch (error) {
       console.error('Error fetching time slots:', error);
       toast({
@@ -292,6 +348,13 @@ const VenueDetailsPage = () => {
   };
 
   const handleBookNow = () => {
+    console.log('=== BOOKING DEBUG INFO ===');
+    console.log('selectedSlot:', selectedSlot);
+    console.log('venue:', venue);
+    console.log('selectedSport:', selectedSport);
+    console.log('selectedDate:', selectedDate);
+    console.log('timeSlots:', timeSlots);
+    
     if (!selectedSlot) {
       toast({
         title: "No Slot Selected",
@@ -301,10 +364,54 @@ const VenueDetailsPage = () => {
       return;
     }
 
-    const slot = timeSlots.find(s => s.id === selectedSlot);
-    if (slot) {
-      navigate(`/book/${venue?.id}/${slot.courtId}?slot=${selectedSlot}&date=${selectedDate}&sport=${selectedSport}`);
+    if (!venue) {
+      toast({
+        title: "Venue Error",
+        description: "Venue information not loaded. Please refresh the page.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    const slot = timeSlots.find(s => s.id === selectedSlot);
+    console.log('Found slot:', slot);
+    
+    if (!slot) {
+      toast({
+        title: "Slot Error",
+        description: "Selected time slot not found. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedSportObj = venue.sports.find(s => s.id === selectedSport);
+    console.log('Selected sport object:', selectedSportObj);
+
+    if (!selectedSportObj) {
+      toast({
+        title: "Sport Error",
+        description: "Please select a sport before booking.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create slot string in format "HH:MM-HH:MM"
+    const slotString = `${slot.startTime}-${slot.endTime}`;
+    const sportName = selectedSportObj.name || '';
+    
+    const bookingUrl = `/book/${venue.id}/${slot.courtId}?slot=${encodeURIComponent(slotString)}&date=${selectedDate}&sport=${encodeURIComponent(sportName)}`;
+    
+    console.log('Navigation URL:', bookingUrl);
+    console.log('URL parts:');
+    console.log('- venueId:', venue.id);
+    console.log('- courtId:', slot.courtId);
+    console.log('- slot:', slotString);
+    console.log('- date:', selectedDate);
+    console.log('- sport:', sportName);
+    
+    navigate(bookingUrl);
   };
 
   const handleShare = async () => {

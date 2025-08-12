@@ -99,7 +99,16 @@ const VenueDetail = () => {
   };
 
   const handleBookCourt = (courtId: string) => {
-    navigate(`/book/${venue.id}/${courtId}`);
+    // Fallback navigation (legacy page): ensure required query params exist.
+    // Default to today's date and a 1-hour slot starting at next full hour.
+    const now = new Date();
+    const startHour = (now.getHours() + 1) % 24;
+    const endHour = (startHour + 1) % 24;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const slot = `${pad(startHour)}:00-${pad(endHour)}:00`;
+    const date = new Date().toISOString().split('T')[0];
+    const sport = (venue.sports?.[0]) || 'Badminton';
+    navigate(`/book/${venue.id}/${courtId}?slot=${encodeURIComponent(slot)}&date=${date}&sport=${encodeURIComponent(sport)}`);
   };
 
   if (isLoading) {
