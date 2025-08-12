@@ -219,15 +219,49 @@ const VenueDetailsPage = () => {
   const fetchVenueDetails = async () => {
     try {
       setIsLoadingVenue(true);
-      // TODO: Replace with actual API call
-      // const response = await facilitiesApi.getVenueDetails(id);
-      // setVenue(response.data);
       
-      // Using mock data for now
-      setTimeout(() => {
-        setVenue(mockVenue);
-        setIsLoadingVenue(false);
-      }, 1000);
+      if (!id) {
+        throw new Error('Venue ID is required');
+      }
+      
+      // Get real venue data from API
+      const facility = await facilitiesApi.getById(id);
+      
+      // Convert Facility to VenueDetails format
+      const venueDetails: VenueDetails = {
+        id: facility.id,
+        name: facility.name,
+        location: facility.location,
+        address: `${facility.location}, India`,
+        rating: 0, // Only real user ratings
+        reviewCount: 0, // Only real review count
+        images: facility.images.length > 0 ? facility.images : ['/placeholder.svg'],
+        videos: [],
+        sports: facility.sports.map((sport, index) => ({
+          id: (index + 1).toString(),
+          name: sport,
+          icon: sport === 'Badminton' ? '🏸' : sport === 'Tennis' ? '🎾' : sport === 'Cricket' ? '🏏' : '⚽',
+          isActive: true
+        })),
+        amenities: (facility.amenities || []).map((amenity, index) => ({
+          id: (index + 1).toString(),
+          name: amenity,
+          icon: 'Star',
+          category: 'general'
+        })),
+        description: facility.description || `${facility.name} is a premium sports facility offering excellent courts and amenities for sports enthusiasts.`,
+        priceRange: {
+          min: facility.courts.length > 0 ? Math.min(...facility.courts.map(c => c.pricePerHour)) : 400,
+          max: facility.courts.length > 0 ? Math.max(...facility.courts.map(c => c.pricePerHour)) : 800
+        },
+        operatingHours: { open: '06:00', close: '22:00' },
+        isVerified: facility.status === 'APPROVED',
+        ownerId: facility.ownerId || 'unknown',
+        createdAt: facility.createdAt || new Date().toISOString()
+      };
+      
+      setVenue(venueDetails);
+      setIsLoadingVenue(false);
     } catch (error) {
       console.error('Error fetching venue details:', error);
       toast({

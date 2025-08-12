@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, MapPin, Calendar, Star, Users, Car, Wifi, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +36,7 @@ const BookingPageNew: React.FC = () => {
   const { venueId, courtId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
@@ -235,6 +236,20 @@ const BookingPageNew: React.FC = () => {
 
   const createBooking = async () => {
     if (!bookingDetails) return;
+
+    // Check if user is authenticated
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to make a booking.",
+        variant: "destructive",
+      });
+      // Redirect to login with return URL
+      navigate('/login', { 
+        state: { from: location.pathname + location.search } 
+      });
+      return;
+    }
 
     try {
       setIsCreatingBooking(true);
@@ -491,6 +506,10 @@ const BookingPageNew: React.FC = () => {
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   Creating Booking...
+                </>
+              ) : !isAuthenticated ? (
+                <>
+                  Login to Book - ₹{bookingDetails.price}
                 </>
               ) : (
                 <>
