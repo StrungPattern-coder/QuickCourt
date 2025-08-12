@@ -14,7 +14,6 @@ import {
   PlusCircle, 
   X, 
   Clock, 
-  DollarSign, 
   MapPin, 
   FileText,
   Wifi,
@@ -28,7 +27,8 @@ import {
   Dumbbell,
   Upload,
   Image as ImageIcon,
-  Building
+  Building,
+  IndianRupee
 } from 'lucide-react';
 import { facilitiesApi, courtsApi } from '@/lib/api';
 
@@ -436,15 +436,15 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
               {/* Price per Hour */}
               <div className="space-y-2">
                 <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Price per Hour ($)
+                  <IndianRupee className="h-4 w-4" />
+                  Price per Hour (₹)
                 </Label>
                 <Input
                   id="price"
                   type="number"
                   min="0"
-                  step="0.01"
-                  placeholder="e.g., 50.00"
+                  step="1"
+                  placeholder="e.g., 500"
                   value={formData.pricePerHour}
                   onChange={(e) => updateFormData('pricePerHour', e.target.value)}
                 />

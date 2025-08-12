@@ -24,14 +24,15 @@ import {
 } from 'lucide-react';
 import { facilitiesApi } from '@/lib/api';
 
-const sports = ['tennis', 'basketball', 'badminton', 'soccer', 'squash', 'volleyball'];
+const sports = ['badminton', 'tennis', 'football', 'cricket', 'basketball', 'table tennis', 'squash', 'swimming', 'volleyball', 'pickleball'];
 
 const Venues = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('location') || '');
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>('');
-  const [priceRange, setPriceRange] = useState<number[]>([0, 50]);
+  // Initialize with [0,0]; we will set real range from data once loaded
+  const [priceRange, setPriceRange] = useState<number[]>([0, 0]);
   const [minRating, setMinRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<string>('rating');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -45,29 +46,68 @@ const Venues = () => {
 
   const venues = venuesData?.items || [];
 
-  // Convert Facility to Venue format
-  const convertFacilityToVenue = (facility: any): Venue => ({
-    id: facility.id,
-    name: facility.name,
-    location: facility.location,
-    images: facility.images.length > 0 ? facility.images : ['/placeholder.svg'],
-    sports: facility.sports,
-    pricePerHour: facility.courts?.[0]?.pricePerHour || 0,
-    rating: 0, // No fake ratings - only real user ratings
-    reviewCount: 0, // No fake review count
-    amenities: facility.amenities,
-    type: Math.random() > 0.5 ? 'indoor' : 'outdoor',
-    isVerified: facility.status === 'APPROVED'
-  });
+  // Helper to safely number-ify potential string decimal values
+  const toNumber = (v: unknown, fallback = 0): number => {
+    const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN;
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  // Convert Facility to Venue format with safe numeric types
+  const convertFacilityToVenue = (facility: any): Venue => {
+    const firstCourtPrice = facility.courts?.[0]?.pricePerHour;
+    // Compute rating if API returns reviews or rating fields
+    let rating = 0;
+    let reviewCount = 0;
+    if (Array.isArray(facility.reviews) && facility.reviews.length > 0) {
+      reviewCount = facility.reviews.length;
+      rating = facility.reviews.reduce((sum: number, r: any) => sum + (toNumber(r.rating, 0)), 0) / reviewCount;
+    } else if (typeof facility.rating === 'number') {
+      rating = facility.rating;
+      reviewCount = toNumber(facility.reviewCount, 0);
+    }
+
+    return {
+      id: facility.id,
+      name: facility.name,
+      location: facility.location,
+      images: facility.images?.length > 0 ? facility.images : ['/placeholder.svg'],
+      sports: facility.sports || [],
+      pricePerHour: toNumber(firstCourtPrice, 0),
+      rating: Number.isFinite(rating) ? Number(rating.toFixed(1)) : 0,
+      reviewCount,
+      amenities: facility.amenities || [],
+      type: Math.random() > 0.5 ? 'indoor' : 'outdoor',
+      isVerified: facility.status === 'APPROVED'
+    } as Venue;
+  };
+
+  // Pre-convert once for reuse
+  const convertedVenues = useMemo(() => venues.map(convertFacilityToVenue), [venues]);
+
+  // Derive price range from data once loaded
+  const priceStats = useMemo(() => {
+    if (!convertedVenues.length) return { min: 0, max: 0 };
+    const prices = convertedVenues.map(v => toNumber(v.pricePerHour, 0)).filter(p => p > 0);
+    if (prices.length === 0) return { min: 0, max: 0 };
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return { min, max };
+  }, [convertedVenues]);
+
+  // Initialize priceRange from data the first time data arrives
+  useEffect(() => {
+    if (priceStats.max > 0 && (priceRange[0] === 0 && priceRange[1] === 0)) {
+      setPriceRange([priceStats.min, priceStats.max]);
+    }
+  }, [priceStats, priceRange]);
 
   // Extract unique cities from venues data
   const cities = useMemo(() => {
-    return [...new Set(venues.map((facility: any) => facility.location))].sort();
-  }, [venues]);
+    return [...new Set(convertedVenues.map((facility: any) => facility.location))].sort();
+  }, [convertedVenues]);
 
   // Filter and sort venues based on current criteria
   const filteredVenues = useMemo(() => {
-    const convertedVenues = venues.map(convertFacilityToVenue);
     let filtered = [...convertedVenues];
 
     if (searchTerm) {
@@ -93,14 +133,17 @@ const Venues = () => {
       );
     }
 
-    filtered = filtered.filter((venue: Venue) => {
-      const price = venue.pricePerHour || 0;
-      return price >= priceRange[0] && price <= priceRange[1];
-    });
+    // Apply price filter only when we have an initialized range (max > 0)
+    if (priceStats.max > 0) {
+      filtered = filtered.filter((venue: Venue) => {
+        const price = toNumber(venue.pricePerHour, 0);
+        return price >= priceRange[0] && price <= priceRange[1];
+      });
+    }
 
     if (minRating > 0) {
       filtered = filtered.filter((venue: Venue) => 
-        venue.rating >= minRating
+        toNumber(venue.rating, 0) >= minRating
       );
     }
 
@@ -109,17 +152,17 @@ const Venues = () => {
         case 'name':
           return a.name.localeCompare(b.name);
         case 'price-low':
-          return a.pricePerHour - b.pricePerHour;
+          return toNumber(a.pricePerHour, 0) - toNumber(b.pricePerHour, 0);
         case 'price-high':
-          return b.pricePerHour - a.pricePerHour;
+          return toNumber(b.pricePerHour, 0) - toNumber(a.pricePerHour, 0);
         case 'rating':
         default:
-          return b.rating - a.rating;
+          return toNumber(b.rating, 0) - toNumber(a.rating, 0);
       }
     });
 
     return filtered;
-  }, [venues, searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy]);
+  }, [convertedVenues, searchTerm, selectedSports, selectedCity, priceRange, minRating, sortBy, priceStats.max]);
 
   // Initialize from URL params
   useEffect(() => {
@@ -141,7 +184,7 @@ const Venues = () => {
     setSearchTerm('');
     setSelectedSports([]);
     setSelectedCity('');
-    setPriceRange([0, 50]);
+    setPriceRange([priceStats.min, priceStats.max]);
     setMinRating(0);
     setSortBy('rating');
     setSearchParams({});
@@ -352,8 +395,8 @@ const Venues = () => {
                 <Slider
                   value={priceRange}
                   onValueChange={setPriceRange}
-                  max={100}
-                  min={0}
+                  max={priceStats.max > 0 ? Math.ceil(priceStats.max) : 1000}
+                  min={priceStats.min > 0 ? Math.floor(priceStats.min) : 0}
                   step={5}
                   className="w-full"
                 />

@@ -55,7 +55,9 @@ const SPORTS_OPTIONS = [
   'Basketball',
   'Table Tennis',
   'Squash',
-  'Swimming'
+  'Swimming',
+  'Volleyball',
+  'Pickleball'
 ];
 
 const VenuesPage = () => {
@@ -522,7 +524,7 @@ const VenuesPage = () => {
                     <VenueCard 
                       venue={venue} 
                       viewMode={viewMode}
-                      onClick={() => navigate(`/venues/${venue.id}`)}
+                      onClick={() => navigate(`/venue-details/${venue.id}`)}
                     />
                   </motion.div>
                 ))}
