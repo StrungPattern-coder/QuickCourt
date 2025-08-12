@@ -37,10 +37,7 @@ export const env = {
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
   refreshTokenTtl: process.env.REFRESH_TOKEN_TTL || '7d',
   otpTtlMinutes: parseInt(process.env.OTP_TTL_MINUTES || '10', 10),
-  // Razorpay configuration
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
-  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  // Payments removed: using simple receipt only. Keep keys undefined.
   smtpHost: process.env.SMTP_HOST,
   smtpPort: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined,
   smtpUser: process.env.SMTP_USER,

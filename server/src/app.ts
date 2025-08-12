@@ -10,7 +10,6 @@ import { courtRouter } from './modules/court/court.routes.js';
 import { bookingRouter } from './modules/booking/booking.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import reviewRouter from './modules/review/review.routes.js';
-import paymentRouter from './modules/payment/payment.routes.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 export const app = express();
@@ -73,7 +72,6 @@ app.use('/courts', courtRouter);
 app.use('/bookings', bookingRouter);
 app.use('/admin', adminRouter);
 app.use('/reviews', reviewRouter);
-app.use('/payments', paymentRouter);
 
 app.use(notFound);
 app.use(errorHandler);

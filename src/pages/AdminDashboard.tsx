@@ -214,7 +214,7 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <BrandNav />
-        <div className="pt-20 pb-10">
+  <div className="pt-24 pb-10">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center space-y-4">
@@ -236,7 +236,7 @@ const AdminDashboard = () => {
       />
       <BrandNav />
       
-      <div className="pt-20 pb-10">
+  <div className="pt-24 pb-10">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">

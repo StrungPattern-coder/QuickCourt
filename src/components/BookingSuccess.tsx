@@ -12,7 +12,7 @@ interface BookingSuccessProps {
   onClose: () => void;
   bookingData: {
     id: string;
-    paymentId: string;
+  receiptId: string;
     facilityName: string;
     courtName: string;
     location: string;
@@ -33,20 +33,33 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   const { toast } = useToast();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    try {
+      const iso = /^\d{4}-\d{2}-\d{2}$/;
+      const d = iso.test(dateString) ? new Date(dateString + 'T00:00:00') : new Date(dateString);
+      if (Number.isNaN(d.getTime())) return dateString;
+      return d.toLocaleDateString('en-IN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
+    try {
+      const d = new Date(`2000-01-01T${timeString}`);
+      if (Number.isNaN(d.getTime())) return timeString;
+      return d.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return timeString;
+    }
   };
 
   const handleShare = async () => {
@@ -71,14 +84,123 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   };
 
   const handleDownloadReceipt = () => {
-    // This would typically generate and download a PDF receipt
-    toast({
-      title: "Download started",
-      description: "Your receipt will be downloaded shortly.",
-    });
-    
-    // For now, we'll just show a toast
-    // In a real implementation, you'd generate a PDF or redirect to a receipt endpoint
+    const w = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+    if (!w) return;
+    const price = Number(bookingData.price) || 0;
+    const durationHours = (() => {
+      const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
+      const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
+      return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
+    })();
+    const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
+    const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+
+    const html = `
+      <html>
+      <head>
+        <title>Receipt - QuickCourt</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+          :root{ --green:#065f46; --muted:#6b7280; --border:#e5e7eb; --bg:#ffffff; }
+          *{ box-sizing:border-box; }
+          body{ margin:0; background:#f8fafc; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+          .page{ max-width:760px; margin:24px auto; background:var(--bg); padding:28px; border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.06); }
+          .header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+          .brand{ display:flex; align-items:center; gap:10px; }
+          .logo{ width:36px; height:36px; border-radius:8px; background:#d1fae5; display:flex; align-items:center; justify-content:center; color:var(--green); font-weight:900; }
+          .brand-text{ font-weight:800; font-size:20px; color:var(--green); letter-spacing:0.2px; }
+          .receipt-meta{ text-align:right; font-size:12px; color:var(--muted); }
+          .title{ font-weight:700; font-size:22px; margin:8px 0 2px; color:#111827; }
+          .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin:16px 0 10px; }
+          .panel{ border:1px solid var(--border); border-radius:8px; padding:12px; }
+          .panel h4{ margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#374151; }
+          .kv{ display:flex; justify-content:space-between; gap:16px; font-size:14px; margin:6px 0; }
+          .kv .k{ color:#4b5563; }
+          table{ width:100%; border-collapse:collapse; margin-top:8px; }
+          th, td{ font-size:14px; text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); }
+          th{ background:#f9fafb; color:#374151; font-weight:600; }
+          .right{ text-align:right; }
+          .totals{ margin-top:12px; width:100%; }
+          .totals .row{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+          .totals .grand{ border-top:1px dashed var(--border); margin-top:6px; padding-top:12px; font-weight:800; color:var(--green); font-size:18px; }
+          .footer{ margin-top:18px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; }
+          .note{ max-width:70%; }
+          @media print{
+            body{ background:#fff; }
+            .page{ margin:0; border:none; box-shadow:none; }
+            .footer{ color:#6b7280; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="brand">
+              <div class="logo">QC</div>
+              <div class="brand-text">QuickCourt</div>
+            </div>
+            <div class="receipt-meta">
+              <div>Receipt No: <strong>${bookingData.receiptId}</strong></div>
+              <div>Booking ID: <strong>${bookingData.id.slice(-8).toUpperCase()}</strong></div>
+              <div>Date Issued: ${new Date().toLocaleDateString('en-IN')}</div>
+            </div>
+          </div>
+
+          <div class="title">Payment Receipt</div>
+
+          <div class="grid">
+            <div class="panel">
+              <h4>Venue Details</h4>
+              <div class="kv"><div class="k">Facility</div><div class="v">${bookingData.facilityName}</div></div>
+              <div class="kv"><div class="k">Court</div><div class="v">${bookingData.courtName}</div></div>
+              <div class="kv"><div class="k">Location</div><div class="v">${bookingData.location}</div></div>
+            </div>
+            <div class="panel">
+              <h4>Booking Info</h4>
+              <div class="kv"><div class="k">Sport</div><div class="v">${bookingData.sport}</div></div>
+              <div class="kv"><div class="k">Date</div><div class="v">${formatDate(bookingData.date)}</div></div>
+              <div class="kv"><div class="k">Time</div><div class="v">${formatTime(bookingData.startTime)} – ${formatTime(bookingData.endTime)}</div></div>
+              <div class="kv"><div class="k">Duration</div><div class="v">${durationHours} hour${durationHours > 1 ? 's' : ''}</div></div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="right">Rate</th>
+                <th class="right">Qty (hrs)</th>
+                <th class="right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Court booking — ${bookingData.facilityName} (${bookingData.courtName})</td>
+                <td class="right">${currency(rate)}</td>
+                <td class="right">${durationHours}</td>
+                <td class="right">${currency(price)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div class="row"><div>Subtotal</div><div>${currency(price)}</div></div>
+            <div class="row"><div>Taxes</div><div>—</div></div>
+            <div class="row grand"><div>Total Paid</div><div>${currency(price)}</div></div>
+          </div>
+
+          <div class="footer">
+            <div class="note">Thank you for booking with QuickCourt. Please arrive 10 minutes early. For changes or cancellations, see your booking details in the app.</div>
+            <div>quickcourt.example • support@quickcourt.example</div>
+          </div>
+        </div>
+        <script>window.print()</script>
+      </body>
+      </html>`;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.close();
   };
 
   const handleViewBookings = () => {
@@ -118,7 +240,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
               Booking Confirmed!
             </h2>
             <p className="text-gray-600">
-              Your court has been successfully booked and payment processed.
+              Your court has been successfully booked. A receipt has been generated.
             </p>
           </motion.div>
 
@@ -157,13 +279,13 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-green-200">
-                  <span className="text-sm text-green-700">Total Paid</span>
+                  <span className="text-sm text-green-700">Total</span>
                   <span className="font-bold text-green-900">₹{bookingData.price}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-green-600">
                   <span>Booking ID: {bookingData.id.slice(-8).toUpperCase()}</span>
-                  <span>Payment ID: {bookingData.paymentId.slice(-8).toUpperCase()}</span>
+                  <span>Receipt: {bookingData.receiptId}</span>
                 </div>
               </CardContent>
             </Card>

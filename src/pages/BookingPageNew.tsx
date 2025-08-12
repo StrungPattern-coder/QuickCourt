@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import BrandNav from '@/components/BrandNav';
-import PaymentModal from '@/components/PaymentModal';
 import BookingSuccess from '@/components/BookingSuccess';
 import SEO from '@/components/SEO';
 
@@ -43,12 +42,30 @@ const BookingPageNew: React.FC = () => {
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [paymentData, setPaymentData] = useState<{
-    paymentId: string;
+  const [receiptData, setReceiptData] = useState<{
+    receiptId: string;
     bookingId: string;
   } | null>(null);
+
+  // Robust date parsing for "YYYY-MM-DD" and "DD-MM-YYYY" and generic Date strings
+  const parseDateFromParam = (ds: string): Date | null => {
+    if (!ds) return null;
+    // ISO date (YYYY-MM-DD)
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if (iso.test(ds)) {
+      const [y, m, d] = ds.split('-').map(Number);
+      return new Date(y, (m as number) - 1, d);
+    }
+    // Common DD-MM-YYYY
+    const dmy = /^\d{2}-\d{2}-\d{4}$/;
+    if (dmy.test(ds)) {
+      const [d, m, y] = ds.split('-').map(Number);
+      return new Date(y, (m as number) - 1, d);
+    }
+    const dt = new Date(ds);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  };
 
   // Get URL parameters
   const slot = searchParams.get('slot');
@@ -101,6 +118,15 @@ const BookingPageNew: React.FC = () => {
   const fetchBookingDetails = async () => {
     try {
       setIsLoading(true);
+      // Parse and normalize date first
+      const parsed = parseDateFromParam(date || '');
+      if (!parsed) {
+        throw new Error('Invalid date');
+      }
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      const normalizedDate = `${y}-${m}-${d}`; // store as YYYY-MM-DD
 
       // Fetch venue/facility details
       const facilityResponse = await fetch(`${API_BASE_URL}/facilities/${venueId}`, {
@@ -128,12 +154,52 @@ const BookingPageNew: React.FC = () => {
 
       const court = await courtResponse.json();
 
-      // Parse time slot (assuming format like "09:00-10:00")
-      const [startTime, endTime] = (slot || '').split('-');
-      const startHour = parseInt(startTime?.split(':')[0] || '9');
-      const endHour = parseInt(endTime?.split(':')[0] || '10');
-      const duration = endHour - startHour;
-      const price = duration * Number(court.pricePerHour);
+      // Determine start/end/price based on selected slot id by querying availability for the date
+      let startTimeNorm = '09:00';
+      let endTimeNorm = '10:00';
+      let duration = 1;
+      let price = Number(court.pricePerHour);
+
+      try {
+        const availRes = await fetch(`${API_BASE_URL}/facilities/${venueId}/availability?date=${encodeURIComponent(normalizedDate)}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
+        });
+        if (availRes.ok) {
+          const slots = await availRes.json();
+          const selected = Array.isArray(slots) ? slots.find((s: any) => s.id === slot) : null;
+          if (selected) {
+            startTimeNorm = selected.startTime;
+            endTimeNorm = selected.endTime;
+            duration = Math.max(0.5, (
+              Number(selected.endTime.split(':')[0]) * 60 + Number(selected.endTime.split(':')[1] || 0) -
+              (Number(selected.startTime.split(':')[0]) * 60 + Number(selected.startTime.split(':')[1] || 0))
+            ) / 60);
+            price = Number(selected.price) * duration / 1; // price is per-hour from API
+          } else if ((slot || '').includes(':')) {
+            // Fallback: if slot is a time range like "09:00-10:00"
+            const [rawStart, rawEnd] = (slot || '').split('-');
+            const parsePart = (p?: string) => {
+              if (!p) return { h: 9, m: 0 };
+              const [hStr, mStr] = p.split(':');
+              const h = Math.max(0, Math.min(23, Number(hStr)));
+              const m = mStr !== undefined ? Math.max(0, Math.min(59, Number(mStr))) : 0;
+              return { h, m };
+            };
+            const s = parsePart(rawStart);
+            const e = parsePart(rawEnd);
+            startTimeNorm = `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
+            endTimeNorm = `${String(e.h).padStart(2, '0')}:${String(e.m).padStart(2, '0')}`;
+            duration = Math.max(0.5, (e.h * 60 + e.m - (s.h * 60 + s.m)) / 60);
+            price = duration * Number(court.pricePerHour);
+          } else {
+            throw new Error('Selected slot not available');
+          }
+        } else {
+          throw new Error('Failed to load availability');
+        }
+      } catch (e) {
+        console.warn('Availability lookup failed, using defaults/fallback:', e);
+      }
 
       const bookingData: BookingDetails = {
         id: '', // Will be set after booking creation
@@ -143,11 +209,11 @@ const BookingPageNew: React.FC = () => {
         courtName: court.name,
         location: facility.location,
         sport: sport || 'Unknown',
-        date: date || '',
-        startTime: startTime || '09:00',
-        endTime: endTime || '10:00',
-        price: price,
-        duration: duration,
+  date: normalizedDate,
+  startTime: startTimeNorm,
+  endTime: endTimeNorm,
+  price,
+  duration,
         facilityImage: facility.images?.[0] || '/placeholder.svg',
         amenities: facility.amenities || [],
         rating: 4.5, // Mock rating, replace with actual data
@@ -174,9 +240,16 @@ const BookingPageNew: React.FC = () => {
       setIsCreatingBooking(true);
 
       // Create booking date-time strings
-      const bookingDate = new Date(bookingDetails.date);
-      const [startHour, startMin] = bookingDetails.startTime.split(':').map(Number);
-      const [endHour, endMin] = bookingDetails.endTime.split(':').map(Number);
+      const bookingDate = parseDateFromParam(bookingDetails.date);
+      if (!bookingDate) {
+        throw new Error('Invalid date format. Please go back and reselect your date.');
+      }
+  const [startHourStr, startMinStr] = bookingDetails.startTime.split(':');
+  const [endHourStr, endMinStr] = bookingDetails.endTime.split(':');
+  const startHour = Number(startHourStr);
+  const startMin = startMinStr !== undefined ? Number(startMinStr) : 0;
+  const endHour = Number(endHourStr);
+  const endMin = endMinStr !== undefined ? Number(endMinStr) : 0;
 
       const startDateTime = new Date(bookingDate);
       startDateTime.setHours(startHour, startMin, 0, 0);
@@ -197,17 +270,19 @@ const BookingPageNew: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
+  const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create booking');
       }
 
-      // Update booking details with the created booking ID
-      setBookingDetails(prev => prev ? { ...prev, id: data.data.booking.id } : null);
+  // Update booking details with the created booking ID (server returns the booking object directly)
+  const createdBookingId = data.id;
+  setBookingDetails(prev => prev ? { ...prev, id: createdBookingId } : null);
 
-      // Show payment modal
-      setShowPaymentModal(true);
+  // Generate a simple receipt id and show success modal directly (no payment gateway)
+  const receiptId = `RCPT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+  handleReceiptGenerated(receiptId, createdBookingId);
     } catch (error: any) {
       console.error('Failed to create booking:', error);
       toast({
@@ -220,9 +295,8 @@ const BookingPageNew: React.FC = () => {
     }
   };
 
-  const handlePaymentSuccess = (paymentId: string, bookingId: string) => {
-    setPaymentData({ paymentId, bookingId });
-    setShowPaymentModal(false);
+  const handleReceiptGenerated = (receiptId: string, bookingId: string) => {
+    setReceiptData({ receiptId, bookingId });
     setShowSuccessModal(true);
   };
 
@@ -420,7 +494,7 @@ const BookingPageNew: React.FC = () => {
                 </>
               ) : (
                 <>
-                  Proceed to Payment - ₹{bookingDetails.price}
+                  Confirm Booking & Generate Receipt - ₹{bookingDetails.price}
                 </>
               )}
             </Button>
@@ -441,18 +515,8 @@ const BookingPageNew: React.FC = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      {showPaymentModal && bookingDetails && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-          bookingData={bookingDetails}
-        />
-      )}
-
       {/* Success Modal */}
-      {showSuccessModal && paymentData && bookingDetails && (
+  {showSuccessModal && receiptData && bookingDetails && (
         <BookingSuccess
           isOpen={showSuccessModal}
           onClose={() => {
@@ -461,7 +525,7 @@ const BookingPageNew: React.FC = () => {
           }}
           bookingData={{
             ...bookingDetails,
-            paymentId: paymentData.paymentId,
+    receiptId: receiptData.receiptId,
           }}
         />
       )}
