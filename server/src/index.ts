@@ -5,7 +5,7 @@ import { env } from './config/env.js';
 import { verifyAccessToken } from './utils/jwt.js';
 
 const httpServer = createServer(app);
-export const io = new Server(httpServer, { cors: { origin: env.corsOrigin } });
+export const io = new Server(httpServer, { cors: { origin: env.corsOrigin as any, credentials: true, methods: ['GET','POST','PUT','DELETE','OPTIONS'] } });
 
 // Join per-user and per-owner rooms based on JWT provided by the client
 io.use((socket, next) => {

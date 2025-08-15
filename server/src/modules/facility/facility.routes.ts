@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { FacilityStatus, UserRole } from '../../types/enums.js';
+import { verifyAccessToken } from '../../utils/jwt.js';
 import { z } from 'zod';
 import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js';
 
@@ -13,13 +14,15 @@ const createSchema = z.object({
   description: z.string().min(10),
   sports: z.array(z.string()).min(1),
   amenities: z.array(z.string()).default([]),
-  images: z.array(z.string().url()).default([])
+  images: z.array(z.string().url()).default([]),
+  propertyTypes: z.array(z.enum(["PLAY","BOOK","TRAIN"]))
+    .default(["BOOK"]) // default to BOOK to match current behavior
 });
 
 facilityRouter.post('/', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
   try {
-    const data = createSchema.parse(req.body);
-    const facility = await prisma.facility.create({ data: { ...data, ownerId: req.user!.id } });
+  const data = createSchema.parse(req.body);
+  const facility = await prisma.facility.create({ data: { ...data, ownerId: req.user!.id } });
     res.status(201).json(facility);
   } catch (e: any) { res.status(400).json({ message: e.message }); }
 });
@@ -41,7 +44,18 @@ facilityRouter.get('/', async (req: Request, res: Response) => {
 
 facilityRouter.get('/:id', async (req: Request, res: Response) => {
   const facility = await prisma.facility.findUnique({ where: { id: req.params.id }, include: { courts: true } });
-  if (!facility || facility.status !== 'APPROVED') return res.status(404).json({ message: 'Not found' });
+  if (!facility) return res.status(404).json({ message: 'Not found' });
+  if (facility.status !== FacilityStatus.APPROVED) {
+    // Allow owner or admin to view unapproved facility if authenticated
+    try {
+      const auth = req.headers.authorization;
+      if (!auth?.startsWith('Bearer ')) return res.status(404).json({ message: 'Not found' });
+      const payload = verifyAccessToken(auth.slice(7));
+      if (payload.role !== 'ADMIN' && payload.sub !== facility.ownerId) return res.status(404).json({ message: 'Not found' });
+    } catch {
+      return res.status(404).json({ message: 'Not found' });
+    }
+  }
   res.json(facility);
 });
 
@@ -72,7 +86,18 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
       where: { id },
       include: { courts: { select: { id: true, name: true, openTime: true, closeTime: true, pricePerHour: true } } }
     });
-    if (!facility || facility.status !== FacilityStatus.APPROVED) return res.status(404).json({ message: 'Not found' });
+    if (!facility) return res.status(404).json({ message: 'Not found' });
+    if (facility.status !== FacilityStatus.APPROVED) {
+      // Validate auth to allow owner/admin preview availability
+      try {
+        const auth = req.headers.authorization;
+        if (!auth?.startsWith('Bearer ')) return res.status(404).json({ message: 'Not found' });
+        const payload = verifyAccessToken(auth.slice(7));
+        if (payload.role !== 'ADMIN' && payload.sub !== facility.ownerId) return res.status(404).json({ message: 'Not found' });
+      } catch {
+        return res.status(404).json({ message: 'Not found' });
+      }
+    }
 
     // Compute day start/end
     const dayStart = new Date(dateParam);

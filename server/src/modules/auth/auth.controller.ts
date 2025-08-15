@@ -8,13 +8,20 @@ const signupSchema = z.object({
   password: z.string().min(8),
   fullName: z.string().min(2),
   role: z.nativeEnum(UserRole),
-  avatarUrl: z.string().url().optional()
+  avatarUrl: z.string().url().optional(),
+  inviteSecret: z.string().optional()
 });
 
 export async function signupHandler(req: Request, res: Response) {
   try {
     const data = signupSchema.parse(req.body);
-  const out = await registerUser(data as any); // cast due to zod unknown -> any
+    if (data.role === UserRole.ADMIN) {
+      if (!data.inviteSecret || data.inviteSecret !== process.env.ADMIN_INVITE_SECRET) {
+        return res.status(403).json({ message: 'Invalid admin invite secret' });
+      }
+    }
+    const { inviteSecret, ...rest } = data;
+    const out = await registerUser(rest as any); // cast due to zod unknown -> any
     res.status(201).json({ message: 'User created. Verify OTP sent to email.', ...out });
   } catch (e: any) {
     res.status(400).json({ message: e.message });

@@ -40,6 +40,13 @@ enum PaymentStatus {
   REFUNDED
 }
 
+// Types of property/services an owner can list
+enum PropertyType {
+  PLAY
+  BOOK
+  TRAIN
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -52,6 +59,19 @@ model User {
   bookings     Booking[]
   reviews      Review[]
   refreshTokens RefreshToken[]
+  // Gamification & referrals
+  loyaltyPoints    Int           @default(0)
+  currentStreak    Int           @default(0)
+  lastActivityDate DateTime?
+  referralCode     String?       @unique
+  referredById     String?
+  referredBy       User?         @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals        User[]        @relation("UserReferrals")
+  badges           UserBadge[]
+  pointsLedger     PointsLedger[]
+  referralRewards  ReferralReward[] @relation("ReferrerRewards")
+  earnedRewards    ReferralReward[] @relation("RefereeRewards")
+  sentInvites      BookingInvite[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   verificationTokens VerificationToken[]
@@ -76,6 +96,7 @@ model Facility {
   sports      String[]
   amenities   String[]
   images      String[]
+  propertyTypes PropertyType[]
   status      FacilityStatus  @default(PENDING)
   owner       User            @relation("OwnerFacilities", fields: [ownerId], references: [id])
   ownerId     String
@@ -125,6 +146,8 @@ model Booking {
   status      BookingStatus @default(PENDING)
   price       Decimal       @db.Decimal(10,2)
   payment     Payment?
+  invites     BookingInvite[]
+  shareLink   ShareableBookingLink?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   @@index([courtId,startTime,endTime])
@@ -173,4 +196,95 @@ model Review {
   @@index([facilityId])
   @@index([rating])
   @@index([createdAt])
+}
+
+// Loyalty & Gamification Models
+
+model PointsLedger {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  source       String   // e.g. BOOKING, REFERRAL, BONUS, ADJUST
+  delta        Int
+  balanceAfter Int
+  meta         Json?
+  createdAt    DateTime @default(now())
+  @@index([userId, createdAt])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  criteria    Json?    // rule definition (e.g. {"totalBookings":10})
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+model BookingInvite {
+  id           String       @id @default(cuid())
+  booking      Booking      @relation(fields: [bookingId], references: [id])
+  bookingId    String
+  inviter      User         @relation(fields: [inviterId], references: [id])
+  inviterId    String
+  inviteeEmail String
+  status       InviteStatus @default(PENDING)
+  token        String       @unique
+  expiresAt    DateTime
+  respondedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  @@index([bookingId])
+  @@index([token])
+}
+
+model ShareableBookingLink {
+  id         String   @id @default(cuid())
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  bookingId  String   @unique
+  slug       String   @unique
+  expiresAt  DateTime?
+  accessLevel String  @default("VIEW")
+  createdAt  DateTime @default(now())
+  @@index([slug])
+}
+
+enum ReferralRewardStatus { 
+  PENDING 
+  EARNED 
+  REVOKED 
+}
+
+model ReferralReward {
+  id          String               @id @default(cuid())
+  referrer    User                 @relation("ReferrerRewards", fields: [referrerId], references: [id])
+  referrerId  String
+  referee     User                 @relation("RefereeRewards", fields: [refereeId], references: [id])
+  refereeId   String
+  status      ReferralRewardStatus @default(PENDING)
+  createdAt   DateTime             @default(now())
+  earnedAt    DateTime?
+  @@unique([referrerId, refereeId])
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([status])
 }

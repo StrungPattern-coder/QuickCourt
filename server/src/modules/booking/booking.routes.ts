@@ -4,6 +4,7 @@ import { BookingStatus, UserRole, PaymentStatus } from '../../types/enums.js';
 import { z } from 'zod';
 import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js';
 import { io } from '../../index.js';
+import { addPoints, recordActivityForStreak } from '../../services/loyalty.js';
 
 const prisma = new PrismaClient();
 export const bookingRouter = Router();
@@ -41,6 +42,14 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
     io.to(`owner:${booking.ownerId}`).emit('booking:new', { ...payload, facilityName: booking.facilityName });
     io.to(`user:${req.user!.id}`).emit('booking:confirmed', payload);
 
+    // Award loyalty points (simple rule: 10 points per hour)
+    try {
+      const start = new Date(startTime); const end = new Date(endTime);
+      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      const points = Math.max(1, Math.round(hours * 10));
+      await addPoints(req.user!.id, points, 'BOOKING', { bookingId: booking.created.id, hours });
+      await recordActivityForStreak(req.user!.id);
+    } catch (e) { console.warn('Loyalty award failed', e); }
     res.status(201).json(booking.created);
   } catch (e: any) { res.status(400).json({ message: e.message }); }
 });

@@ -70,6 +70,7 @@ export const authApi = {
     fullName: string;
     role: 'USER' | 'OWNER' | 'ADMIN';
     avatarUrl?: string;
+  inviteSecret?: string;
   }) => apiRequest('/auth/signup', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -131,6 +132,10 @@ export const facilitiesApi = {
     sports: string[];
     amenities?: string[];
     images?: string[];
+    // Optional geo
+    latitude?: number;
+    longitude?: number;
+  propertyTypes?: ("PLAY" | "BOOK" | "TRAIN")[];
   }) => apiRequest('/facilities', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -223,6 +228,7 @@ export interface Facility {
   sports: string[];
   amenities: string[];
   images: string[];
+  propertyTypes?: ("PLAY" | "BOOK" | "TRAIN")[];
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   ownerId: string;
   courts: Court[];

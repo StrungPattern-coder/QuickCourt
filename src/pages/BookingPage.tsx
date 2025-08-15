@@ -161,4 +161,5 @@ const BookingPage = () => {
   );
 };
 
-export default BookingPage;
+// Deprecated booking page variant. Use BookingPageNew.tsx.
+export default function DeprecatedBookingPage() { return null; }

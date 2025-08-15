@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Calendar, ChevronDown, Star, ArrowRight, Users, Clock, Trophy, Play, CheckCircle } from 'lucide-react';
+import { Search, MapPin, Calendar, ChevronDown, Star, ArrowRight, Users, Clock, Trophy, Play, CheckCircle, Shield, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { facilitiesApi } from '@/lib/api';
@@ -543,6 +543,95 @@ const HomePage = () => {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
+
+      {/* About Snapshot */}
+      <section className="py-16 md:py-24 bg-white border-t border-gray-100">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <motion.div {...fadeInUp} className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-br from-green-600 to-emerald-500 bg-clip-text text-transparent">
+              About QuickCourt
+            </h2>
+            <p className="mt-4 text-gray-600 text-lg leading-relaxed">
+              We connect players, facility owners and coaches through seamless booking, real-time availability and a rewarding activity ecosystem.
+            </p>
+          </motion.div>
+
+            <div className="grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4 mb-16">
+              {[
+                { icon: <Users className="h-6 w-6" />, title: 'Community First', desc: 'Tools that amplify grassroots sports participation.' },
+                { icon: <Shield className="h-6 w-6" />, title: 'Secure & Fair', desc: 'Verified venues, protected sessions & transparent policies.' },
+                { icon: <Trophy className="h-6 w-6" />, title: 'Gamified Progress', desc: 'Points, streaks & badges keep you motivated to play more.' },
+                { icon: <Sparkles className="h-6 w-6" />, title: 'Continuous Innovation', desc: 'Rapid iteration on performance, realtime, and PWA features.' }
+              ].map((v, i) => (
+                <motion.div
+                  key={v.title}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="bg-gray-50 hover:bg-white rounded-xl p-6 border border-gray-200 hover:border-green-300 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white flex items-center justify-center mb-4">
+                    {v.icon}
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{v.title}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{v.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-10 items-center">
+              <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-4">
+                <h3 className="text-2xl font-bold text-gray-900">What We've Built So Far</h3>
+                <p className="text-gray-600 leading-relaxed">A fast-moving platform layering booking logistics with engagement mechanics.</p>
+                <ul className="space-y-3 text-sm">
+                  {[
+                    'Unified multi-sport booking experience',
+                    'Realtime availability scaffolding',
+                    'Loyalty points + streak tracking',
+                    'Referral & sharing flows',
+                    'Admin & owner role segregation'
+                  ].map(item => (
+                    <li key={item} className="flex items-start gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                      <span className="text-gray-700">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="pt-2">
+                  <button onClick={() => navigate('/about')} className="text-green-600 font-semibold hover:text-green-700 inline-flex items-center gap-1 group">
+                    Learn more <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </motion.div>
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative bg-gradient-to-br from-green-600 to-emerald-500 rounded-2xl p-8 overflow-hidden text-white shadow-lg">
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_30%,white,transparent_60%)]" />
+                <div className="relative z-10 space-y-4">
+                  <h3 className="text-xl font-semibold">Why It Matters</h3>
+                  <p className="text-sm leading-relaxed text-green-50">Access, consistency, and community are the pillars that keep people active. QuickCourt lowers friction while boosting motivation and trust.</p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-bold text-white">01</p>
+                      <p className="text-green-50">Reduced booking friction</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">02</p>
+                      <p className="text-green-50">Higher venue utilization</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">03</p>
+                      <p className="text-green-50">Player retention via rewards</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">04</p>
+                      <p className="text-green-50">Transparent platform growth</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
         </div>
       </section>
     </div>

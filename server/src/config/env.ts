@@ -29,9 +29,19 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '4000', 10),
   dbUrl: process.env.DATABASE_URL!,
-  corsOrigin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:8080']
-    : (process.env.CORS_ORIGIN || 'http://localhost:3000'),
+  // Allow multiple dev origins (vite default 5173, 8080/8081 variants, 3000) so front-end ports can vary
+  corsOrigin: process.env.NODE_ENV === 'development'
+    ? [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:8080',
+        'http://127.0.0.1:8080',
+        'http://localhost:8081',
+        'http://127.0.0.1:8081',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+      ]
+    : (process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000']),
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
@@ -43,4 +53,7 @@ export const env = {
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
   emailFrom: process.env.EMAIL_FROM || 'QuickCourt <no-reply@quickcourt.local>'
+  ,
+  sentryDsn: process.env.SENTRY_DSN,
+  adminInviteSecret: process.env.ADMIN_INVITE_SECRET
 };

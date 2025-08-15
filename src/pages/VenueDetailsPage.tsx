@@ -219,11 +219,16 @@ const VenueDetailsPage = () => {
   const fetchVenueDetails = async () => {
     try {
       setIsLoadingVenue(true);
-      
       if (!id) {
         throw new Error('Venue ID is required');
       }
-      
+      // Short‑circuit for placeholder/demo IDs to avoid unnecessary 404s
+      if (id.startsWith('placeholder-')) {
+        const demo = { ...mockVenue, id, name: id === 'placeholder-1' ? 'Sample Sports Arena' : 'Community Courts' };
+        setVenue(demo);
+        setIsLoadingVenue(false);
+        return;
+      }
       // Get real venue data from API
       const facility = await facilitiesApi.getById(id);
       
@@ -262,13 +267,28 @@ const VenueDetailsPage = () => {
       
       setVenue(venueDetails);
       setIsLoadingVenue(false);
-    } catch (error) {
+    } catch (error: any) {
+      // Gracefully fall back for placeholder IDs
+      if (id && id.startsWith('placeholder-')) {
+        const demo = { ...mockVenue, id, name: id === 'placeholder-1' ? 'Sample Sports Arena' : 'Community Courts' };
+        setVenue(demo);
+        setIsLoadingVenue(false);
+        return;
+      }
       console.error('Error fetching venue details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load venue details. Please try again.",
-        variant: "destructive"
-      });
+      if (error?.status !== 404) {
+        toast({
+          title: "Error",
+          description: "Failed to load venue details. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: 'Venue Not Found',
+          description: 'This venue may have been removed.',
+          variant: 'destructive'
+        });
+      }
       setIsLoadingVenue(false);
     }
   };
@@ -276,6 +296,11 @@ const VenueDetailsPage = () => {
   const fetchTimeSlots = async () => {
     try {
       setIsLoadingSlots(true);
+      if (id && id.startsWith('placeholder-')) {
+        setTimeSlots(mockTimeSlots);
+        setIsLoadingSlots(false);
+        return;
+      }
       // Use real API to get hourly slots for selected date
       const slots = await facilitiesApi.getAvailability(id!, selectedDate);
       setTimeSlots(slots);
@@ -382,6 +407,8 @@ const VenueDetailsPage = () => {
     }
   };
 
+  const isDemoVenue = venue && venue.id.startsWith('placeholder-');
+
   const handleFavorite = () => {
     setIsFavorite(!isFavorite);
     toast({
@@ -461,6 +488,13 @@ const VenueDetailsPage = () => {
       setIsSubmittingReview(false);
     }
   };
+
+  // Render helper for Demo badge
+  const DemoBadge = () => (
+    <span className="inline-flex items-center rounded bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-medium border border-amber-200 ml-2">
+      Demo
+    </span>
+  );
 
   const getAmenityIcon = (iconName: string) => {
     const icons: { [key: string]: React.ReactNode } = {

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthRequest } from '../../middleware/auth.js';
-import { RazorpayService, PaymentVerificationData } from '../../services/razorpay.js';
+import { RazorpayService, PaymentVerificationData } from '../../services/razorpay';
 import { PaymentStatus, BookingStatus } from '../../types/enums.js';
 
 const prisma = new PrismaClient();

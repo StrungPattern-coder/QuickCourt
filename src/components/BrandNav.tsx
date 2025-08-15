@@ -53,7 +53,7 @@ const BrandNav = () => {
       return {
         background: 'transparent',
         textColor: 'text-white',
-        logoColor: 'text-white',
+        logoColor: 'text-white drop-shadow-lg',
         buttonStyle: 'text-white hover:bg-white/20',
         navBackground: 'bg-white/10 backdrop-blur-sm border-white/20',
         loginButton: 'bg-white text-green-600 hover:bg-gray-100'
@@ -84,13 +84,24 @@ const BrandNav = () => {
         {/* Logo */}
         <div className="px-2 sm:px-6 py-3 flex items-center">
           <Link to="/" className={`flex items-center gap-2 text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}>
-            <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-white text-sm">QC</span>
+            <span className={`inline-grid place-items-center w-8 h-8 rounded-md text-sm font-bold transition-all duration-300 ${
+              scrollY < window.innerHeight * 0.8 && heroPages.includes(location.pathname)
+                ? 'bg-white/20 backdrop-blur-sm text-white border border-white/30'
+                : 'bg-gradient-to-br from-green-600 to-emerald-500 text-white shadow-md'
+            }`}>QC</span>
             <span>QuickCourt</span>
           </Link>
         </div>
         
         {/* Desktop Navigation */}
         <div className={`hidden lg:flex rounded-full p-1 items-center gap-1 border transition-all duration-300 ${navStyle.navBackground}`}>
+          <Button 
+            variant="ghost" 
+            className={`rounded-full px-6 transition-colors duration-300 ${navStyle.buttonStyle}`} 
+            onClick={() => navigate('/about')}
+          >
+            About
+          </Button>
           {isAuthenticated && user?.role !== 'OWNER' && (
             <>
               <Button 
@@ -263,8 +274,8 @@ const BrandNav = () => {
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <div className="mt-4 mb-4 flex items-center justify-between">
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
-                  <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-white text-sm font-bold">QC</span>
-                  <span className="font-semibold">QuickCourt</span>
+                  <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-white text-sm font-bold shadow-md">QC</span>
+                  <span className="font-semibold text-gray-900">QuickCourt</span>
                 </Link>
                 <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu">
                   <X className="h-5 w-5" />
@@ -298,6 +309,13 @@ const BrandNav = () => {
                 )}
 
                 <div className="border-t pt-4 mt-6">
+                  <Button
+                    variant="ghost"
+                    className="justify-start w-full text-lg py-6"
+                    onClick={() => handleMobileNavClick('/about')}
+                  >
+                    ℹ️ About
+                  </Button>
                   {!isAuthenticated ? (
                     <div className="space-y-2">
                       <Button 

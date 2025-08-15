@@ -129,31 +129,41 @@ const BookingPageNew: React.FC = () => {
       const d = String(parsed.getDate()).padStart(2, '0');
       const normalizedDate = `${y}-${m}-${d}`; // store as YYYY-MM-DD
 
-      // Fetch venue/facility details
-      const facilityResponse = await fetch(`${API_BASE_URL}/facilities/${venueId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-
-      if (!facilityResponse.ok) {
-        throw new Error('Failed to fetch facility details');
+      let facility: any;
+      let court: any;
+      const isPlaceholder = venueId?.startsWith('placeholder-');
+      if (isPlaceholder) {
+        facility = {
+          id: venueId,
+          name: venueId === 'placeholder-1' ? 'Sample Sports Arena' : 'Community Courts',
+          location: 'Demo City',
+          images: ['/placeholder.svg'],
+          amenities: ['Parking', 'WiFi'],
+          courts: [{ id: courtId, name: 'Court 1', pricePerHour: 500 }]
+        };
+        court = { id: courtId, name: 'Court 1', pricePerHour: 500 };
+      } else {
+        // Fetch venue/facility details
+        const facilityResponse = await fetch(`${API_BASE_URL}/facilities/${venueId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        });
+        if (!facilityResponse.ok) {
+          throw new Error('Failed to fetch facility details');
+        }
+        facility = await facilityResponse.json();
+        // Fetch court details
+        const courtResponse = await fetch(`${API_BASE_URL}/courts/${courtId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        });
+        if (!courtResponse.ok) {
+          throw new Error('Failed to fetch court details');
+        }
+        court = await courtResponse.json();
       }
-
-      const facility = await facilityResponse.json();
-
-      // Fetch court details
-      const courtResponse = await fetch(`${API_BASE_URL}/courts/${courtId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-
-      if (!courtResponse.ok) {
-        throw new Error('Failed to fetch court details');
-      }
-
-      const court = await courtResponse.json();
 
       // Determine start/end/price based on selected slot id by querying availability for the date
       let startTimeNorm = '09:00';
@@ -161,45 +171,27 @@ const BookingPageNew: React.FC = () => {
       let duration = 1;
       let price = Number(court.pricePerHour);
 
-      try {
-        const availRes = await fetch(`${API_BASE_URL}/facilities/${venueId}/availability?date=${encodeURIComponent(normalizedDate)}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
-        });
-        if (availRes.ok) {
-          const slots = await availRes.json();
-          const selected = Array.isArray(slots) ? slots.find((s: any) => s.id === slot) : null;
-          if (selected) {
-            startTimeNorm = selected.startTime;
-            endTimeNorm = selected.endTime;
-            duration = Math.max(0.5, (
-              Number(selected.endTime.split(':')[0]) * 60 + Number(selected.endTime.split(':')[1] || 0) -
-              (Number(selected.startTime.split(':')[0]) * 60 + Number(selected.startTime.split(':')[1] || 0))
-            ) / 60);
-            price = Number(selected.price) * duration / 1; // price is per-hour from API
-          } else if ((slot || '').includes(':')) {
-            // Fallback: if slot is a time range like "09:00-10:00"
-            const [rawStart, rawEnd] = (slot || '').split('-');
-            const parsePart = (p?: string) => {
-              if (!p) return { h: 9, m: 0 };
-              const [hStr, mStr] = p.split(':');
-              const h = Math.max(0, Math.min(23, Number(hStr)));
-              const m = mStr !== undefined ? Math.max(0, Math.min(59, Number(mStr))) : 0;
-              return { h, m };
-            };
-            const s = parsePart(rawStart);
-            const e = parsePart(rawEnd);
-            startTimeNorm = `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
-            endTimeNorm = `${String(e.h).padStart(2, '0')}:${String(e.m).padStart(2, '0')}`;
-            duration = Math.max(0.5, (e.h * 60 + e.m - (s.h * 60 + s.m)) / 60);
-            price = duration * Number(court.pricePerHour);
-          } else {
-            throw new Error('Selected slot not available');
+      if (!isPlaceholder) {
+        try {
+          const availRes = await fetch(`${API_BASE_URL}/facilities/${venueId}/availability?date=${encodeURIComponent(normalizedDate)}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
+          });
+          if (availRes.ok) {
+            const slots = await availRes.json();
+            const selected = Array.isArray(slots) ? slots.find((s: any) => s.id === slot) : null;
+            if (selected) {
+              startTimeNorm = selected.startTime;
+              endTimeNorm = selected.endTime;
+              duration = Math.max(0.5, (
+                Number(selected.endTime.split(':')[0]) * 60 + Number(selected.endTime.split(':')[1] || 0) -
+                (Number(selected.startTime.split(':')[0]) * 60 + Number(selected.startTime.split(':')[1] || 0))
+              ) / 60);
+              price = Number(selected.price) * duration / 1; // price is per-hour from API
+            }
           }
-        } else {
-          throw new Error('Failed to load availability');
+        } catch (e) {
+          console.warn('Availability lookup failed, using defaults/fallback:', e);
         }
-      } catch (e) {
-        console.warn('Availability lookup failed, using defaults/fallback:', e);
       }
 
       const bookingData: BookingDetails = {
@@ -236,6 +228,18 @@ const BookingPageNew: React.FC = () => {
 
   const createBooking = async () => {
     if (!bookingDetails) return;
+
+    // Demo / placeholder guard
+    if (
+      bookingDetails.facilityId.startsWith('placeholder-') ||
+      bookingDetails.courtId.startsWith('placeholder-')
+    ) {
+      toast({
+        title: 'Demo Venue',
+        description: 'This is a demo facility. Booking is disabled.',
+      });
+      return;
+    }
 
     // Check if user is authenticated
     if (!isAuthenticated || !user) {
@@ -288,7 +292,10 @@ const BookingPageNew: React.FC = () => {
   const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create booking');
+        let msg = data.message || 'Failed to create booking';
+        if (msg === 'Slot unavailable') msg = 'Selected time slot is no longer available. Please pick another slot.';
+        if (msg === 'Court not found') msg = 'Selected court could not be found. It might have been removed.';
+        throw new Error(msg);
       }
 
   // Update booking details with the created booking ID (server returns the booking object directly)

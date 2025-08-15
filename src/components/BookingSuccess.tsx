@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface BookingSuccessProps {
@@ -312,6 +312,78 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
     }
   };
 
+  const handleDirectDownload = () => {
+    const price = Number(bookingData.price) || 0;
+    const durationHours = (() => {
+      const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
+      const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
+      return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
+    })();
+    const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
+    const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+
+    const receiptContent = `
+╔══════════════════════════════════════════════════════════════╗
+║                    🏸 QUICKCOURT RECEIPT                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+Receipt ID: ${bookingData.receiptId}
+Booking ID: ${bookingData.id}
+Generated: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}
+
+───────────────────────────── BOOKING DETAILS ─────────────────────────────
+
+🏟️  Facility: ${bookingData.facilityName}
+🏸  Court: ${bookingData.courtName}
+📍  Location: ${bookingData.location}
+🎾  Sport: ${bookingData.sport}
+
+📅  Date: ${formatDate(bookingData.date)}
+🕐  Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}
+⏱️   Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}
+💰  Rate: ${currency(rate)}/hour
+
+──────────────────────────── PAYMENT SUMMARY ───────────────────────────────
+
+Subtotal                                              ${currency(price)}
+Taxes & Fees                                                      ₹0
+                                                    ──────────────────
+TOTAL PAID                                            ${currency(price)}
+
+──────────────────────────── IMPORTANT NOTES ───────────────────────────────
+
+✓ Please arrive 10 minutes before your booking time
+✓ Bring this receipt for verification
+✓ Valid ID required for entry
+✓ Follow facility rules and guidelines
+✓ Contact support for any queries
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Thank you for choosing QuickCourt!
+🌐 Visit us at: quickcourt.com
+📧 Support: support@quickcourt.com
+📱 Download our app for easy bookings
+
+This is an electronic receipt. Please save for your records.
+    `.trim();
+
+    const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `QuickCourt_Receipt_${bookingData.receiptId}_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Receipt downloaded",
+      description: "Receipt has been downloaded to your device.",
+    });
+  };
+
   const handleViewBookings = () => {
     onClose();
     navigate('/my-bookings');
@@ -408,14 +480,14 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
             className="space-y-3"
           >
             {/* Quick Actions */}
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button
                 onClick={handleShare}
                 variant="outline"
                 size="sm"
                 className="flex-1"
               >
-                <Share2 className="h-4 w-4 mr-2" />
+                <Share2 className="h-4 w-4 mr-1" />
                 Share
               </Button>
               <Button
@@ -424,8 +496,17 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
                 size="sm"
                 className="flex-1"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Receipt
+                <Download className="h-4 w-4 mr-1" />
+                View
+              </Button>
+              <Button
+                onClick={handleDirectDownload}
+                variant="outline"
+                size="sm"
+                className="flex-1"
+              >
+                <FileDown className="h-4 w-4 mr-1" />
+                Download
               </Button>
             </div>
 

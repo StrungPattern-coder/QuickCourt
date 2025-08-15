@@ -18,6 +18,7 @@ const Footer = () => {
 
           {/* Minimal Links */}
           <nav className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <Link to="/about" className="hover:text-foreground">About</Link>
             <Link to="/venues" className="hover:text-foreground">Venues</Link>
             <Link to="/contact" className="hover:text-foreground">Contact</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacy</Link>

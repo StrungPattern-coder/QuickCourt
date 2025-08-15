@@ -5,44 +5,49 @@ const prisma = new PrismaClient();
 
 async function createAdmin() {
   try {
-    const adminEmail = 'admin@quickcourt.com';
-    const adminPassword = 'admin123456';
-    
-    console.log('🔨 Creating admin user...');
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Pre8isOG@';
+    const fullName = process.env.ADMIN_FULL_NAME || 'QuickCourt Admin';
 
-    // Check if admin already exists
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: adminEmail }
-    });
+    console.log('🔨 Ensuring admin user...');
 
-    if (existingAdmin) {
-      console.log('✅ Admin user already exists:', adminEmail);
-      console.log('Admin ID:', existingAdmin.id);
-      return existingAdmin;
-    }
+    // Attempt to find by desired email first
+    let target = await prisma.user.findUnique({ where: { email: adminEmail } });
 
-    // Hash password
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-    // Create admin user directly
-    const admin = await prisma.user.create({
-      data: {
-        email: adminEmail,
-        passwordHash,
-        fullName: 'QuickCourt Admin',
-        role: 'ADMIN',
-        status: 'ACTIVE'
+    if (target) {
+      target = await prisma.user.update({
+        where: { id: target.id },
+        data: { passwordHash, role: 'ADMIN', status: 'ACTIVE', fullName }
+      });
+      console.log('✅ Admin (matched by email) updated:', target.id);
+    } else {
+      // Fallback: any existing admin to reassign?
+      const anyAdmin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      if (anyAdmin) {
+        target = await prisma.user.update({
+          where: { id: anyAdmin.id },
+          data: { email: adminEmail, passwordHash, fullName, status: 'ACTIVE' }
+        });
+        console.log('♻️  Existing admin reassigned to new credentials:', target.id);
+      } else {
+        target = await prisma.user.create({
+          data: { email: adminEmail, passwordHash, fullName, role: 'ADMIN', status: 'ACTIVE' }
+        });
+        console.log('✅ Admin user created:', target.id);
       }
-    });
+    }
 
-    console.log('✅ Admin user created successfully!');
-    console.log('📧 Email:', adminEmail);
+    console.log('\nCurrent admin credentials:');
+    console.log('📧 Email   :', adminEmail);
     console.log('🔑 Password:', adminPassword);
-    console.log('🆔 ID:', admin.id);
-    
-    return admin;
+    if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+      console.log('Tip: Set ADMIN_EMAIL / ADMIN_PASSWORD env vars before running to customize without editing file.');
+    }
+    return target;
   } catch (error) {
-    console.error('❌ Failed to create admin:', error);
+    console.error('❌ Failed to create/update admin:', error);
     throw error;
   } finally {
     await prisma.$disconnect();

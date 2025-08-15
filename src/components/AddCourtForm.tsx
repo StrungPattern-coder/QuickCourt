@@ -31,6 +31,7 @@ import {
   IndianRupee
 } from 'lucide-react';
 import { facilitiesApi, courtsApi } from '@/lib/api';
+import MapPicker, { type LatLng } from '@/components/MapPicker';
 
 interface AddCourtFormProps {
   onCourtAdded?: () => void;
@@ -68,10 +69,17 @@ const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   return { value: hour * 60, label: time12 }; // Convert to minutes from midnight
 });
 
+const PROPERTY_TYPES = [
+  { id: 'PLAY', label: 'Play' },
+  { id: 'BOOK', label: 'Book' },
+  { id: 'TRAIN', label: 'Train' },
+] as const;
+
 export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [coords, setCoords] = useState<LatLng | null>(null);
 
   // Form state - simplified with no required fields
   const [formData, setFormData] = useState({
@@ -84,6 +92,11 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
     address: '',
     sports: [] as string[],
     amenities: [] as string[],
+    // new property types
+    propertyTypes: ['BOOK'] as string[],
+    // geo
+    latitude: '' as string | number,
+    longitude: '' as string | number,
     
     // Court details
     courtName: '',
@@ -167,8 +180,12 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
         images: images,
         address: formData.address,
         contactPhone: formData.contactPhone,
-        contactEmail: formData.contactEmail || user?.email || ''
-      };
+        contactEmail: formData.contactEmail || user?.email || '',
+        // Include coordinates if available (backend can ignore if not supported)
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+        propertyTypes: formData.propertyTypes,
+      } as any;
 
       const facility = await facilitiesApi.create(facilityData) as any;
       
@@ -197,6 +214,9 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
         address: '',
         sports: [],
         amenities: [],
+        propertyTypes: ['BOOK'],
+        latitude: '',
+        longitude: '',
         courtName: '',
         pricePerHour: '',
         openTime: 6 * 60,
@@ -207,6 +227,7 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
         notes: ''
       });
       setImages([]);
+      setCoords(null);
       
       onCourtAdded?.();
     } catch (error: any) {
@@ -263,6 +284,7 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                   value={formData.location}
                   onChange={(e) => updateFormData('location', e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">Tip: Use the map below to drop a pin; this field will update automatically.</p>
               </div>
 
               {/* Contact Phone */}
@@ -294,6 +316,31 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
               </div>
             </div>
 
+            {/* Property Types */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Property Types</Label>
+              <div className="flex flex-wrap gap-2">
+                {PROPERTY_TYPES.map(pt => (
+                  <Button
+                    key={pt.id}
+                    type="button"
+                    variant={formData.propertyTypes.includes(pt.id) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      const exists = formData.propertyTypes.includes(pt.id);
+                      const next = exists
+                        ? formData.propertyTypes.filter(x => x !== pt.id)
+                        : [...formData.propertyTypes, pt.id];
+                      updateFormData('propertyTypes', next);
+                    }}
+                  >
+                    {pt.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Choose one or more to describe what you offer at this venue.</p>
+            </div>
+
             {/* Full Address */}
             <div className="space-y-2">
               <Label htmlFor="address" className="text-sm font-medium">
@@ -320,6 +367,32 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
                 onChange={(e) => updateFormData('description', e.target.value)}
                 rows={3}
               />
+            </div>
+
+            {/* Map Picker */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-green-600" /> Pick Exact Location
+              </Label>
+              <MapPicker
+                value={coords}
+                onChange={(c) => {
+                  setCoords(c);
+                  updateFormData('latitude', c.lat);
+                  updateFormData('longitude', c.lng);
+                }}
+                onAddressChange={(addr) => {
+                  if (!formData.address) updateFormData('address', addr);
+                  if (!formData.location) updateFormData('location', addr.split(',')[0] || addr);
+                }}
+                height={340}
+                className="rounded-lg overflow-hidden border"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-muted-foreground">
+                <div><strong>Latitude:</strong> {coords?.lat?.toFixed?.(6) ?? '—'}</div>
+                <div><strong>Longitude:</strong> {coords?.lng?.toFixed?.(6) ?? '—'}</div>
+                <div className="truncate"><strong>Address:</strong> {formData.address || '—'}</div>
+              </div>
             </div>
           </div>
 
