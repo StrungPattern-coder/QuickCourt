@@ -90,6 +90,16 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
     }
   };
 
+  // Estimate points (mirrors backend: ~10 pts per hour) so user sees immediate feedback.
+  const estimatedPoints = (() => {
+    try {
+      const [sh] = bookingData.startTime.split(':').map(Number);
+      const [eh] = bookingData.endTime.split(':').map(Number);
+      const dur = Math.max(1, eh - sh);
+      return dur * 10;
+    } catch { return 10; }
+  })();
+
   const handleDownloadReceipt = () => {
     console.log('PDF download initiated', { bookingData });
     
@@ -462,6 +472,11 @@ This is an electronic receipt. Please save for your records.
                 <div className="flex items-center justify-between pt-2 border-t border-green-200">
                   <span className="text-sm text-green-700">Total</span>
                   <span className="font-bold text-green-900">₹{bookingData.price}</span>
+                </div>
+
+                <div className="mt-2 rounded-md bg-white/60 border border-green-200 p-3">
+                  <p className="text-xs font-medium text-green-800 mb-1">Loyalty Reward (est.)</p>
+                  <p className="text-xs text-green-700">~{estimatedPoints} points will be added for this booking.</p>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-green-600">

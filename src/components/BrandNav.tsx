@@ -54,9 +54,9 @@ const BrandNav = () => {
         background: 'transparent',
         textColor: 'text-white',
         logoColor: 'text-white drop-shadow-lg',
-        buttonStyle: 'text-white hover:bg-white/20',
-        navBackground: 'bg-white/10 backdrop-blur-sm border-white/20',
-        loginButton: 'bg-white text-green-600 hover:bg-gray-100'
+  buttonStyle: 'text-white hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none',
+  navBackground: 'bg-white/10 backdrop-blur-sm border-white/25',
+  loginButton: 'bg-brand text-brand-foreground hover:brightness-110 shadow-[var(--shadow-elegant)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-2)/0.6)]'
       };
     } else {
       // Past hero section or non-hero pages - white background with dark text
@@ -64,9 +64,9 @@ const BrandNav = () => {
         background: 'bg-white shadow-sm border-b border-gray-100',
         textColor: 'text-gray-900',
         logoColor: 'text-green-600',
-        buttonStyle: 'text-gray-700 hover:bg-gray-100',
-        navBackground: 'bg-gray-50/80 backdrop-blur-sm border-gray-200',
-        loginButton: 'bg-green-600 text-white hover:bg-green-700'
+  buttonStyle: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand))] focus-visible:outline-none',
+  navBackground: 'bg-gray-50/80 backdrop-blur-sm border-gray-200',
+  loginButton: 'bg-brand text-brand-foreground hover:brightness-110 shadow-[var(--shadow-elegant)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-2)/0.55)]'
       };
     }
   };

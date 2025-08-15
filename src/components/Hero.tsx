@@ -36,7 +36,14 @@ const Hero = () => {
               <Calendar className="opacity-70" />
               <Input type="date" aria-label="Date" />
             </div>
-            <Button variant="hero" className="rounded-xl" onClick={onSearch}>Search availability</Button>
+            <Button
+              variant="hero"
+              className="rounded-xl text-shadow-sm"
+              aria-label="Search court availability"
+              onClick={onSearch}
+            >
+              Search availability
+            </Button>
           </div>
         </div>
       </motion.div>

@@ -14,7 +14,8 @@ import BrandNav from '@/components/BrandNav';
 import SEO from '@/components/SEO';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
-import { bookingsApi, Booking } from '@/lib/api';
+import { bookingsApi, Booking, loyaltyApi, badgeApi, BadgeEarned } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
@@ -35,6 +36,31 @@ const Profile = () => {
     queryKey: ['my-bookings'],
     queryFn: bookingsApi.getMy,
     enabled: isAuthenticated,
+  });
+
+  const { data: loyalty = { loyaltyPoints: 0, currentStreak: 0 } } = useQuery({
+    queryKey: ['loyalty','me'],
+    queryFn: loyaltyApi.me,
+    enabled: isAuthenticated,
+    staleTime: 30000
+  });
+  const { data: myBadges = [] as BadgeEarned[] } = useQuery({
+    queryKey: ['badges','me'],
+    queryFn: badgeApi.mine,
+    enabled: isAuthenticated,
+    staleTime: 60000
+  });
+  const { data: referralCodeData, refetch: refetchReferral } = useQuery({
+    queryKey: ['referral','code'],
+    queryFn: loyaltyApi.ensureReferralCode,
+    enabled: isAuthenticated,
+    staleTime: Infinity
+  });
+  const [showLedger, setShowLedger] = useState(false);
+  const { data: ledger = [] } = useQuery({
+    queryKey: ['loyalty','ledger', showLedger],
+    queryFn: loyaltyApi.ledger,
+    enabled: isAuthenticated && showLedger
   });
 
   const getInitials = (name: string) => {
@@ -341,9 +367,10 @@ const Profile = () => {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="profile" className="text-sm">Edit Profile</TabsTrigger>
                 <TabsTrigger value="bookings" className="text-sm">All Bookings</TabsTrigger>
+                <TabsTrigger value="rewards" className="text-sm">Rewards</TabsTrigger>
               </TabsList>
               
               {/* Edit Profile Tab */}
@@ -481,6 +508,80 @@ const Profile = () => {
                             {isLoading ? 'Saving...' : 'Save'}
                           </Button>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+              {/* Rewards Tab */}
+              <TabsContent value="rewards">
+                <Card className="p-6 mb-6">
+                  <h3 className="text-lg font-semibold mb-4">Loyalty Overview</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 rounded-lg border bg-white">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Points Balance</p>
+                      <p className="text-2xl font-bold mt-1 text-green-600">{loyalty.loyaltyPoints}</p>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-white">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Streak</p>
+                      <p className="text-2xl font-bold mt-1">{loyalty.currentStreak} <span className="text-sm font-medium text-muted-foreground">day{loyalty.currentStreak===1?'':'s'}</span></p>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-white flex flex-col justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Referral Code</p>
+                        <p className="font-mono text-sm break-all">{referralCodeData?.code || '—'}</p>
+                      </div>
+                      <div className="mt-2">
+                        <Button variant="outline" size="sm" onClick={() => { if(referralCodeData?.code){ navigator.clipboard.writeText(referralCodeData.code); toast({ title:'Copied', description:'Referral code copied.'}); } else { refetchReferral(); } }}>
+                          {referralCodeData?.code ? 'Copy Code' : 'Generate Code'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold mb-2">Badges</h4>
+                    {myBadges.length === 0 && <p className="text-sm text-muted-foreground">No badges earned yet. Keep booking!</p>}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {myBadges.map(b => (
+                        <div key={b.id} className="p-3 border rounded-lg bg-white shadow-sm">
+                          <p className="text-sm font-semibold">{b.name}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-3">{b.description}</p>
+                          <p className="text-[10px] text-green-600 mt-1">Earned {new Date(b.earnedAt).toLocaleDateString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold">Points Ledger</h4>
+                      <Button variant="outline" size="sm" onClick={() => setShowLedger(s => !s)}>
+                        {showLedger ? 'Hide' : 'Load'}
+                      </Button>
+                    </div>
+                    {!showLedger && <p className="text-sm text-muted-foreground">Click Load to view your latest point changes.</p>}
+                    {showLedger && ledger.length === 0 && <p className="text-sm text-muted-foreground">No entries yet.</p>}
+                    {showLedger && ledger.length > 0 && (
+                      <div className="max-h-60 overflow-auto border rounded-md">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/30">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-medium">When</th>
+                              <th className="text-left px-3 py-2 font-medium">Δ</th>
+                              <th className="text-left px-3 py-2 font-medium">Balance</th>
+                              <th className="text-left px-3 py-2 font-medium">Source</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ledger.map((e:any) => (
+                              <tr key={e.id} className="border-t">
+                                <td className="px-3 py-2 whitespace-nowrap">{new Date(e.createdAt).toLocaleDateString()}<br/><span className="text-[10px] text-muted-foreground">{new Date(e.createdAt).toLocaleTimeString()}</span></td>
+                                <td className={`px-3 py-2 ${e.delta>0?'text-green-600':'text-red-600'}`}>{e.delta>0?`+${e.delta}`:e.delta}</td>
+                                <td className="px-3 py-2">{e.balanceAfter}</td>
+                                <td className="px-3 py-2 text-xs">{e.source}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>

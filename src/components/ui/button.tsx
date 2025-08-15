@@ -20,6 +20,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         pill: "rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-elegant)] hover:opacity-90",
         hero: "bg-gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] hover:brightness-110",
+  contrast: "bg-brand text-brand-foreground shadow-[var(--shadow-elegant)] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-2)/0.6)]",
       },
       size: {
         default: "h-10 px-4 py-2",

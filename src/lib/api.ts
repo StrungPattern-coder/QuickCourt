@@ -101,6 +101,23 @@ export const authApi = {
     }),
 };
 
+// Loyalty & Rewards API
+export const loyaltyApi = {
+  me: () => apiRequest<{ loyaltyPoints: number; currentStreak: number }>(`/loyalty/me`),
+  ledger: () => apiRequest<Array<{ id: string; userId: string; delta: number; balanceAfter: number; source: string; meta: any; createdAt: string }>>(`/loyalty/ledger`),
+  ensureReferralCode: () => apiRequest<{ code: string }>(`/loyalty/referral/code`),
+  applyReferral: (code: string) => apiRequest<{ success: true }>(`/loyalty/referral/apply`, { method: 'POST', body: JSON.stringify({ code }) })
+};
+
+export interface BadgeEarned {
+  id: string; code: string; name: string; description: string; earnedAt: string;
+}
+
+export const badgeApi = {
+  mine: () => apiRequest<BadgeEarned[]>(`/badges/me`),
+  list: () => apiRequest<Array<{ id: string; code: string; name: string; description: string }>>(`/badges`)
+};
+
 // Facilities API
 export const facilitiesApi = {
   list: (params?: {
