@@ -1,94 +1,210 @@
-# QuickCourt
+<div align="center">
+	<h1>🏸 QuickCourt</h1>
+	<p><strong>Real‑time multi‑sport court discovery, booking & engagement platform.</strong></p>
+	<p>
+		<em>Fast search · Instant slot locking · Secure payments · Loyalty & rewards · Admin / Owner workflows</em>
+	</p>
+	<br/>
+	<img src="public/placeholder.svg" width="120" alt="QuickCourt" />
+</div>
 
-Real-time sports facility booking platform for Odoo Hackathon 2025 Finals.
+---
 
-## Monorepo Structure (WIP)
+## ✨ Core Features
 
-Current:
-- `src/` – Existing Vite prototype (will migrate to Next.js App Router).
-- `server/` – Express + Prisma backend (PostgreSQL) with JWT auth & Socket.IO.
+| Domain | Capabilities |
+| ------ | ------------ |
+| Booking Engine | Live availability, overlap prevention (transactional), streak & points awarding |
+| Payments | Razorpay (order, capture verify, refunds, webhook signature validation) |
+| Auth & Security | OTP signup verification, JWT (access + refresh), role based (USER / OWNER / ADMIN) with Admin invite secret |
+| Facilities | Owner submission → Admin approval workflow (approval events scaffolded) |
+| Gamification | Points ledger, daily streak tracking, referral codes, badge evaluation, rewards tab in profile |
+| UI / UX | Vite + React + Tailwind + shadcn/ui + Motion FX, gradient brand system, responsive nav & booking flow |
+| Infrastructure | PostgreSQL (Neon serverless ready), Prisma schema & migrations, structured env config |
+| Real‑time (Planned) | Socket.IO channel scaffolding for booking/facility events |
 
-Planned:
-- `web/` – Next.js 15 + Tailwind + shadcn/ui + Framer Motion + GSAP.
+---
 
-## Backend Setup
+## 🗂 Monorepo Layout
 
-1. Copy `server/.env.example` to `server/.env` and fill secrets.
-2. Start PostgreSQL (Docker example below).
-3. Install dependencies & run migrations.
+```
+root
+├─ src/                # Frontend (React + Vite prototype)
+├─ server/             # Backend (Express, Prisma, Neon Postgres)
+│  ├─ prisma/          # Schema & migrations
+│  ├─ src/modules/     # Feature modules (auth, booking, loyalty, badges, etc.)
+│  └─ src/services/    # Business logic & external integrations
+└─ public/             # Static assets
+```
 
-### Docker (local Postgres)
+> Future: Optionally migrate `src/` to Next.js App Router for SSR / edge.
 
+---
+
+## 🚀 Quick Start (Local Dev)
+
+### 1. Clone & Install
+```bash
+git clone <repo-url>
+cd QuickCourt
+pnpm install # or npm / bun (project includes bun.lockb)
+```
+
+### 2. Backend Environment
+```bash
+cp server/.env.example server/.env
+# Fill: DATABASE_URL, ACCESS/REFRESH secrets, ADMIN_INVITE_SECRET, optional SMTP
+```
+
+### 3. Run Postgres (Local) OR Use Neon
+Local Docker:
 ```bash
 docker run --name quickcourt-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=quickcourt -p 5432:5432 -d postgres:16
 ```
+Neon (recommended for serverless): create DB → copy pooled connection string into `DATABASE_URL` (ensure `sslmode=require`).
 
-### Install & migrate
-
+### 4. Migrate & Launch Backend
 ```bash
 cd server
-npm install
-npx prisma migrate dev --name init
-npm run dev
+pnpm install   # if not already
+npx prisma migrate deploy
+pnpm dev       # starts on http://localhost:4000
 ```
 
-Health: http://localhost:4000/health
+### 5. Launch Frontend
+In another terminal:
+```bash
+pnpm dev  # Vite dev server (defaults to http://localhost:5173)
+```
 
-## Auth Flow (Implemented)
+Health Check: http://localhost:4000/health
 
-1. POST /auth/signup -> returns userId & logs OTP (stub for email).
-2. POST /auth/verify-otp { userId, otp }
-3. POST /auth/login { email, password } -> { accessToken, refreshToken }
-4. POST /auth/refresh { refreshToken }
-5. POST /auth/logout { refreshToken }
+---
 
-Tokens currently returned in body for speed; production: move refresh to HttpOnly cookie.
+## 🔐 Environment Variables (server/.env)
 
-## Facilities & Bookings (MVP)
+| Key | Purpose |
+| --- | ------- |
+| NODE_ENV | runtime mode |
+| PORT | backend port (default 4000) |
+| DATABASE_URL | Postgres / Neon pooled URI |
+| ACCESS_TOKEN_SECRET | 64+ char hex secret for JWT access tokens |
+| REFRESH_TOKEN_SECRET | 64+ char hex secret for refresh tokens |
+| ACCESS_TOKEN_TTL | e.g. 15m |
+| REFRESH_TOKEN_TTL | e.g. 7d |
+| OTP_TTL_MINUTES | OTP validity window |
+| CORS_ORIGIN | Allowed origin for browser requests |
+| SMTP_* | Optional email provider (future transactional mail) |
+| ADMIN_INVITE_SECRET | Required to create ADMIN users |
 
-- Owners create facilities (PENDING until admin approval).
-- Admin approves/rejects facility.
-- Public list of APPROVED facilities with filters (sport, query, pagination).
-- Users create bookings with integrated Razorpay payment gateway.
-- Transaction prevents overlapping (double) bookings.
-- Full payment lifecycle: order creation → verification → webhooks → refunds.
+Never commit real `.env` values — they are git‑ignored (see `.gitignore`).
 
-## Payment Gateway (Production Ready)
+---
 
-- **Razorpay Integration**: Complete production-ready implementation
-- **Security**: Payment signature verification, webhook validation, CSRF protection
-- **Features**: Order creation, payment verification, refund processing, webhook handling
-- **UI Components**: Payment modal, success screens, booking flow
-- **Testing**: Comprehensive test suite and documentation
-- **Documentation**: See `RAZORPAY_INTEGRATION.md` for detailed setup guide
+## 🧩 Backend Architecture
 
-## Real-time (Scaffold)
+Layered approach:
+1. Route (Express Router) → input validation (Zod) → controller
+2. Controller (thin) → service for business logic
+3. Service → Prisma data layer (transactions for bookings & points)
+4. Cross‑cutting: error middleware, auth JWT middleware, role guard, rate limit, loyalty & badge evaluators
 
-Socket.IO server ready. Upcoming events:
-- `facility:approved`
-- `facility:rejected`
-- `booking:created`
-- `booking:slot-unavailable`
-- `user:banned`
+Key Modules:
+- Auth: signup (OTP), verify, login, refresh, logout
+- Booking: create booking (locks slot, computes price, awards points)
+- Loyalty: points ledger retrieval, referral code generation, apply referral (UI WIP), streak tracking
+- Badges: evaluation on demand, listing earned badges
+- Admin / Owner: approval workflow (scaffold)
 
-## Roadmap (Next Milestones)
+---
 
-1. ✅ **COMPLETED**: Razorpay payment gateway integration with full webhook support
-2. Court CRUD & maintenance block logic.
-3. Admin user management (ban/unban) + facility analytics.
-4. Dashboard stats aggregation queries (owner & admin).
-5. Migrate UI to Next.js, integrate auth & real-time.
-6. Emit & consume Socket.IO events in frontend.
-7. Security hardening (CSRF strategy, logger, email provider, brute-force detection).
-8. Add automated tests (Jest + supertest) for auth, facilities, bookings.
+## 💳 Payments (Razorpay)
 
-## Conventions
+Implemented: order creation, signature verification, webhook intake (validation), refund path. Payment modal integrated in booking flow. Future: idempotency keys & expanded failure analytics.
 
-- Branch prefixes: `feat/`, `fix/`, `chore/`, `refactor/`.
-- Commit style: Conventional Commits.
-- Validate all request payloads with Zod.
-- Keep controllers thin; move logic to service layer.
+---
 
-## License
+## 🏅 Gamification
 
-Internal hackathon project. All rights reserved.
+| Feature | Detail |
+| ------- | ------ |
+| Points | Awarded per booking (duration based) + referral bonuses |
+| Streaks | Daily activity tracked; displayed in profile rewards tab |
+| Referral Codes | Each user can generate & share (reward processing service) |
+| Badges | Evaluated using rules (service) and cached per user |
+| Rewards UI | Profile > Rewards tab (points, streak, badges, ledger, referral) |
+
+Planned: leaderboard, live socket updates, richer badge art.
+
+---
+
+## 🧪 Testing (Planned Additions)
+
+Upcoming Jest + Supertest suites for:
+1. Auth lifecycle
+2. Facility approval flow
+3. Booking overlap & points awarding
+4. Payment signature verification
+5. Referral reward processing
+
+---
+
+## 🛡 Security Notes
+
+- Admin signup gated via `ADMIN_INVITE_SECRET`.
+- JWT rotation strategy (short access / longer refresh). Consider moving refresh to HttpOnly cookie in prod.
+- OTP currently logged (stub) → swap to real email/SMS provider.
+- Rate limiting & error normalization middleware present.
+- Neon DB uses TLS (`sslmode=require`).
+
+---
+
+## 🗺 Roadmap Snapshot
+
+| Status | Item |
+| ------ | ---- |
+| ✅ | Razorpay integration (core flows) |
+| ✅ | Loyalty & rewards surface in UI |
+| 🚧 | Referral code application UX |
+| 🚧 | Leaderboard & real‑time points push |
+| 🚧 | Owner analytics & dashboards |
+| 🚧 | Socket event emission & subscription |
+| 📝 | Migrate to Next.js (optional) |
+| 🧪 | Automated test suites |
+
+Legend: ✅ Done · 🚧 In Progress / Planned · 📝 Investigating
+
+---
+
+## 🤝 Contributing
+
+1. Create a branch: `feat/<short-desc>`
+2. Keep PRs focused & small; include screenshots for UI changes.
+3. Use Conventional Commits (`feat:`, `fix:`, `chore:` ...).
+4. Run lint & type check before pushing.
+
+---
+
+## 📜 License
+
+Internal hackathon project (2025). All rights reserved. Not yet open‑sourced.
+
+---
+
+## 🙋 FAQ (Mini)
+
+| Q | A |
+| - | - |
+| Why Vite instead of Next.js now? | Rapid iteration; migration path preserved. |
+| How are overlapping bookings prevented? | Prisma transaction with time window conflict check. |
+| Where do points come from? | Booking duration multipliers + referral bonuses. |
+| Can I run without Razorpay keys? | Yes, flows degrade to mock until keys added. |
+
+---
+
+### ⭐ Tip
+Generate long random secrets quickly: `openssl rand -hex 64`.
+
+---
+
+<sub>Built for speed, clarity & extensibility. PRs that improve DX/UX welcome once repository is opened.</sub>
