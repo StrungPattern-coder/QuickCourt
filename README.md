@@ -5,7 +5,7 @@
 		<em>Fast search · Instant slot locking · Secure payments · Loyalty & rewards · Admin / Owner workflows</em>
 	</p>
 	<br/>
-	<img src="public/placeholder.svg" width="120" alt="QuickCourt" />
+	<img src="public/QuickCourt_banner.svg" width="120" alt="QuickCourt" />
 </div>
 
 ---
