@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Calendar, Clock, MapPin, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { bookingsApi, Booking } from '@/lib/api';
 import BrandNav from '@/components/BrandNav';
 import SEO from '@/components/SEO';
@@ -16,6 +16,7 @@ const MyBookings = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: bookings, isLoading, refetch } = useQuery({
     queryKey: ['my-bookings'],
@@ -50,14 +51,20 @@ const MyBookings = () => {
   const handleCancel = async (bookingId: string) => {
     setCancellingId(bookingId);
     try {
-      // TODO: Implement cancel booking API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call backend to cancel
+      const updated = await bookingsApi.cancel(bookingId);
+
+      // Optimistically update cache for immediate UI feedback
+      queryClient.setQueryData<Booking[] | undefined>(['my-bookings'], (prev) => {
+        if (!prev) return prev;
+        return prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b);
+      });
       
       toast({
         title: 'Booking cancelled',
         description: 'Your booking has been cancelled successfully.',
       });
-      
+      // Also refetch to ensure server truth (payments, etc.)
       refetch();
     } catch (error) {
       toast({

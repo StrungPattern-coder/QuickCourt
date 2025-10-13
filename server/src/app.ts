@@ -13,6 +13,7 @@ import { adminRouter } from './modules/admin/admin.routes.js';
 import reviewRouter from './modules/review/review.routes.js';
 import { loyaltyRouter } from './modules/loyalty/loyalty.routes.js';
 import { badgeRouter } from './modules/badge/badge.routes.js';
+import uploadRouter from './modules/upload/upload.routes.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { initSentry, sentryRequestHandler, sentryErrorHandler } from './sentry';
 
@@ -87,6 +88,7 @@ app.use('/admin', adminRouter);
 app.use('/reviews', reviewRouter);
 app.use('/loyalty', loyaltyRouter);
 app.use('/badges', badgeRouter);
+app.use('/upload', uploadRouter);
 
 app.use(notFound);
 // Sentry error capture must come before our error handler

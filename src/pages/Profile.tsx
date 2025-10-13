@@ -30,6 +30,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Fetch user bookings
   const { data: bookings = [], isLoading: isLoadingBookings, refetch } = useQuery({
@@ -168,7 +169,13 @@ const Profile = () => {
     setCancellingId(bookingId);
     try {
       await bookingsApi.cancel(bookingId);
+      // Optimistically update cache for immediate UI feedback
+      queryClient.setQueryData<Booking[] | undefined>(['my-bookings'], (prev) => {
+        if (!prev) return prev;
+        return prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b);
+      });
       toast({ title: 'Booking cancelled', description: 'Your booking has been cancelled successfully.' });
+      // Refetch to ensure server truth
       refetch();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error?.message || 'Failed to cancel booking. Please try again.' });

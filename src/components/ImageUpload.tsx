@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface ImageUploadProps {
   images: string[];
@@ -72,7 +73,7 @@ export default function ImageUpload({
 
       // Upload to server
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:4000/upload/images', {
+  const response = await fetch(`${API_BASE_URL}/upload/images`, {
         method: 'POST',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),

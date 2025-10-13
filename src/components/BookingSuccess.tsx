@@ -1,4 +1,5 @@
 import React from 'react';
+import jsPDF from 'jspdf';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -323,75 +324,54 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   };
 
   const handleDirectDownload = () => {
-    const price = Number(bookingData.price) || 0;
-    const durationHours = (() => {
+    try {
+      const price = Number(bookingData.price) || 0;
       const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
       const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
-      return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
-    })();
-    const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
-    const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+      const durationHours = Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
+      const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
 
-    const receiptContent = `
-╔══════════════════════════════════════════════════════════════╗
-║                    🏸 QUICKCOURT RECEIPT                     ║
-╚══════════════════════════════════════════════════════════════╝
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      let y = 40;
+      const line = (txt: string, dy = 18) => { doc.text(txt, 40, y); y += dy; };
+      const hr = (dy = 8) => { doc.setDrawColor(220); doc.line(40, y, 555, y); y += dy; };
 
-Receipt ID: ${bookingData.receiptId}
-Booking ID: ${bookingData.id}
-Generated: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      line('QuickCourt Receipt');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      line(`Receipt ID: ${bookingData.receiptId}`);
+      line(`Booking ID: ${bookingData.id.slice(-8).toUpperCase()}`);
+      line(`Issued: ${new Date().toLocaleDateString('en-IN')} ${new Date().toLocaleTimeString('en-IN')}`);
+      hr(12);
+      doc.setFont('helvetica', 'bold');
+      line('Booking Details');
+      doc.setFont('helvetica', 'normal');
+      line(`Facility: ${bookingData.facilityName}`);
+      line(`Court: ${bookingData.courtName}`);
+      line(`Location: ${bookingData.location}`);
+      line(`Sport: ${bookingData.sport}`);
+      line(`Date: ${formatDate(bookingData.date)}`);
+      line(`Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}`);
+      line(`Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`);
+      hr(12);
+      doc.setFont('helvetica', 'bold');
+      line('Payment Summary');
+      doc.setFont('helvetica', 'normal');
+      line(`Rate: ₹${rate}/hour`);
+      line(`Total Paid: ₹${price}`);
+      hr(12);
+      doc.setFont('helvetica', 'normal');
+      line('Thank you for booking with QuickCourt. Please arrive 10 minutes early.');
 
-───────────────────────────── BOOKING DETAILS ─────────────────────────────
-
-🏟️  Facility: ${bookingData.facilityName}
-🏸  Court: ${bookingData.courtName}
-📍  Location: ${bookingData.location}
-🎾  Sport: ${bookingData.sport}
-
-📅  Date: ${formatDate(bookingData.date)}
-🕐  Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}
-⏱️   Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}
-💰  Rate: ${currency(rate)}/hour
-
-──────────────────────────── PAYMENT SUMMARY ───────────────────────────────
-
-Subtotal                                              ${currency(price)}
-Taxes & Fees                                                      ₹0
-                                                    ──────────────────
-TOTAL PAID                                            ${currency(price)}
-
-──────────────────────────── IMPORTANT NOTES ───────────────────────────────
-
-✓ Please arrive 10 minutes before your booking time
-✓ Bring this receipt for verification
-✓ Valid ID required for entry
-✓ Follow facility rules and guidelines
-✓ Contact support for any queries
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Thank you for choosing QuickCourt!
-🌐 Visit us at: quickcourt.com
-📧 Support: support@quickcourt.com
-📱 Download our app for easy bookings
-
-This is an electronic receipt. Please save for your records.
-    `.trim();
-
-    const blob = new Blob([receiptContent], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `QuickCourt_Receipt_${bookingData.receiptId}_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Receipt downloaded",
-      description: "Receipt has been downloaded to your device.",
-    });
+      const fileName = `QuickCourt_Receipt_${bookingData.receiptId}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      toast({ title: 'Receipt downloaded', description: 'PDF has been downloaded.' });
+    } catch (e) {
+      console.error('PDF download failed', e);
+      toast({ variant: 'destructive', title: 'Download failed', description: 'Unable to generate PDF. Try the View button to print.' });
+    }
   };
 
   const handleViewBookings = () => {

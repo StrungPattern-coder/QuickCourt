@@ -38,12 +38,16 @@ const upload = multer({
 // Upload single image
 uploadRouter.post('/image', requireAuth, upload.single('image'), async (req: AuthRequest, res: Response) => {
   try {
-    const file = (req as any).file as Express.Multer.File;
+    const file = (req as any).file as { filename: string; size: number } | undefined;
     if (!file) {
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    const imageUrl = `http://localhost:4000/uploads/${file.filename}`;
+  const r = req as unknown as Request;
+  const protocol = (r.headers['x-forwarded-proto'] as string) || r.protocol;
+  const host = (r.headers['x-forwarded-host'] as string) || r.headers.host;
+  const base = `${protocol}://${host}`;
+  const imageUrl = `${base}/uploads/${file.filename}`;
     res.json({ 
       message: 'Image uploaded successfully',
       imageUrl,
@@ -59,14 +63,18 @@ uploadRouter.post('/image', requireAuth, upload.single('image'), async (req: Aut
 // Upload multiple images
 uploadRouter.post('/images', requireAuth, upload.array('images', 10), async (req: AuthRequest, res: Response) => {
   try {
-    const files = (req as any).files as Express.Multer.File[];
+  const files = ((req as any).files as Array<{ filename: string; size: number; originalname: string } | undefined>).filter(Boolean) as Array<{ filename: string; size: number; originalname: string }>;
     
     if (!files || files.length === 0) {
       return res.status(400).json({ message: 'No image files provided' });
     }
 
+  const r = req as unknown as Request;
+  const protocol = (r.headers['x-forwarded-proto'] as string) || r.protocol;
+  const host = (r.headers['x-forwarded-host'] as string) || r.headers.host;
+    const base = `${protocol}://${host}`;
     const imageUrls = files.map(file => ({
-      url: `http://localhost:4000/uploads/${file.filename}`,
+      url: `${base}/uploads/${file.filename}`,
       filename: file.filename,
       size: file.size,
       originalName: file.originalname

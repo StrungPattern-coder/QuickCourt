@@ -6,6 +6,11 @@
 	</p>
 	<br/>
 	<img src="public/QuickCourt_banner.png" width="120" alt="QuickCourt" />
+  <p>
+    <a href="docs/INTERVIEW_GUIDE.md"><strong>Interview Guide (Tech Walkthrough)</strong></a>
+		·
+		<a href="docs/INTERVIEW_TALK_TRACK.md"><strong>Interview Walkthrough (Talk Track)</strong></a>
+  </p>
 </div>
 
 ---

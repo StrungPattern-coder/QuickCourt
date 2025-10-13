@@ -11,8 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import BrandNav from '@/components/BrandNav';
 import BookingSuccess from '@/components/BookingSuccess';
 import SEO from '@/components/SEO';
-
-const API_BASE_URL = 'http://localhost:4000';
+import { API_BASE_URL } from '@/lib/api';
 
 interface BookingDetails {
   id: string;

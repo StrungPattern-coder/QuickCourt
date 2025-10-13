@@ -1,5 +1,61 @@
-// Resolve API base dynamically: Vercel / Netlify etc. can inject VITE_API_BASE_URL
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000';
+// Resolve API base dynamically with sensible fallbacks to avoid mixed-content/CORS in production
+function resolveApiBase(): string {
+  const envBase: string | undefined = (import.meta as any).env?.VITE_API_BASE_URL?.trim?.();
+  let metaBase: string | undefined;
+  try {
+    if (typeof document !== 'undefined') {
+      const el = document.querySelector('meta[name="quickcourt:api-base"]') as HTMLMetaElement | null;
+      metaBase = el?.content?.trim();
+    }
+  } catch (_) {
+    // ignore if document is not available
+  }
+
+  let base = (metaBase || envBase || '').trim();
+
+  const isBrowser = typeof window !== 'undefined' && typeof location !== 'undefined';
+  const isLocalHost = isBrowser && (/^localhost$/.test(location.hostname) || /^127\.0\.0\.1$/.test(location.hostname));
+  const isHttpsPage = isBrowser && location.protocol === 'https:';
+
+  // If we're on a deployed host (not localhost) and base is empty or clearly localhost, prefer same-origin as a safe fallback.
+  if (isBrowser && !isLocalHost) {
+    const baseLooksLocalhost = base && /(^http:\/\/|^https:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(base);
+    if (!base || baseLooksLocalhost) {
+      console.warn('[QuickCourt] API base not configured or points to localhost on a production host.');
+      console.warn('Set VITE_API_BASE_URL to your API URL (e.g. https://api.example.com). Falling back to same-origin.');
+      base = '';
+    }
+  }
+
+  // Avoid mixed content: if page is https and API is http, try protocol upgrade (when not localhost)
+  if (base && isHttpsPage && base.startsWith('http://')) {
+    try {
+      const u = new URL(base);
+      if (!/(^localhost$)|(^127\.0\.0\.1$)/.test(u.hostname)) {
+        u.protocol = 'https:';
+        base = u.toString();
+      } else {
+        // On https page, calling http://localhost will be blocked. Prefer same-origin.
+        base = '';
+      }
+    } catch {
+      // leave base as-is if URL parsing fails
+    }
+  }
+
+  // Normalize: remove trailing slash
+  if (base.endsWith('/')) base = base.slice(0, -1);
+
+  // Final selection
+  if (!base) {
+    // If running locally, prefer localhost API. If running on a non-local host, use same-origin ('').
+    if (isBrowser && isLocalHost) return 'http://localhost:4000';
+    return '';
+  }
+  return base;
+}
+
+export const API_BASE_URL = resolveApiBase();
 
 // API utility functions
 export class ApiError extends Error {
