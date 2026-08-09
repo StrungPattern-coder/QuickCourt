@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { login, logout, registerUser, rotateRefreshToken, verifyOtp } from './auth.service.js';
+import { getCurrentUser, login, logout, registerUser, rotateRefreshToken, updateCurrentUser, verifyOtp } from './auth.service.js';
 import { UserRole } from '../../types/enums.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -67,6 +68,35 @@ export async function logoutHandler(req: Request, res: Response) {
     const { refreshToken } = schema.parse(req.body);
     await logout(refreshToken);
     res.json({ message: 'Logged out' });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
+}
+
+export async function meHandler(req: AuthRequest, res: Response) {
+  try {
+    const user = await getCurrentUser(req.user!.id);
+    res.json(user);
+  } catch (e: any) {
+    res.status(404).json({ message: e.message });
+  }
+}
+
+export async function updateProfileHandler(req: AuthRequest, res: Response) {
+  const schema = z.object({
+    fullName: z.string().min(2).optional(),
+    avatarUrl: z.string().url().nullable().optional(),
+    currentPassword: z.string().optional(),
+    newPassword: z.string().min(8).optional()
+  }).refine((data) => !data.newPassword || !!data.currentPassword, {
+    message: 'Current password is required to change password',
+    path: ['currentPassword']
+  });
+
+  try {
+    const data = schema.parse(req.body);
+    const user = await updateCurrentUser(req.user!.id, data);
+    res.json(user);
   } catch (e: any) {
     res.status(400).json({ message: e.message });
   }

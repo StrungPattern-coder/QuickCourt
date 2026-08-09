@@ -11,6 +11,17 @@ export const bookingRouter = Router();
 
 const bookingSchema = z.object({ courtId: z.string(), startTime: z.string().datetime(), endTime: z.string().datetime() });
 
+async function completeElapsedBookings(where: Prisma.BookingWhereInput = {}) {
+  await prisma.booking.updateMany({
+    where: {
+      ...where,
+      status: BookingStatus.CONFIRMED,
+      endTime: { lte: new Date() }
+    },
+    data: { status: BookingStatus.COMPLETED }
+  });
+}
+
 bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER, UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
     const { courtId, startTime, endTime } = bookingSchema.parse(req.body);
@@ -113,6 +124,7 @@ bookingRouter.delete('/:id', requireAuth, async (req: AuthRequest, res: Response
 });
 
 bookingRouter.get('/my', requireAuth, async (req: AuthRequest, res: Response) => {
+  await completeElapsedBookings({ userId: req.user!.id });
   const bookings = await prisma.booking.findMany({ where: { userId: req.user!.id }, orderBy: { startTime: 'desc' }, include: { court: { include: { facility: true } } } });
   res.json(bookings);
 });
@@ -120,9 +132,10 @@ bookingRouter.get('/my', requireAuth, async (req: AuthRequest, res: Response) =>
 bookingRouter.get('/owner/stats', requireAuth, requireRoles(UserRole.OWNER, UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
     const ownerId = req.user!.id;
+    await completeElapsedBookings({ court: { facility: { ownerId } } });
 
     const [totalBookings, succ, refd] = await Promise.all([
-      prisma.booking.count({ where: { status: BookingStatus.CONFIRMED, court: { facility: { ownerId } } } }),
+      prisma.booking.count({ where: { status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] }, court: { facility: { ownerId } } } }),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.SUCCEEDED, booking: { court: { facility: { ownerId } } } } }),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.REFUNDED, booking: { court: { facility: { ownerId } } } } })
     ]);

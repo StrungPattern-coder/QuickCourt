@@ -6,6 +6,17 @@ import { env } from '../../config/env.js';
 
 const prisma = new PrismaClient();
 
+const userSelect = {
+  id: true,
+  email: true,
+  fullName: true,
+  avatarUrl: true,
+  role: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true
+};
+
 export async function registerUser(params: { email: string; password: string; fullName: string; role: UserRole; avatarUrl?: string }) {
   const existing = await prisma.user.findUnique({ where: { email: params.email } });
   if (existing) throw new Error('Email already registered');
@@ -39,7 +50,8 @@ export async function login(email: string, password: string) {
   const tokenHash = sha256(refreshToken);
   const expiresAt = new Date(Date.now() + parseTtl(env.refreshTokenTtl));
   await prisma.refreshToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
-  return { accessToken, refreshToken };
+  const safeUser = await prisma.user.findUnique({ where: { id: user.id }, select: userSelect });
+  return { accessToken, refreshToken, user: safeUser };
 }
 
 export async function rotateRefreshToken(oldToken: string) {
@@ -60,6 +72,37 @@ export async function logout(refreshToken: string) {
   const tokenHash = sha256(refreshToken);
   await prisma.refreshToken.updateMany({ where: { tokenHash, revokedAt: null }, data: { revokedAt: new Date() } });
   return { success: true };
+}
+
+export async function getCurrentUser(userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
+  if (!user) throw new Error('User not found');
+  return user;
+}
+
+export async function updateCurrentUser(
+  userId: string,
+  params: { fullName?: string; avatarUrl?: string | null; currentPassword?: string; newPassword?: string }
+) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+
+  const data: { fullName?: string; avatarUrl?: string | null; passwordHash?: string } = {};
+  if (params.fullName !== undefined) data.fullName = params.fullName;
+  if (params.avatarUrl !== undefined) data.avatarUrl = params.avatarUrl;
+
+  if (params.newPassword) {
+    if (!params.currentPassword) throw new Error('Current password is required');
+    const valid = await verifyPassword(params.currentPassword, user.passwordHash);
+    if (!valid) throw new Error('Current password is incorrect');
+    data.passwordHash = await hashPassword(params.newPassword);
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data,
+    select: userSelect
+  });
 }
 
 function parseTtl(ttl: string): number {

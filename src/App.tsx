@@ -17,7 +17,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Pages
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Venues from "./pages/Venues";
 import VenuesPage from "./pages/VenuesPage";
 import VenueDetailsPage from "./pages/VenueDetailsPage";
 import Login from "./pages/Login";
@@ -83,7 +82,7 @@ const AppContent = () => (
         } />
         <Route path="/venues" element={
           <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
-            <Venues />
+            <VenuesPage />
           </ProtectedRoute>
         } />
         <Route path="/venues-search" element={

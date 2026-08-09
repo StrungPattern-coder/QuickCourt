@@ -27,7 +27,7 @@ export class ReviewController {
       res.status(201).json(review);
     } catch (error: any) {
       console.error('Create review error:', error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     }
   }
 
@@ -43,7 +43,7 @@ export class ReviewController {
       res.json(result);
     } catch (error: any) {
       console.error('Get facility reviews error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ message: error.message });
     }
   }
 
@@ -57,7 +57,7 @@ export class ReviewController {
       res.json(stats);
     } catch (error: any) {
       console.error('Get facility rating stats error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ message: error.message });
     }
   }
 
@@ -77,7 +77,7 @@ export class ReviewController {
       res.json(review);
     } catch (error: any) {
       console.error('Update review error:', error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     }
   }
 
@@ -92,7 +92,7 @@ export class ReviewController {
       res.json(result);
     } catch (error: any) {
       console.error('Delete review error:', error);
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ message: error.message });
     }
   }
 
@@ -108,7 +108,7 @@ export class ReviewController {
       res.json(result);
     } catch (error: any) {
       console.error('Get user reviews error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ message: error.message });
     }
   }
 }

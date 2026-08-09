@@ -41,7 +41,14 @@ export const env = {
         'http://localhost:3000',
         'http://127.0.0.1:3000'
       ]
-    : (process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000']),
+    : (
+        process.env.CORS_ORIGIN?.split(',').filter(Boolean)
+        || [
+          process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
+          process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined
+        ].filter(Boolean)
+        || []
+      ),
   accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',

@@ -14,6 +14,12 @@ interface AuthContextType {
   inviteSecret?: string;
   }) => Promise<{ userId: string }>;
   verifyOtp: (userId: string, otp: string) => Promise<void>;
+  updateProfile: (data: {
+    fullName?: string;
+    avatarUrl?: string | null;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -35,12 +41,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check if user is logged in on app start
   useEffect(() => {
+    let cancelled = false;
     const token = localStorage.getItem('accessToken');
     const userData = localStorage.getItem('userData');
     
-    if (token && userData) {
+    if (token) {
       try {
-        setUser(JSON.parse(userData));
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+        authApi.me()
+          .then((freshUser) => {
+            if (cancelled) return;
+            setUser(freshUser);
+            localStorage.setItem('userData', JSON.stringify(freshUser));
+          })
+          .catch(() => {
+            if (cancelled) return;
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userData');
+            setUser(null);
+          })
+          .finally(() => {
+            if (!cancelled) setIsLoading(false);
+          });
+        return () => {
+          cancelled = true;
+        };
       } catch (error) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -57,15 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
       
-      // Decode JWT to get user data (simple decode, not verification)
-      const payload = JSON.parse(atob(response.accessToken.split('.')[1]));
-      const userData: User = {
-        id: payload.sub,
-        role: payload.role,
-        email,
-        fullName: '', // We don't have this from the token, would need a separate API call
-        status: 'ACTIVE'
-      };
+      const userData = response.user;
       
       setUser(userData);
       localStorage.setItem('userData', JSON.stringify(userData));
@@ -128,6 +148,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: {
+    fullName?: string;
+    avatarUrl?: string | null;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => {
+    try {
+      const updated = await authApi.updateProfile(data);
+      setUser(updated);
+      localStorage.setItem('userData', JSON.stringify(updated));
+      return updated;
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Profile update failed',
+        description: error.message || 'Please try again.',
+      });
+      throw error;
+    }
+  };
+
   const logout = () => {
     const refreshToken = localStorage.getItem('refreshToken');
     
@@ -155,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     verifyOtp,
+    updateProfile,
     logout,
     isAuthenticated: !!user,
   };

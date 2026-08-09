@@ -13,7 +13,7 @@ import BookingWidget from '@/components/BookingWidget';
 import ImageCarousel from '@/components/ImageCarousel';
 import ReviewCard from '@/components/ReviewCard';
 import SEO from '@/components/SEO';
-import { facilitiesApi } from '@/lib/api';
+import { facilitiesApi, reviewsApi, type Review as ApiReview } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { io as ioClient } from 'socket.io-client';
@@ -102,54 +102,22 @@ const VenueDetailsPage = () => {
   const [reviewSport, setReviewSport] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  // Mock data for development
-  const mockVenue: VenueDetails = {
-    id: id || '1',
-    name: 'SBR Badminton',
-    location: 'Satellite, Jodhpur Village',
-    address: '123 Sports Complex, Satellite Road, Jodhpur Village, Ahmedabad, Gujarat 380015',
-    rating: 4.9,
-    reviewCount: 0, // No fake review count - only real reviews
-    images: [
-      '/placeholder.svg',
-      '/placeholder.svg',
-      '/placeholder.svg',
-      '/placeholder.svg'
-    ],
-    videos: ['/placeholder.mp4'],
-    sports: [
-      { id: '1', name: 'Badminton', icon: '🏸', isActive: true },
-      { id: '2', name: 'Cricket', icon: '🏏', isActive: true },
-      { id: '3', name: 'Tennis', icon: '🎾', isActive: false }
-    ],
-    amenities: [
-      { id: '1', name: 'Parking', icon: 'Car', category: 'convenience' },
-      { id: '2', name: 'Restrooms', icon: 'Users', category: 'convenience' },
-      { id: '3', name: 'CCTV', icon: 'Shield', category: 'security' },
-      { id: '4', name: 'WiFi', icon: 'Wifi', category: 'connectivity' },
-      { id: '5', name: 'Cafeteria', icon: 'Coffee', category: 'food' },
-      { id: '6', name: 'AC/Ventilation', icon: 'AirVent', category: 'comfort' }
-    ],
-    description: 'SBR Badminton is a premier sports facility offering world-class badminton courts with professional-grade flooring and lighting. Our venue provides an exceptional playing experience for players of all skill levels, from beginners to tournament-level athletes.',
-    priceRange: { min: 400, max: 800 },
-    operatingHours: { open: '05:00', close: '23:00' },
-    isVerified: true,
-    ownerId: 'owner1',
-    createdAt: '2023-01-15T10:00:00Z'
+  const toTimeLabel = (minutes: number) => {
+    const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+    const m = (minutes % 60).toString().padStart(2, '0');
+    return `${h}:${m}`;
   };
 
-  const mockReviews: Review[] = [];
-
-  const mockTimeSlots: TimeSlot[] = [
-    { id: '1', startTime: '05:00', endTime: '06:00', price: 400, isAvailable: true, courtId: 'court1', courtName: 'Court 1' },
-    { id: '2', startTime: '06:00', endTime: '07:00', price: 500, isAvailable: true, courtId: 'court1', courtName: 'Court 1' },
-    { id: '3', startTime: '07:00', endTime: '08:00', price: 600, isAvailable: false, courtId: 'court1', courtName: 'Court 1' },
-    { id: '4', startTime: '08:00', endTime: '09:00', price: 700, isAvailable: true, courtId: 'court2', courtName: 'Court 2' },
-    { id: '5', startTime: '09:00', endTime: '10:00', price: 800, isAvailable: true, courtId: 'court2', courtName: 'Court 2' },
-    { id: '6', startTime: '18:00', endTime: '19:00', price: 700, isAvailable: true, courtId: 'court1', courtName: 'Court 1' },
-    { id: '7', startTime: '19:00', endTime: '20:00', price: 800, isAvailable: true, courtId: 'court1', courtName: 'Court 1' },
-    { id: '8', startTime: '20:00', endTime: '21:00', price: 750, isAvailable: false, courtId: 'court2', courtName: 'Court 2' }
-  ];
+  const mapApiReview = (review: ApiReview): Review => ({
+    id: review.id,
+    userId: review.userId,
+    userName: review.user?.fullName || 'QuickCourt player',
+    userAvatar: review.user?.avatarUrl || '/placeholder.svg',
+    rating: review.rating,
+    comment: review.comment || '',
+    date: review.createdAt,
+    sport: review.sport || ''
+  });
 
   // Animation variants
   const fadeInUp = {
@@ -222,15 +190,11 @@ const VenueDetailsPage = () => {
       if (!id) {
         throw new Error('Venue ID is required');
       }
-      // Short‑circuit for placeholder/demo IDs to avoid unnecessary 404s
-      if (id.startsWith('placeholder-')) {
-        const demo = { ...mockVenue, id, name: id === 'placeholder-1' ? 'Sample Sports Arena' : 'Community Courts' };
-        setVenue(demo);
-        setIsLoadingVenue(false);
-        return;
-      }
       // Get real venue data from API
       const facility = await facilitiesApi.getById(id);
+      const prices = facility.courts.map(c => Number(c.pricePerHour)).filter(Number.isFinite);
+      const openTimes = facility.courts.map(c => c.openTime);
+      const closeTimes = facility.courts.map(c => c.closeTime);
       
       // Convert Facility to VenueDetails format
       const venueDetails: VenueDetails = {
@@ -238,12 +202,12 @@ const VenueDetailsPage = () => {
         name: facility.name,
         location: facility.location,
         address: `${facility.location}, India`,
-        rating: 0, // Only real user ratings
-        reviewCount: 0, // Only real review count
+        rating: facility.rating || 0,
+        reviewCount: facility.reviewCount || 0,
         images: facility.images.length > 0 ? facility.images : ['/placeholder.svg'],
         videos: [],
-        sports: facility.sports.map((sport, index) => ({
-          id: (index + 1).toString(),
+        sports: facility.sports.map((sport) => ({
+          id: sport,
           name: sport,
           icon: sport === 'Badminton' ? '🏸' : sport === 'Tennis' ? '🎾' : sport === 'Cricket' ? '🏏' : '⚽',
           isActive: true
@@ -256,10 +220,13 @@ const VenueDetailsPage = () => {
         })),
         description: facility.description || `${facility.name} is a premium sports facility offering excellent courts and amenities for sports enthusiasts.`,
         priceRange: {
-          min: facility.courts.length > 0 ? Math.min(...facility.courts.map(c => c.pricePerHour)) : 400,
-          max: facility.courts.length > 0 ? Math.max(...facility.courts.map(c => c.pricePerHour)) : 800
+          min: prices.length > 0 ? Math.min(...prices) : 0,
+          max: prices.length > 0 ? Math.max(...prices) : 0
         },
-        operatingHours: { open: '06:00', close: '22:00' },
+        operatingHours: {
+          open: openTimes.length ? toTimeLabel(Math.min(...openTimes)) : 'Not set',
+          close: closeTimes.length ? toTimeLabel(Math.max(...closeTimes)) : 'Not set'
+        },
         isVerified: facility.status === 'APPROVED',
         ownerId: facility.ownerId || 'unknown',
         createdAt: facility.createdAt || new Date().toISOString()
@@ -268,13 +235,6 @@ const VenueDetailsPage = () => {
       setVenue(venueDetails);
       setIsLoadingVenue(false);
     } catch (error: any) {
-      // Gracefully fall back for placeholder IDs
-      if (id && id.startsWith('placeholder-')) {
-        const demo = { ...mockVenue, id, name: id === 'placeholder-1' ? 'Sample Sports Arena' : 'Community Courts' };
-        setVenue(demo);
-        setIsLoadingVenue(false);
-        return;
-      }
       console.error('Error fetching venue details:', error);
       if (error?.status !== 404) {
         toast({
@@ -296,11 +256,6 @@ const VenueDetailsPage = () => {
   const fetchTimeSlots = async () => {
     try {
       setIsLoadingSlots(true);
-      if (id && id.startsWith('placeholder-')) {
-        setTimeSlots(mockTimeSlots);
-        setIsLoadingSlots(false);
-        return;
-      }
       // Use real API to get hourly slots for selected date
       const slots = await facilitiesApi.getAvailability(id!, selectedDate);
       setTimeSlots(slots);
@@ -319,25 +274,16 @@ const VenueDetailsPage = () => {
   const fetchReviews = async (page: number = 1) => {
     try {
       setIsLoadingReviews(true);
-      // TODO: Replace with actual API call
-      // const response = await facilitiesApi.getVenueReviews(id, page, 10);
-      // if (page === 1) {
-      //   setReviews(response.data.reviews);
-      // } else {
-      //   setReviews(prev => [...prev, ...response.data.reviews]);
-      // }
-      // setHasMoreReviews(response.data.hasMore);
-      
-      // Using mock data for now
-      setTimeout(() => {
-        if (page === 1) {
-          setReviews(mockReviews);
-        } else {
-          // Simulate no more reviews for demo
-          setHasMoreReviews(false);
-        }
-        setIsLoadingReviews(false);
-      }, 500);
+      if (!id) throw new Error('Venue ID is required');
+      const response = await reviewsApi.listForFacility(id, page, 10);
+      const mapped = response.reviews.map(mapApiReview);
+      if (page === 1) {
+        setReviews(mapped);
+      } else {
+        setReviews(prev => [...prev, ...mapped]);
+      }
+      setHasMoreReviews(page < response.totalPages);
+      setIsLoadingReviews(false);
     } catch (error) {
       console.error('Error fetching reviews:', error);
       toast({
@@ -407,8 +353,6 @@ const VenueDetailsPage = () => {
     }
   };
 
-  const isDemoVenue = venue && venue.id.startsWith('placeholder-');
-
   const handleFavorite = () => {
     setIsFavorite(!isFavorite);
     toast({
@@ -441,17 +385,13 @@ const VenueDetailsPage = () => {
     try {
       setIsSubmittingReview(true);
 
-      // In a real app, this would be an API call
-      const newReview: Review = {
-        id: Date.now().toString(),
-        userId: user.id,
-        userName: user.fullName,
-        userAvatar: user.avatarUrl || '/placeholder.svg',
+      const created = await reviewsApi.create({
+        facilityId: venue!.id,
         rating: reviewRating,
         comment: reviewComment.trim(),
-        date: new Date().toISOString(),
-        sport: reviewSport || venue?.sports[0]?.name || ''
-      };
+        sport: reviewSport || venue?.sports[0]?.name || undefined
+      });
+      const newReview = mapApiReview(created);
 
       // Add to reviews state
       setReviews(prev => [newReview, ...prev]);
@@ -478,10 +418,10 @@ const VenueDetailsPage = () => {
         description: "Thank you for your review! It helps other players.",
       });
 
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to submit review. Please try again.",
+        description: error?.message || "Failed to submit review. Please try again.",
         variant: "destructive"
       });
     } finally {

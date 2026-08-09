@@ -32,9 +32,20 @@ function addMonths(d: Date, months: number) {
   return nd;
 }
 
+async function completeElapsedBookings() {
+  await prisma.booking.updateMany({
+    where: {
+      status: 'CONFIRMED',
+      endTime: { lte: new Date() }
+    },
+    data: { status: 'COMPLETED' }
+  });
+}
+
 // Get dashboard statistics
 router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
+    await completeElapsedBookings();
     const [
       totalUsers,
       totalFacilities,
@@ -120,6 +131,7 @@ router.get('/stats', requireAuth, requireRoles(UserRole.ADMIN), async (req: Auth
 // Query: ?range=7d|30d|90d|12m (default 30d)
 router.get('/analytics', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
+    await completeElapsedBookings();
     const range = (String(req.query.range || '30d')) as '7d'|'30d'|'90d'|'12m';
     const now = new Date();
     let start: Date;
@@ -284,26 +296,37 @@ router.get('/facilities', requireAuth, requireRoles(UserRole.ADMIN), async (req:
             email: true
           }
         },
+        courts: {
+          select: {
+            pricePerHour: true,
+            _count: { select: { bookings: true } }
+          }
+        },
         _count: {
           select: {
-            courts: true
+            courts: true,
+            reviews: true
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    // Add a fake pricePerHour field for compatibility
-    const facilitiesWithPrice = facilities.map(facility => ({
-      ...facility,
-      pricePerHour: 50, // Default price since it's stored per court
-      _count: {
-        ...facility._count,
-        bookings: 0 // We'll calculate this separately if needed
-      }
-    }));
+    const facilitiesWithStats = facilities.map(facility => {
+      const prices = facility.courts.map(court => Number(court.pricePerHour));
+      const bookingCount = facility.courts.reduce((sum, court) => sum + court._count.bookings, 0);
+      return {
+        ...facility,
+        minPrice: prices.length ? Math.min(...prices) : 0,
+        maxPrice: prices.length ? Math.max(...prices) : 0,
+        _count: {
+          ...facility._count,
+          bookings: bookingCount
+        }
+      };
+    });
 
-    res.json(facilitiesWithPrice);
+    res.json(facilitiesWithStats);
   } catch (error) {
     console.error('Failed to fetch facilities:', error);
     res.status(500).json({ error: 'Failed to fetch facilities' });
@@ -313,6 +336,7 @@ router.get('/facilities', requireAuth, requireRoles(UserRole.ADMIN), async (req:
 // Get all bookings with user and facility info
 router.get('/bookings', requireAuth, requireRoles(UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
+    await completeElapsedBookings();
     const bookings = await prisma.booking.findMany({
       include: {
         user: {

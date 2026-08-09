@@ -22,28 +22,108 @@ const createSchema = z.object({
 facilityRouter.post('/', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
   try {
   const data = createSchema.parse(req.body);
-  const facility = await prisma.facility.create({ data: { ...data, ownerId: req.user!.id } });
+  const facility = await prisma.facility.create({
+    data: {
+      name: data.name,
+      location: data.location,
+      description: data.description,
+      sports: data.sports,
+      amenities: data.amenities,
+      images: data.images,
+      propertyTypes: data.propertyTypes,
+      owner: { connect: { id: req.user!.id } }
+    }
+  });
     res.status(201).json(facility);
   } catch (e: any) { res.status(400).json({ message: e.message }); }
 });
 
+facilityRouter.get('/owner/me', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
+  try {
+    const facilities = await prisma.facility.findMany({
+      where: { ownerId: req.user!.id },
+      include: {
+        courts: true,
+        reviews: { select: { rating: true } },
+        _count: { select: { courts: true, reviews: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(facilities.map(withFacilityStats));
+  } catch (e) {
+    console.error('Failed to fetch owner facilities:', e);
+    res.status(500).json({ message: 'Failed to fetch owner facilities' });
+  }
+});
+
 facilityRouter.get('/', async (req: Request, res: Response) => {
-  const { sport, q, status, page = '1', pageSize = '10' } = req.query as Record<string, string>;
+  const {
+    sport,
+    q,
+    status,
+    propertyType,
+    priceMin,
+    priceMax,
+    amenities,
+    sort = 'newest',
+    page = '1',
+    pageSize = '10'
+  } = req.query as Record<string, string>;
   const where: any = { status: FacilityStatus.APPROVED };
   if (status && Object.values(FacilityStatus).includes(status as FacilityStatus)) where.status = status;
   if (sport) where.sports = { has: sport };
+  if (propertyType && ['PLAY', 'BOOK', 'TRAIN'].includes(propertyType)) where.propertyTypes = { has: propertyType };
+  if (amenities) {
+    const amenityList = amenities.split(',').map(a => a.trim()).filter(Boolean);
+    if (amenityList.length > 0) where.amenities = { hasEvery: amenityList };
+  }
+  if (priceMin || priceMax) {
+    where.courts = {
+      some: {
+        pricePerHour: {
+          ...(priceMin ? { gte: Number(priceMin) } : {}),
+          ...(priceMax ? { lte: Number(priceMax) } : {})
+        }
+      }
+    };
+  }
   if (q) where.OR = [ { name: { contains: q, mode: 'insensitive' } }, { location: { contains: q, mode: 'insensitive' } } ];
   const skip = (parseInt(page) - 1) * parseInt(pageSize);
   const take = parseInt(pageSize);
-  const [items, total] = await Promise.all([
-    prisma.facility.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: { courts: true } }),
+  const [rawItems, total] = await Promise.all([
+    prisma.facility.findMany({
+      where,
+      skip,
+      take,
+      orderBy: sort === 'newest' ? { createdAt: 'desc' } : { createdAt: 'desc' },
+      include: {
+        courts: true,
+        reviews: { select: { rating: true } },
+        _count: { select: { reviews: true } }
+      }
+    }),
     prisma.facility.count({ where })
   ]);
+  const items = rawItems.map(withFacilityStats).sort((a, b) => {
+    if (sort === 'price_low') return a.minPrice - b.minPrice;
+    if (sort === 'price_high') return b.minPrice - a.minPrice;
+    if (sort === 'rating') return b.rating - a.rating;
+    if (sort === 'popular') return b.reviewCount - a.reviewCount;
+    return 0;
+  });
   res.json({ items, total, page: parseInt(page), pageSize: take });
 });
 
 facilityRouter.get('/:id', async (req: Request, res: Response) => {
-  const facility = await prisma.facility.findUnique({ where: { id: req.params.id }, include: { courts: true } });
+  const facility = await prisma.facility.findUnique({
+    where: { id: req.params.id },
+    include: {
+      courts: true,
+      reviews: { select: { rating: true } },
+      _count: { select: { reviews: true } }
+    }
+  });
   if (!facility) return res.status(404).json({ message: 'Not found' });
   if (facility.status !== FacilityStatus.APPROVED) {
     // Allow owner or admin to view unapproved facility if authenticated
@@ -56,7 +136,7 @@ facilityRouter.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Not found' });
     }
   }
-  res.json(facility);
+  res.json(withFacilityStats(facility));
 });
 
 // Admin routes BEFORE dynamic :id to avoid route shadowing
@@ -64,6 +144,26 @@ facilityRouter.get('/admin/pending/list', requireAuth, requireRoles(UserRole.ADM
   const pending = await prisma.facility.findMany({ where: { status: FacilityStatus.PENDING }, orderBy: { createdAt: 'asc' } });
   res.json(pending);
 });
+
+function withFacilityStats(facility: any) {
+  const courts = facility.courts || [];
+  const prices = courts.map((court: any) => Number(court.pricePerHour)).filter((price: number) => Number.isFinite(price));
+  const ratings = facility.reviews || [];
+  const reviewCount = facility._count?.reviews ?? ratings.length;
+  const rating = ratings.length
+    ? Math.round((ratings.reduce((sum: number, review: any) => sum + Number(review.rating), 0) / ratings.length) * 10) / 10
+    : 0;
+  const { reviews, _count, ...rest } = facility;
+
+  return {
+    ...rest,
+    rating,
+    reviewCount,
+    minPrice: prices.length ? Math.min(...prices) : 0,
+    maxPrice: prices.length ? Math.max(...prices) : 0,
+    _count
+  };
+}
 
 facilityRouter.post('/admin/:id/approve', requireAuth, requireRoles(UserRole.ADMIN), async (req: Request, res: Response) => {
   const updated = await prisma.facility.update({ where: { id: req.params.id }, data: { status: FacilityStatus.APPROVED } });

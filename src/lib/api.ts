@@ -140,7 +140,7 @@ export const authApi = {
     }),
 
   login: (data: { email: string; password: string }) =>
-    apiRequest<{ accessToken: string; refreshToken: string }>('/auth/login', {
+    apiRequest<{ accessToken: string; refreshToken: string; user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -156,6 +156,18 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     }),
+
+  me: () => apiRequest<User>('/auth/me'),
+
+  updateProfile: (data: {
+    fullName?: string;
+    avatarUrl?: string | null;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => apiRequest<User>('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 };
 
 // Loyalty & Rewards API
@@ -180,12 +192,22 @@ export const facilitiesApi = {
   list: (params?: {
     sport?: string;
     q?: string;
+    propertyType?: "PLAY" | "BOOK" | "TRAIN";
+    priceMin?: number;
+    priceMax?: number;
+    amenities?: string[];
+    sort?: string;
     page?: number;
     pageSize?: number;
   }) => {
     const searchParams = new URLSearchParams();
     if (params?.sport) searchParams.set('sport', params.sport);
     if (params?.q) searchParams.set('q', params.q);
+    if (params?.propertyType) searchParams.set('propertyType', params.propertyType);
+    if (params?.priceMin !== undefined) searchParams.set('priceMin', params.priceMin.toString());
+    if (params?.priceMax !== undefined) searchParams.set('priceMax', params.priceMax.toString());
+    if (params?.amenities?.length) searchParams.set('amenities', params.amenities.join(','));
+    if (params?.sort) searchParams.set('sort', params.sort);
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
     
@@ -293,6 +315,39 @@ export const bookingsApi = {
   ),
 };
 
+export interface Review {
+  id: string;
+  userId: string;
+  facilityId: string;
+  rating: number;
+  comment?: string;
+  sport?: string;
+  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+}
+
+export const reviewsApi = {
+  listForFacility: (facilityId: string, page = 1, pageSize = 10) =>
+    apiRequest<{ reviews: Review[]; totalCount: number; page: number; pageSize: number; totalPages: number }>(
+      `/reviews/facility/${facilityId}?page=${page}&pageSize=${pageSize}`
+    ),
+  statsForFacility: (facilityId: string) =>
+    apiRequest<{ averageRating: number; totalReviews: number; ratingDistribution: Array<{ rating: number; count: number }> }>(
+      `/reviews/facility/${facilityId}/stats`
+    ),
+  create: (data: { facilityId: string; rating: number; comment?: string; sport?: string }) =>
+    apiRequest<Review>('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 // Types
 export interface Facility {
   id: string;
@@ -306,6 +361,10 @@ export interface Facility {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   ownerId: string;
   courts: Court[];
+  rating?: number;
+  reviewCount?: number;
+  minPrice?: number;
+  maxPrice?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -341,6 +400,8 @@ export interface User {
   avatarUrl?: string;
   role: 'USER' | 'OWNER' | 'ADMIN';
   status: 'ACTIVE' | 'BANNED';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // API instance with common HTTP methods

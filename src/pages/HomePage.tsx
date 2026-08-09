@@ -19,8 +19,11 @@ interface Venue {
   location: string;
   sport: string;
   rating: number;
+  reviewCount?: number;
   pricePerHour: number;
   images?: string[]; // Add images property
+  amenities?: string[];
+  isVerified?: boolean;
 }
 
 interface VenueCardData {
@@ -80,11 +83,11 @@ const HomePage = () => {
     images: venue.images && venue.images.length > 0 ? venue.images : ['/placeholder.svg'], // Use actual images or fallback
     sports: [venue.sport],
     pricePerHour: venue.pricePerHour,
-    rating: 0, // No fake ratings - only real user ratings
-    reviewCount: 0, // No fake review count
-    amenities: ['Parking', 'Changing Room'], // Mock amenities
-    type: Math.random() > 0.5 ? 'indoor' : 'outdoor', // Random type
-    isVerified: Math.random() > 0.3 // 70% chance of being verified
+    rating: venue.rating,
+    reviewCount: venue.reviewCount || 0,
+    amenities: venue.amenities || [],
+    type: 'indoor',
+    isVerified: !!venue.isVerified
   });
 
   // Animation variants
@@ -149,23 +152,18 @@ const HomePage = () => {
             name: facility.name,
             location: facility.location,
             sport: facility.sports[0] || 'General',
-            rating: 0, // only real user ratings in future
-            pricePerHour: facility.courts.length > 0 ? 
-              facility.courts.reduce((sum, court) => sum + court.pricePerHour, 0) / facility.courts.length :
-              500,
-            images: facility.images || [] // Include actual images from facility data
+            rating: facility.rating || 0,
+            reviewCount: facility.reviewCount || 0,
+            pricePerHour: facility.minPrice || (facility.courts.length > 0 ?
+              facility.courts.reduce((sum, court) => sum + Number(court.pricePerHour), 0) / facility.courts.length :
+              0),
+            images: facility.images || [],
+            amenities: facility.amenities || [],
+            isVerified: facility.status === 'APPROVED'
           }));
 
-        // Fallback venues when none available
-        const defaultVenues: Venue[] = [
-          { id: 'placeholder-1', name: 'Sample Sports Arena', location: 'Your City', sport: 'Badminton', rating: 0, pricePerHour: 500 },
-          { id: 'placeholder-2', name: 'Community Courts', location: 'Your City', sport: 'Tennis', rating: 0, pricePerHour: 500 },
-          { id: 'placeholder-3', name: 'Urban Play Zone', location: 'Your City', sport: 'Football', rating: 0, pricePerHour: 500 },
-        ];
-        const finalVenues = venuesData.length > 0 ? venuesData : defaultVenues;
-
         setPopularSports(finalSports);
-        setTopRatedVenues(finalVenues);
+        setTopRatedVenues(venuesData);
       } catch (error) {
         console.error('Error fetching data:', error);
         // Fallback to default data if API fails
@@ -181,11 +179,7 @@ const HomePage = () => {
           { id: '9', name: 'Volleyball', icon: '🏐', image: '/placeholder.svg', venueCount: 0 },
           { id: '10', name: 'Pickleball', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
         ]);
-        setTopRatedVenues([
-          { id: 'placeholder-1', name: 'Sample Sports Arena', location: 'Your City', sport: 'Badminton', rating: 0, pricePerHour: 500 },
-          { id: 'placeholder-2', name: 'Community Courts', location: 'Your City', sport: 'Tennis', rating: 0, pricePerHour: 500 },
-          { id: 'placeholder-3', name: 'Urban Play Zone', location: 'Your City', sport: 'Football', rating: 0, pricePerHour: 500 },
-        ]);
+        setTopRatedVenues([]);
       } finally {
         setIsLoading(false);
       }
@@ -405,7 +399,7 @@ const HomePage = () => {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : topRatedVenues.length > 0 ? (
             <Carousel
               className="w-full max-w-7xl mx-auto"
               opts={{
@@ -433,6 +427,21 @@ const HomePage = () => {
                 <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
               </div>
             </Carousel>
+          ) : (
+            <div className="mx-auto max-w-2xl rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+              <h3 className="text-lg font-semibold text-gray-900">No approved venues yet</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Approved facilities will appear here as owners add venues and admins review them.
+              </p>
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button onClick={() => navigate('/book')} className="bg-green-600 hover:bg-green-700">
+                  Browse Venues
+                </Button>
+                <Button onClick={() => navigate('/signup')} variant="outline">
+                  List a Venue
+                </Button>
+              </div>
+            </div>
           )}
 
           <motion.div

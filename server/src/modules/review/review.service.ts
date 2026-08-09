@@ -19,19 +19,24 @@ export interface UpdateReviewData {
 export class ReviewService {
   // Create a new review (only if user has booked the facility)
   static async createReview(data: CreateReviewData) {
-    // First check if user has actually booked this facility
+    // First check if user has actually booked this facility. Confirmed bookings
+    // become reviewable after their end time, even if no background job has
+    // marked them COMPLETED yet.
     const hasBooking = await prisma.booking.findFirst({
       where: {
         userId: data.userId,
         court: {
           facilityId: data.facilityId
         },
-        status: 'COMPLETED' // Only completed bookings can leave reviews
+        OR: [
+          { status: 'COMPLETED' },
+          { status: 'CONFIRMED', endTime: { lte: new Date() } }
+        ]
       }
     });
 
     if (!hasBooking) {
-      throw new Error('You can only review facilities you have booked and completed');
+      throw new Error('You can only review facilities after a completed booking');
     }
 
     // Check if user already has a review for this facility

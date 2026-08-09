@@ -102,6 +102,13 @@ const VenuesPage = () => {
   };
 
   const pageContext = getPageContext();
+  const pagePropertyType = location.pathname === '/play'
+    ? 'PLAY'
+    : location.pathname === '/train'
+      ? 'TRAIN'
+      : location.pathname === '/book'
+        ? 'BOOK'
+        : undefined;
   
   // State
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -160,6 +167,11 @@ const VenuesPage = () => {
       const response = await facilitiesApi.list({
         sport: filters.sportType,
         q: filters.location,
+        propertyType: pagePropertyType,
+        priceMin: filters.priceMin > 0 ? filters.priceMin : undefined,
+        priceMax: filters.priceMax < 2000 ? filters.priceMax : undefined,
+        amenities: filters.amenities,
+        sort: sortBy,
         page: currentPage,
         pageSize: 12
       });
@@ -170,13 +182,13 @@ const VenuesPage = () => {
         location: facility.location,
         images: facility.images || [],
         sports: facility.sports || [],
-        pricePerHour: facility.courts?.[0]?.pricePerHour ?? 0,
-        rating: 0, // No rating field in Court, set to 0 or fetch from reviews
-        reviewCount: 0, // You can update this if you have review data
+        pricePerHour: facility.minPrice || facility.courts?.[0]?.pricePerHour || 0,
+        rating: facility.rating || 0,
+        reviewCount: facility.reviewCount || 0,
         amenities: facility.amenities || [],
         type: 'indoor' as 'indoor' | 'outdoor',
         isVerified: facility.status === 'APPROVED',
-      }));
+      })).filter((venue) => filters.rating <= 0 || venue.rating >= filters.rating);
       setVenues(mappedVenues);
       setTotalResults(response.total || mappedVenues.length);
       setTotalPages(Math.ceil((response.total || mappedVenues.length) / 12));
@@ -252,7 +264,7 @@ const VenuesPage = () => {
   // Effects
   useEffect(() => {
     fetchVenues();
-  }, [filters, sortBy, currentPage]);
+  }, [filters, sortBy, currentPage, pagePropertyType]);
 
   useEffect(() => {
     updateSearchParams();

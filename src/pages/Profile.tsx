@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ import { bookingsApi, Booking, loyaltyApi, badgeApi, BadgeEarned } from '@/lib/a
 import { useQueryClient } from '@tanstack/react-query';
 
 const Profile = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -31,6 +31,11 @@ const Profile = () => {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setFullName(user?.fullName || '');
+    setEmail(user?.email || '');
+  }, [user]);
 
   // Fetch user bookings
   const { data: bookings = [], isLoading: isLoadingBookings, refetch } = useQuery({
@@ -105,8 +110,11 @@ const Profile = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Implement profile update API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await updateProfile({
+        fullName: fullName.trim(),
+        currentPassword: oldPassword || undefined,
+        newPassword: newPassword || undefined,
+      });
       
       toast({
         title: 'Profile updated',
@@ -119,7 +127,7 @@ const Profile = () => {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to update profile. Please try again.',
+      description: error instanceof Error ? error.message : 'Failed to update profile. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -353,9 +361,9 @@ const Profile = () => {
                 </div>
                 
                 <div className="mt-4">
-                  <h2 className="text-xl font-semibold">{user?.fullName || 'Mitchell Admin'}</h2>
-                  <p className="text-gray-600">{user?.role === 'USER' ? '9999999999' : '8888888888'}</p>
-                  <p className="text-gray-600 text-sm">{user?.email || 'mitchelladmin20@gmail.com'}</p>
+                  <h2 className="text-xl font-semibold">{user?.fullName || 'Profile'}</h2>
+                  <p className="text-gray-600">{user?.role ? user.role.toLowerCase() : 'user'}</p>
+                  <p className="text-gray-600 text-sm">{user?.email || 'No email available'}</p>
                 </div>
               </div>
 
