@@ -3,8 +3,8 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { BookingStatus, UserRole, PaymentStatus } from '../../types/enums.js';
 import { z } from 'zod';
 import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js';
-import { io } from '../../index.js';
 import { addPoints, recordActivityForStreak } from '../../services/loyalty.js';
+import { emitToRoom } from '../../socket.js';
 
 const prisma = new PrismaClient();
 export const bookingRouter = Router();
@@ -50,8 +50,8 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
 
     // Notify owner and user via socket rooms
     const payload = { bookingId: booking.created.id, courtId, startTime, endTime, facilityId: booking.facilityId };
-    io.to(`owner:${booking.ownerId}`).emit('booking:new', { ...payload, facilityName: booking.facilityName });
-    io.to(`user:${req.user!.id}`).emit('booking:confirmed', payload);
+    emitToRoom(`owner:${booking.ownerId}`, 'booking:new', { ...payload, facilityName: booking.facilityName });
+    emitToRoom(`user:${req.user!.id}`, 'booking:confirmed', payload);
 
     // Award loyalty points (simple rule: 10 points per hour)
     try {
@@ -94,8 +94,8 @@ bookingRouter.put('/:id/cancel', requireAuth, async (req: AuthRequest, res: Resp
 
     const socketPayload = { bookingId: updated.id, courtId: existing.courtId, startTime: existing.startTime, endTime: existing.endTime, facilityId: existing.court.facility.id };
     // Notify owner and user via socket rooms
-    io.to(`owner:${existing.court.facility.ownerId}`).emit('booking:cancelled', socketPayload);
-    io.to(`user:${existing.userId}`).emit('booking:cancelled', socketPayload);
+    emitToRoom(`owner:${existing.court.facility.ownerId}`, 'booking:cancelled', socketPayload);
+    emitToRoom(`user:${existing.userId}`, 'booking:cancelled', socketPayload);
 
     res.json(updated);
   } catch (e: any) {

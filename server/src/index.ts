@@ -3,9 +3,11 @@ import { Server } from 'socket.io';
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { verifyAccessToken } from './utils/jwt.js';
+import { setSocketServer } from './socket.js';
 
 const httpServer = createServer(app);
 export const io = new Server(httpServer, { cors: { origin: env.corsOrigin as any, credentials: true, methods: ['GET','POST','PUT','DELETE','OPTIONS'] } });
+setSocketServer(io);
 
 // Join per-user and per-owner rooms based on JWT provided by the client
 io.use((socket, next) => {
