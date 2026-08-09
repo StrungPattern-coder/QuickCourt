@@ -65,6 +65,12 @@ export class ApiError extends Error {
   }
 }
 
+export interface OtpDelivery {
+  queued?: boolean;
+  disabled?: boolean;
+  devOtp?: string;
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -127,8 +133,8 @@ export const authApi = {
     fullName: string;
     role: 'USER' | 'OWNER' | 'ADMIN';
     avatarUrl?: string;
-  inviteSecret?: string;
-  }) => apiRequest('/auth/signup', {
+    inviteSecret?: string;
+  }) => apiRequest<{ userId: string; delivery?: OtpDelivery }>('/auth/signup', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -140,13 +146,13 @@ export const authApi = {
     }),
 
   resendOtp: (data: { email: string }) =>
-    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN' }>('/auth/resend-otp', {
+    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN'; delivery?: OtpDelivery }>('/auth/resend-otp', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   sendLoginOtp: (data: { email: string }) =>
-    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN' }>('/auth/send-login-otp', {
+    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN'; delivery?: OtpDelivery }>('/auth/send-login-otp', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

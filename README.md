@@ -283,7 +283,7 @@ Seed scripts are local/demo utilities. They are not part of the production deplo
 - Do not commit real `.env` files. They are ignored by `.gitignore`.
 - JWT access and refresh secrets must be different values.
 - Admin signup is gated by `ADMIN_INVITE_SECRET`.
-- OTP values and password reset links are logged only when SMTP is disabled; configure SMTP before relying on email verification, OTP login, or password reset in production.
+- While SMTP is disabled, signup and OTP-login screens show the six-digit OTP directly in the UI as a temporary free-mode fallback, and the backend also logs the code. Configure SMTP and redeploy before treating OTP delivery as production-secure.
 - Uploaded files are served from local function storage in the current Express implementation. For durable production uploads, move uploads to Blob/S3/Cloudinary.
 - Remaining production audit findings are moderate and currently tied to dependency chains that need separate compatibility review.
 

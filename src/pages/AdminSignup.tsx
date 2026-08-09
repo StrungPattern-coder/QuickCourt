@@ -19,6 +19,7 @@ const AdminSignup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [devOtp, setDevOtp] = useState<string | undefined>();
   const [inviteSecret, setInviteSecret] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null); // reserved for future avatar upload integration
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -58,8 +59,9 @@ const AdminSignup = () => {
     if (password.length < 8) return;
     setIsLoading(true);
     try {
-  const result = await signup({ email, password, fullName, role: 'ADMIN', inviteSecret });
+      const result = await signup({ email, password, fullName, role: 'ADMIN', inviteSecret });
       setUserId(result.userId);
+      setDevOtp(result.delivery?.devOtp);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +75,7 @@ const AdminSignup = () => {
     return (
       <>
         <SEO title="Verify Admin Email - QuickCourt" description="Verify your admin email" path="/admin/signup" />
-        <OtpVerification userId={userId} email={email} userRole="ADMIN" isLoginFlow={false} onVerified={handleOtpVerified} />
+        <OtpVerification userId={userId} email={email} userRole="ADMIN" isLoginFlow={false} devOtp={devOtp} onVerified={handleOtpVerified} />
       </>
     );
   }

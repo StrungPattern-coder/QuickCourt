@@ -20,6 +20,7 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [devOtp, setDevOtp] = useState<string | undefined>();
   const [avatar, setAvatar] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +94,7 @@ const Signup = () => {
     try {
       const result = await signup({ email, password, fullName, role });
       setUserId(result.userId);
+      setDevOtp(result.delivery?.devOtp);
     } catch (error) {
       // Error is handled by the auth context
     } finally {
@@ -115,6 +117,7 @@ const Signup = () => {
           email={email}
           userRole={role}
           isLoginFlow={false}
+          devOtp={devOtp}
           onVerified={handleOtpVerified} 
         />
       </>

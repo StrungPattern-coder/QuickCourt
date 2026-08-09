@@ -12,17 +12,23 @@ interface OtpVerificationProps {
   email?: string;
   userRole?: 'USER' | 'OWNER' | 'ADMIN';
   isLoginFlow?: boolean;
+  devOtp?: string;
   onVerified: () => void;
 }
+
+const createEmptyOtp = () => Array.from({ length: 6 }, () => '');
+const otpDigitsFromCode = (code?: string) => (/^\d{6}$/.test(code ?? '') ? code!.split('') : createEmptyOtp());
 
 const OtpVerification = ({ 
   userId, 
   email = '', 
   userRole = 'USER',
   isLoginFlow = false,
+  devOtp,
   onVerified 
 }: OtpVerificationProps) => {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [visibleOtp, setVisibleOtp] = useState(() => (/^\d{6}$/.test(devOtp ?? '') ? devOtp : undefined));
+  const [otp, setOtp] = useState(() => otpDigitsFromCode(devOtp));
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -46,6 +52,12 @@ const OtpVerification = ({
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!/^\d{6}$/.test(devOtp ?? '')) return;
+    setVisibleOtp(devOtp);
+    setOtp(otpDigitsFromCode(devOtp));
+  }, [devOtp]);
 
   const maskEmail = (email: string) => {
     if (!email) return 'your email';
@@ -156,7 +168,7 @@ const OtpVerification = ({
       });
       
       // Clear OTP on error
-      setOtp(['', '', '', '', '', '']);
+      setOtp(createEmptyOtp());
       inputRefs.current[0]?.focus();
     } finally {
       setIsLoading(false);
@@ -168,23 +180,34 @@ const OtpVerification = ({
 
     setIsResending(true);
     try {
+      let nextDevOtp: string | undefined;
+
       if (isLoginFlow) {
-        await authApi.sendLoginOtp({ email });
+        const response = await authApi.sendLoginOtp({ email });
+        nextDevOtp = response.delivery?.devOtp;
       } else {
-        await authApi.resendOtp({ email });
+        const response = await authApi.resendOtp({ email });
+        nextDevOtp = response.delivery?.devOtp;
+      }
+
+      if (nextDevOtp) {
+        setVisibleOtp(nextDevOtp);
+        setOtp(otpDigitsFromCode(nextDevOtp));
+      } else {
+        setVisibleOtp(undefined);
+        setOtp(createEmptyOtp());
       }
       
       toast({
-        title: "OTP Sent!",
-        description: "A new code has been sent to your email.",
+        title: nextDevOtp ? "OTP Ready!" : "OTP Sent!",
+        description: nextDevOtp
+          ? "Temporary free mode: the new code is shown on this screen."
+          : "A new code has been sent to your email.",
       });
 
       // Reset countdown
       setCountdown(30);
       setCanResend(false);
-      
-      // Clear current OTP
-      setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (error) {
       toast({
@@ -247,6 +270,34 @@ const OtpVerification = ({
               {maskEmail(email)}
             </p>
           </div>
+
+          {visibleOtp && (
+            <motion.div
+              className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
+                Temporary free mode
+              </p>
+              <p className="mt-2 text-sm leading-6 text-amber-900">
+                Email delivery is not configured because we are keeping this project free for now. Use this on-screen OTP:
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3">
+                <span className="font-mono text-2xl font-bold tracking-[0.32em] text-gray-950">{visibleOtp}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOtp(otpDigitsFromCode(visibleOtp))}
+                  className="shrink-0"
+                >
+                  Fill
+                </Button>
+              </div>
+            </motion.div>
+          )}
 
           {/* OTP Form */}
           <form onSubmit={handleSubmit} className="space-y-6">

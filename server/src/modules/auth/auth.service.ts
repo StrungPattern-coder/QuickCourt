@@ -143,6 +143,7 @@ async function issueOtp(userId: string, email: string, subject: string) {
 
   if ((delivery as { disabled?: boolean }).disabled) {
     console.log(`[OTP] for ${email}: ${otp}`);
+    return { ...delivery, devOtp: otp };
   }
 
   return delivery;

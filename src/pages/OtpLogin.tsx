@@ -15,6 +15,7 @@ const OtpLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'USER' | 'OWNER' | 'ADMIN'>('USER');
+  const [devOtp, setDevOtp] = useState<string | undefined>();
   const navigate = useNavigate();
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -35,6 +36,7 @@ const OtpLogin = () => {
       
       setUserId(response.userId);
       setUserRole(response.userRole || 'USER');
+      setDevOtp(response.delivery?.devOtp);
       
       toast({
         title: "OTP Sent!",
@@ -74,6 +76,7 @@ const OtpLogin = () => {
           email={email}
           userRole={userRole}
           isLoginFlow={true}
+          devOtp={devOtp}
           onVerified={handleOtpVerified} 
         />
       </>

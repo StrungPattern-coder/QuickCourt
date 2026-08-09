@@ -4,9 +4,8 @@ import SEO from '@/components/SEO';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandNav from '@/components/BrandNav';
-import { ArrowRight, CheckCircle2, Clock, Layers3, Shield, Trophy, Users } from 'lucide-react';
-
-const HERO_IMAGE = '#';
+import MaskedHeading from '@/components/MaskedHeading';
+import { ArrowRight, CheckCircle2, Clock, Layers3, Shield, Trophy } from 'lucide-react';
 
 const facts = [
   { label: 'Built At', value: 'Odoo India Hackathon 2025' },
@@ -35,34 +34,42 @@ const About: React.FC = () => {
       <SEO title="About QuickCourt" description="QuickCourt was built during the Odoo India Hackathon 2025 finals by a team of four." path="/about" />
       <BrandNav />
 
-      <section className="relative flex min-h-[88svh] items-end overflow-hidden">
-        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-black/28" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/66 to-black/22" />
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16 pt-32 sm:px-6 lg:px-8">
+      <section className="relative min-h-[88svh] overflow-hidden bg-[#f7faf7]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gray-200" />
+        <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] [background-size:64px_64px]" />
+        <motion.div
+          className="absolute left-0 right-0 top-[48%] h-px bg-emerald-500/40"
+          animate={{ scaleX: [0.65, 1, 0.65], opacity: [0.2, 0.55, 0.2] }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-0 h-2 w-full bg-emerald-400"
+          initial={{ scaleX: 0, transformOrigin: 'left' }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 1.1, ease: 'easeOut' }}
+        />
+        <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-6xl flex-col justify-center px-5 pb-14 pt-32 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65 }}
-            className="max-w-3xl text-white"
+            transition={{ duration: 0.55 }}
+            className="max-w-5xl"
           >
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.75)]">
+            <p className="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
               About QuickCourt
             </p>
-            <h1 className="text-4xl font-bold leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.65)] sm:text-6xl md:text-7xl">
-              Built in 24 hours for the finals.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)] sm:text-xl">
+            <MaskedHeading text="Built in 24 hours for the finals." />
+            <p className="mt-7 max-w-2xl text-base leading-8 text-gray-700 sm:text-xl">
               QuickCourt is a multi-sport venue discovery and booking platform we built as a team of four during the finals of the 24-hour Odoo India Hackathon 2025.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
+              <Button asChild className="h-12 bg-gray-950 px-6 text-white hover:bg-emerald-700">
                 <Link to="/signup">
                   Create Account
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-                <Button asChild variant="outline" className="h-12 border-white/30 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white">
+              <Button asChild variant="outline" className="h-12 border-gray-300 bg-white px-6 text-gray-950 hover:bg-emerald-50">
                 <Link to="/login">Sign In</Link>
               </Button>
             </div>
@@ -91,7 +98,7 @@ const About: React.FC = () => {
               transition={{ duration: 0.55 }}
             >
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Origin</p>
-              <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+              <h2 className="mt-4 text-3xl font-bold text-gray-950 sm:text-5xl">
                 A finals project shaped by speed, scope, and real product pressure.
               </h2>
             </motion.div>
@@ -112,7 +119,7 @@ const About: React.FC = () => {
           <div className="mb-10 flex items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Product pillars</p>
-              <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+              <h2 className="mt-4 max-w-2xl text-3xl font-bold text-gray-950 sm:text-5xl">
                 Built for the full sports booking loop.
               </h2>
             </div>
@@ -142,7 +149,7 @@ const About: React.FC = () => {
         <div className="mx-auto grid max-w-6xl gap-12 px-5 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">What is included</p>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+            <h2 className="mt-4 text-3xl font-bold text-gray-950 sm:text-5xl">
               The build is practical, not just presentational.
             </h2>
           </div>
@@ -165,7 +172,7 @@ const About: React.FC = () => {
                 <Clock className="h-5 w-5" />
                 <span className="text-sm font-semibold uppercase tracking-[0.18em]">24-hour build</span>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From hackathon finals to deployed product.</h2>
+              <h2 className="text-3xl font-bold sm:text-4xl">From hackathon finals to deployed product.</h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-white/70">
                 QuickCourt now runs as a Vercel-deployed app backed by PostgreSQL, ready for fresh accounts, venue submissions, approvals, and bookings.
               </p>
