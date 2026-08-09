@@ -13,6 +13,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 // Components
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AppError from "./components/AppError";
 
 // Pages
 import Index from "./pages/Index";
@@ -198,11 +199,12 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-          <h1 className="text-2xl font-semibold mb-2">Something went wrong</h1>
-          <p className="mb-4 text-sm text-muted-foreground">The interface crashed. You can try reloading the page.</p>
-          <button className="px-4 py-2 bg-black text-white rounded" onClick={() => window.location.reload()}>Reload</button>
-        </div>
+        <AppError
+          code="500"
+          title="The interface lost its footing."
+          description="Something in this view crashed. Reload the page to request a fresh application state."
+          action="reload"
+        />
       );
     }
     return this.props.children;

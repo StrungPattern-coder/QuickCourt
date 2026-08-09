@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Mail, ArrowLeft, Clock, Edit3, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/lib/api';
+import { authApi } from '@/lib/api';
 
 interface OtpVerificationProps {
   userId: string;
@@ -27,7 +27,7 @@ const OtpVerification = ({
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
-  const { verifyOtp } = useAuth();
+  const { verifyOtp, loginWithOtp } = useAuth();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
 
@@ -119,11 +119,15 @@ const OtpVerification = ({
 
     setIsLoading(true);
     try {
-      await verifyOtp(userId, otpString);
+      if (isLoginFlow) {
+        await loginWithOtp(userId, otpString);
+      } else {
+        await verifyOtp(userId, otpString);
+      }
       
       toast({
-        title: "Email Verified!",
-        description: "Your account has been successfully verified.",
+        title: isLoginFlow ? "Login verified!" : "Email verified!",
+        description: isLoginFlow ? "You have been securely logged in." : "Your account has been successfully verified.",
       });
 
       // Navigate based on flow and role
@@ -164,11 +168,15 @@ const OtpVerification = ({
 
     setIsResending(true);
     try {
-      await api.post('/auth/resend-otp', { email });
+      if (isLoginFlow) {
+        await authApi.sendLoginOtp({ email });
+      } else {
+        await authApi.resendOtp({ email });
+      }
       
       toast({
         title: "OTP Sent!",
-        description: "A new verification code has been sent to your email.",
+        description: "A new code has been sent to your email.",
       });
 
       // Reset countdown
@@ -190,7 +198,7 @@ const OtpVerification = ({
   };
 
   const handleEditEmail = () => {
-    navigate('/signup');
+    navigate(isLoginFlow ? '/otp-login' : '/signup');
   };
 
   const isOtpComplete = otp.every(digit => digit !== '');
@@ -230,7 +238,7 @@ const OtpVerification = ({
             </div>
             
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Verify Your Account
+              {isLoginFlow ? 'Verify Login Code' : 'Verify Your Account'}
             </h2>
             <p className="text-gray-500 mb-2">
               Enter the 6-digit code sent to your email

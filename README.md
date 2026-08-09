@@ -15,7 +15,7 @@
 
 | Area | Status |
 | --- | --- |
-| Authentication | Email/password signup and login, OTP verification token generation, JWT access/refresh tokens, `/auth/me`, profile update, password change |
+| Authentication | Email/password signup and login with persisted email verification, OTP login, OTP resend, JWT access/refresh tokens, `/auth/me`, profile update, password change, forgot/reset password |
 | Roles | `USER`, `OWNER`, and `ADMIN` role guards |
 | Venue Discovery | Dynamic facility listing, search, sport filters, property type filters (`PLAY`, `BOOK`, `TRAIN`), price filters, amenity filters, ratings, review counts |
 | Venue Details | Dynamic venue profile, court availability, live booking availability refresh over Socket.IO, real review list and review submission |
@@ -24,9 +24,12 @@
 | Admin Dashboard | User/facility/booking management, facility approval/rejection, user ban/unban, analytics |
 | Loyalty | Points, streaks, referral code generation/application, badge evaluation |
 | Receipts | In-app receipt generation and PDF download through jsPDF |
+| UI | Dynamic homepage states, redesigned animated 404 page, and animated application error fallback |
 | Deployment | Vercel-ready Vite frontend plus Express serverless API bridge |
 
 Payments currently run in receipt-only mode. The old Razorpay-facing UI/hooks remain in the codebase, but the active booking flow creates confirmed bookings and receipts directly.
+
+Email verification, OTP login, and password reset generate real tokens in the database. Configure SMTP variables to deliver those tokens by email; when SMTP is not configured, the backend logs codes/links for local development only.
 
 ---
 
@@ -128,6 +131,8 @@ npx prisma migrate deploy
 npm run seed
 ```
 
+Do not run the seed script against a shared or production database unless you intentionally want local test accounts and sample venues.
+
 ### Run
 
 Backend:
@@ -167,7 +172,7 @@ npm audit --omit=dev --audit-level=high
 npm --prefix server audit --omit=dev --audit-level=high
 ```
 
-Current state: build and lint pass. Production audit has no high or critical findings.
+Current state: frontend and server builds pass. Lint exits successfully; the frontend still reports existing React hook/fast-refresh warnings. Production audit has no high or critical findings.
 
 ---
 
@@ -218,7 +223,11 @@ Required production variables:
 | `OTP_TTL_MINUTES` | No | Defaults to `10` |
 | `CORS_ORIGIN` | No | Optional; Vercel deployment URLs are inferred if unset |
 | `SENTRY_DSN` | No | Enables Sentry if present |
-| `SMTP_*` | No | Enables real email sending if present |
+| `SMTP_HOST` | No | Required for delivered OTP/password reset emails |
+| `SMTP_PORT` | No | Required for delivered OTP/password reset emails |
+| `SMTP_USER` | No | Required for delivered OTP/password reset emails |
+| `SMTP_PASS` | No | Required for delivered OTP/password reset emails |
+| `EMAIL_FROM` | No | Sender address for auth emails |
 
 Example commands:
 
@@ -228,6 +237,11 @@ npx vercel env add NODE_ENV production --value "production" --yes --force
 npx vercel env add ACCESS_TOKEN_SECRET production --value "<access-secret>" --yes --force
 npx vercel env add REFRESH_TOKEN_SECRET production --value "<refresh-secret>" --yes --force
 npx vercel env add ADMIN_INVITE_SECRET production --value "<admin-secret>" --yes --force
+npx vercel env add SMTP_HOST production --value "<smtp-host>" --yes --force
+npx vercel env add SMTP_PORT production --value "<smtp-port>" --yes --force
+npx vercel env add SMTP_USER production --value "<smtp-user>" --yes --force
+npx vercel env add SMTP_PASS production --value "<smtp-password>" --yes --force
+npx vercel env add EMAIL_FROM production --value "QuickCourt <no-reply@your-domain.com>" --yes --force
 ```
 
 Repeat for `preview` if preview deployments should work.
@@ -240,11 +254,13 @@ After linking the project and adding `DATABASE_URL`:
 npx vercel env run --environment=production -- npm --prefix server run prisma:deploy
 ```
 
-Optional seed:
+Optional local/demo seed only:
 
 ```bash
 npx vercel env run --environment=production -- npm --prefix server run seed
 ```
+
+For a clean first production launch, do not seed. The live database should start with no users, venues, bookings, reviews, tokens, or payments.
 
 ### 5. Deploy
 
@@ -254,16 +270,11 @@ npx vercel --prod
 
 ---
 
-## Useful Accounts for Seeded Local Data
+## Accounts and Seed Data
 
-Some legacy seed scripts create test users such as:
+Fresh production deployments have no built-in accounts and no admin credentials. Create the first admin from `/admin/signup` using `ADMIN_INVITE_SECRET`, then log in from `/login?role=admin`.
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Owner | `owner@quickcourt.com` | `testowner123` |
-| User | `user@quickcourt.com` | `testuser123` |
-
-Check the specific seed script before relying on these in a shared database.
+Seed scripts are local/demo utilities. They are not part of the production deployment path and should not be used on a real launch database unless you intentionally want test users and sample venues.
 
 ---
 
@@ -272,7 +283,7 @@ Check the specific seed script before relying on these in a shared database.
 - Do not commit real `.env` files. They are ignored by `.gitignore`.
 - JWT access and refresh secrets must be different values.
 - Admin signup is gated by `ADMIN_INVITE_SECRET`.
-- OTP values are logged in development; configure SMTP before relying on email verification in production.
+- OTP values and password reset links are logged only when SMTP is disabled; configure SMTP before relying on email verification, OTP login, or password reset in production.
 - Uploaded files are served from local function storage in the current Express implementation. For durable production uploads, move uploads to Blob/S3/Cloudinary.
 - Remaining production audit findings are moderate and currently tied to dependency chains that need separate compatibility review.
 
@@ -284,7 +295,7 @@ Check the specific seed script before relying on these in a shared database.
 - Remove unused legacy Razorpay components or reintroduce a real payment provider end to end.
 - Add automated API tests for auth, booking overlap prevention, owner/admin workflows, and reviews.
 - Split the large frontend bundle with route-level dynamic imports.
-- Replace logged OTP delivery with SMTP/SMS.
+- Add a transactional email provider configuration in Vercel for production OTP/password reset delivery.
 
 ---
 

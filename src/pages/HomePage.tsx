@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Calendar, ChevronDown, Star, ArrowRight, Users, Clock, Trophy, Play, CheckCircle, Shield, Sparkles } from 'lucide-react';
+import { Search, MapPin, Calendar, ArrowRight, Users, Trophy, Play, CheckCircle, Shield, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { facilitiesApi } from '@/lib/api';
@@ -21,7 +21,7 @@ interface Venue {
   rating: number;
   reviewCount?: number;
   pricePerHour: number;
-  images?: string[]; // Add images property
+  images?: string[];
   amenities?: string[];
   isVerified?: boolean;
 }
@@ -44,9 +44,23 @@ interface Sport {
   id: string;
   name: string;
   icon: string;
-  image: string;
   venueCount: number;
 }
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=2400&q=80';
+
+const SPORT_OPTIONS = [
+  'Badminton',
+  'Tennis',
+  'Football',
+  'Cricket',
+  'Basketball',
+  'Table Tennis',
+  'Squash',
+  'Swimming',
+  'Volleyball',
+  'Pickleball'
+];
 
 // Utility function to get sport icons
 const getSportIcon = (sport: string): string => {
@@ -80,7 +94,7 @@ const HomePage = () => {
     id: venue.id,
     name: venue.name,
     location: venue.location,
-    images: venue.images && venue.images.length > 0 ? venue.images : ['/placeholder.svg'], // Use actual images or fallback
+    images: venue.images && venue.images.length > 0 ? venue.images : ['/placeholder.svg'],
     sports: [venue.sport],
     pricePerHour: venue.pricePerHour,
     rating: venue.rating,
@@ -120,28 +134,14 @@ const HomePage = () => {
           });
         });
 
-        // Define all available sports that should always be shown
-        const allAvailableSports = [
-          'Badminton', 'Tennis', 'Football', 'Cricket', 'Basketball', 
-          'Table Tennis', 'Squash', 'Swimming', 'Volleyball', 'Pickleball'
-        ];
-
-        const sportsData: Sport[] = allAvailableSports.map((sport, index) => ({
-          id: (index + 1).toString(),
-          name: sport,
-          icon: getSportIcon(sport),
-          image: '/placeholder.svg',
-          venueCount: sportsMap.get(sport) || 0 // Show 0 if no venues found
-        }));
-
-        // Fallback sports when none available
-        const defaultSports: Sport[] = [
-          { id: '1', name: 'Badminton', icon: '🏸', image: '/placeholder.svg', venueCount: 0 },
-          { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
-          { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 0 },
-          { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 0 },
-        ];
-        const finalSports = sportsData.length > 0 ? sportsData : defaultSports;
+        const sportsData: Sport[] = Array.from(sportsMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([sport, venueCount]) => ({
+            id: sport.toLowerCase().replace(/\s+/g, '-'),
+            name: sport,
+            icon: getSportIcon(sport),
+            venueCount
+          }));
 
         // Generate venues data from facilities
         const venuesData: Venue[] = facilities
@@ -162,23 +162,11 @@ const HomePage = () => {
             isVerified: facility.status === 'APPROVED'
           }));
 
-        setPopularSports(finalSports);
+        setPopularSports(sportsData);
         setTopRatedVenues(venuesData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        // Fallback to default data if API fails
-        setPopularSports([
-          { id: '1', name: 'Badminton', icon: '🏸', image: '/placeholder.svg', venueCount: 0 },
-          { id: '2', name: 'Tennis', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
-          { id: '3', name: 'Football', icon: '⚽', image: '/placeholder.svg', venueCount: 0 },
-          { id: '4', name: 'Cricket', icon: '🏏', image: '/placeholder.svg', venueCount: 0 },
-          { id: '5', name: 'Basketball', icon: '🏀', image: '/placeholder.svg', venueCount: 0 },
-          { id: '6', name: 'Table Tennis', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
-          { id: '7', name: 'Squash', icon: '🎾', image: '/placeholder.svg', venueCount: 0 },
-          { id: '8', name: 'Swimming', icon: '🏊', image: '/placeholder.svg', venueCount: 0 },
-          { id: '9', name: 'Volleyball', icon: '🏐', image: '/placeholder.svg', venueCount: 0 },
-          { id: '10', name: 'Pickleball', icon: '🏓', image: '/placeholder.svg', venueCount: 0 },
-        ]);
+        setPopularSports([]);
         setTopRatedVenues([]);
       } finally {
         setIsLoading(false);
@@ -212,51 +200,46 @@ const HomePage = () => {
       <BrandNav />
 
       {/* Hero Search Banner */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Background with overlay */}
+      <section className="relative flex min-h-[92svh] items-center overflow-hidden">
+        {/* Background image with overlay */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
-          <div className="w-full h-full bg-gradient-to-br from-green-600 via-green-500 to-green-400">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 opacity-20">
-              <motion.div 
-                className="absolute top-1/4 left-1/4 w-64 h-64 bg-white rounded-full"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
-                transition={{ duration: 4, repeat: Infinity }}
-              />
-              <motion.div 
-                className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-white rounded-full"
-                animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.3, 0.1] }}
-                transition={{ duration: 4, repeat: Infinity, delay: 2 }}
-              />
-            </div>
-          </div>
+          <img src={HERO_IMAGE} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/82 via-black/48 to-black/22" />
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-400"
+            initial={{ scaleX: 0, transformOrigin: 'left' }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+          />
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-20 text-center text-white px-4 max-w-6xl mx-auto w-full">
+        <div className="relative z-20 mx-auto w-full max-w-6xl px-4 pt-28 text-white sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
+            className="max-w-4xl"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight px-2">
-              Book Sports Facilities
-              <span className="block text-green-400">Near You</span>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+              QuickCourt
+            </p>
+            <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl md:text-7xl">
+              Book the right court before the next match starts.
             </h1>
             
             <motion.p
-              className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-12 text-gray-200 max-w-3xl mx-auto px-2"
+              className="mb-8 max-w-2xl text-base leading-7 text-gray-100 sm:text-xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.8 }}
             >
-              Choose a sport, find a court, and start playing
+              Search approved venues, pick a sport, and reserve available courts from one live booking surface.
             </motion.p>
 
             {/* Search Bar - Mobile Optimized */}
             <motion.div
-              className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 max-w-5xl mx-auto shadow-2xl"
+              className="max-w-5xl rounded-xl border border-white/20 bg-white/95 p-3 shadow-2xl backdrop-blur sm:p-4 md:p-5"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.8 }}
@@ -281,11 +264,11 @@ const HomePage = () => {
                       <SelectValue placeholder="Select sport" className="text-gray-500" />
                     </SelectTrigger>
                     <SelectContent>
-                      {popularSports.map((sport) => (
-                        <SelectItem key={sport.id} value={sport.name}>
+                      {(popularSports.length > 0 ? popularSports.map((sport) => sport.name) : SPORT_OPTIONS).map((sportName) => (
+                        <SelectItem key={sportName} value={sportName}>
                           <span className="flex items-center gap-2">
-                            <span>{sport.icon}</span>
-                            {sport.name}
+                            <span>{getSportIcon(sportName)}</span>
+                            {sportName}
                           </span>
                         </SelectItem>
                       ))}
@@ -322,7 +305,7 @@ const HomePage = () => {
       </section>
 
       {/* Sports Categories Carousel */}
-      <section className="py-16 bg-gray-50">
+      <section className="bg-gray-50 py-14 sm:py-16">
         <div className="container mx-auto px-4">
           <motion.div
             className="text-center mb-8 sm:mb-12 px-4"
@@ -332,45 +315,55 @@ const HomePage = () => {
               Choose Your Sport
             </h2>
             <p className="text-lg sm:text-xl text-gray-600">
-              Browse by sport and find the perfect venue
+              Active categories appear here as approved venues go live.
             </p>
           </motion.div>
 
           {/* Sports Carousel */}
-          <Carousel
-            className="w-full max-w-7xl mx-auto"
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-          >
-            <div className="relative">
-              <CarouselContent className="-ml-2 md:-ml-4">
-                {popularSports.map((sport) => (
-                  <CarouselItem key={sport.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                    <motion.div
-                      className="p-1"
-                      variants={fadeInUp}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Card 
-                        className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-green-200"
-                        onClick={() => handleSportClick(sport.name)}
+          {popularSports.length > 0 ? (
+            <Carousel
+              className="w-full max-w-7xl mx-auto"
+              opts={{
+                align: "start",
+                loop: popularSports.length > 4,
+              }}
+            >
+              <div className="relative">
+                <CarouselContent className="-ml-2 md:-ml-4">
+                  {popularSports.map((sport) => (
+                    <CarouselItem key={sport.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                      <motion.div
+                        className="p-1"
+                        variants={fadeInUp}
+                        whileHover={{ y: -4 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <CardContent className="p-3 sm:p-4 md:p-6 text-center">
-                          <div className="text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-3">{sport.icon}</div>
-                          <h3 className="font-semibold text-gray-900 mb-1 text-xs sm:text-sm md:text-base">{sport.name}</h3>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex -left-4 lg:-left-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
-              <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+                        <Card 
+                          className="cursor-pointer border border-gray-200 transition-all duration-300 hover:border-green-300 hover:shadow-lg"
+                          onClick={() => handleSportClick(sport.name)}
+                        >
+                          <CardContent className="p-3 text-center sm:p-4 md:p-6">
+                            <div className="mb-2 text-2xl sm:text-3xl md:text-4xl">{sport.icon}</div>
+                            <h3 className="mb-1 text-xs font-semibold text-gray-900 sm:text-sm md:text-base">{sport.name}</h3>
+                            <p className="text-xs text-gray-500">{sport.venueCount} venue{sport.venueCount === 1 ? '' : 's'}</p>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex -left-4 lg:-left-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+                <CarouselNext className="hidden sm:flex -right-4 lg:-right-12 bg-white hover:bg-green-50 border-gray-200 hover:border-green-400 shadow-md text-green-600" />
+              </div>
+            </Carousel>
+          ) : (
+            <div className="mx-auto max-w-2xl rounded-lg border border-dashed border-gray-300 bg-white px-6 py-10 text-center">
+              <h3 className="text-lg font-semibold text-gray-900">No active sport categories yet</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Categories will populate automatically after owners add venues and admins approve them.
+              </p>
             </div>
-          </Carousel>
+          )}
         </div>
       </section>
 

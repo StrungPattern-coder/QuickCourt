@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 import { UserRole } from '../../types/enums.js';
 import { generateOtp, hashPassword, sha256, verifyPassword } from '../../utils/hash.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 import { env } from '../../config/env.js';
+import { sendEmail } from '../../services/email.js';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +15,7 @@ const userSelect = {
   avatarUrl: true,
   role: true,
   status: true,
+  emailVerifiedAt: true,
   createdAt: true,
   updatedAt: true
 };
@@ -22,12 +25,8 @@ export async function registerUser(params: { email: string; password: string; fu
   if (existing) throw new Error('Email already registered');
   const passwordHash = await hashPassword(params.password);
   const user = await prisma.user.create({ data: { email: params.email, passwordHash, fullName: params.fullName, role: params.role, avatarUrl: params.avatarUrl } });
-  const otp = generateOtp();
-  const otpHash = sha256(otp);
-  const expiresAt = new Date(Date.now() + env.otpTtlMinutes * 60 * 1000);
-  await prisma.verificationToken.create({ data: { userId: user.id, otpHash, expiresAt } });
-  console.log(`[OTP] for ${user.email}: ${otp}`);
-  return { userId: user.id };
+  const delivery = await issueOtp(user.id, user.email, 'Verify your QuickCourt account');
+  return { userId: user.id, delivery };
 }
 
 export async function verifyOtp(userId: string, otp: string) {
@@ -35,7 +34,10 @@ export async function verifyOtp(userId: string, otp: string) {
   if (!token) throw new Error('No verification token');
   if (token.expiresAt < new Date()) throw new Error('OTP expired');
   if (token.otpHash !== sha256(otp)) throw new Error('Invalid OTP');
-  await prisma.verificationToken.update({ where: { id: token.id }, data: { usedAt: new Date() } });
+  await prisma.$transaction([
+    prisma.verificationToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
+    prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } })
+  ]);
   return { success: true };
 }
 
@@ -45,13 +47,105 @@ export async function login(email: string, password: string) {
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) throw new Error('Invalid credentials');
   if (user.status === 'BANNED') throw new Error('User banned');
-  const accessToken = signAccessToken({ sub: user.id, role: user.role });
-  const refreshToken = signRefreshToken({ sub: user.id, role: user.role });
+  if (!user.emailVerifiedAt) throw new Error('Email verification required before login');
+  return createSession(user.id, user.role);
+}
+
+export async function resendSignupOtp(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new Error('User not found');
+  if (user.emailVerifiedAt) throw new Error('Email is already verified');
+  const delivery = await issueOtp(user.id, user.email, 'Verify your QuickCourt account');
+  return { userId: user.id, userRole: user.role, delivery };
+}
+
+export async function sendLoginOtp(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw new Error('No account found for this email');
+  if (user.status === 'BANNED') throw new Error('User banned');
+  const delivery = await issueOtp(user.id, user.email, 'Your QuickCourt login code');
+  return { userId: user.id, userRole: user.role, delivery };
+}
+
+export async function verifyLoginOtp(userId: string, otp: string) {
+  await verifyOtp(userId, otp);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+  if (user.status === 'BANNED') throw new Error('User banned');
+  return createSession(user.id, user.role);
+}
+
+export async function requestPasswordReset(email: string, baseUrl: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.status === 'BANNED') return { queued: false };
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = sha256(token);
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+  await prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
+
+  const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
+  const delivery = await sendEmail(
+    user.email,
+    'Reset your QuickCourt password',
+    `<p>Use this secure link to reset your QuickCourt password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 30 minutes.</p>`
+  );
+
+  if ((delivery as { disabled?: boolean }).disabled) {
+    console.log(`[password reset] for ${user.email}: ${resetUrl}`);
+  }
+
+  return { queued: true };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const tokenHash = sha256(token);
+  const resetToken = await prisma.passwordResetToken.findFirst({
+    where: { tokenHash, usedAt: null },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  if (!resetToken) throw new Error('Invalid or expired reset token');
+  if (resetToken.expiresAt < new Date()) throw new Error('Invalid or expired reset token');
+
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash, emailVerifiedAt: new Date() } }),
+    prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+    prisma.refreshToken.updateMany({ where: { userId: resetToken.userId, revokedAt: null }, data: { revokedAt: new Date() } })
+  ]);
+
+  return { success: true };
+}
+
+async function createSession(userId: string, role: string) {
+  const accessToken = signAccessToken({ sub: userId, role });
+  const refreshToken = signRefreshToken({ sub: userId, role });
   const tokenHash = sha256(refreshToken);
   const expiresAt = new Date(Date.now() + parseTtl(env.refreshTokenTtl));
-  await prisma.refreshToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
-  const safeUser = await prisma.user.findUnique({ where: { id: user.id }, select: userSelect });
+  await prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
+  const safeUser = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
   return { accessToken, refreshToken, user: safeUser };
+}
+
+async function issueOtp(userId: string, email: string, subject: string) {
+  const otp = generateOtp();
+  const otpHash = sha256(otp);
+  const expiresAt = new Date(Date.now() + env.otpTtlMinutes * 60 * 1000);
+
+  await prisma.verificationToken.create({ data: { userId, otpHash, expiresAt } });
+
+  const delivery = await sendEmail(
+    email,
+    subject,
+    `<p>Your QuickCourt verification code is <strong>${otp}</strong>.</p><p>This code expires in ${env.otpTtlMinutes} minutes.</p>`
+  );
+
+  if ((delivery as { disabled?: boolean }).disabled) {
+    console.log(`[OTP] for ${email}: ${otp}`);
+  }
+
+  return delivery;
 }
 
 export async function rotateRefreshToken(oldToken: string) {

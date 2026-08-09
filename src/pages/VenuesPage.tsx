@@ -156,9 +156,6 @@ const VenuesPage = () => {
     }
   };
 
-  // Mock data - replace with actual API call
-  // Removed mockVenues. Use real API below.
-
   // Fetch venues
   const fetchVenues = async () => {
     setIsLoading(true);

@@ -14,6 +14,7 @@ interface AuthContextType {
   inviteSecret?: string;
   }) => Promise<{ userId: string }>;
   verifyOtp: (userId: string, otp: string) => Promise<void>;
+  loginWithOtp: (userId: string, otp: string) => Promise<User>;
   updateProfile: (data: {
     fullName?: string;
     avatarUrl?: string | null;
@@ -148,6 +149,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithOtp = async (userId: string, otp: string) => {
+    try {
+      const response = await authApi.verifyLoginOtp({ userId, otp });
+
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('userData', JSON.stringify(response.user));
+      setUser(response.user);
+
+      toast({
+        title: 'Welcome back!',
+        description: 'You have been securely logged in.',
+      });
+
+      return response.user;
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Verification failed',
+        description: error.message || 'Please check your login code.',
+      });
+      throw error;
+    }
+  };
+
   const updateProfile = async (data: {
     fullName?: string;
     avatarUrl?: string | null;
@@ -196,6 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     verifyOtp,
+    loginWithOtp,
     updateProfile,
     logout,
     isAuthenticated: !!user,

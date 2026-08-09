@@ -43,7 +43,7 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const price = hours * Number(court.pricePerHour);
       const created = await tx.booking.create({ data: { courtId, userId: req.user!.id, startTime: start, endTime: end, price: price.toFixed(2) as any, status: BookingStatus.CONFIRMED } });
-      // Record a successful payment for revenue tracking (demo)
+      // Record an internal successful payment for revenue tracking.
       await tx.payment.create({ data: { bookingId: created.id, amount: price.toFixed(2) as any, provider: 'internal', providerRef: `bk_${created.id}`, status: PaymentStatus.SUCCEEDED } });
       return { created, ownerId: court.facility.ownerId, facilityId: court.facility.id, facilityName: court.facility.name };
     });

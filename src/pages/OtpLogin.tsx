@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Mail, Send } from 'lucide-react';
-import { api } from '@/lib/api';
+import { authApi } from '@/lib/api';
 import SEO from '@/components/SEO';
 import OtpVerification from '@/components/OtpVerification';
 
@@ -31,10 +31,10 @@ const OtpLogin = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/send-login-otp', { email });
+      const response = await authApi.sendLoginOtp({ email });
       
-      setUserId((response.data as any).userId);
-      setUserRole((response.data as any).userRole || 'USER');
+      setUserId(response.userId);
+      setUserRole(response.userRole || 'USER');
       
       toast({
         title: "OTP Sent!",

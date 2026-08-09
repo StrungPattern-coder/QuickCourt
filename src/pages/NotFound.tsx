@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import AppError from "@/components/AppError";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,15 +13,12 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-muted-foreground mb-4">Oops! Page not found</p>
-        <a href="/" className="text-primary underline-offset-4 hover:underline">
-          Return to Home
-        </a>
-      </div>
-    </div>
+    <AppError
+      code="404"
+      title="This court is out of play."
+      description="The route you opened does not match an active QuickCourt page. Head home or browse available venues."
+      path={location.pathname}
+    />
   );
 };
 

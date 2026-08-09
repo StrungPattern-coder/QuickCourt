@@ -139,6 +139,24 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
+  resendOtp: (data: { email: string }) =>
+    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN' }>('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  sendLoginOtp: (data: { email: string }) =>
+    apiRequest<{ userId: string; userRole: 'USER' | 'OWNER' | 'ADMIN' }>('/auth/send-login-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyLoginOtp: (data: { userId: string; otp: string }) =>
+    apiRequest<{ accessToken: string; refreshToken: string; user: User }>('/auth/verify-login-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   login: (data: { email: string; password: string }) =>
     apiRequest<{ accessToken: string; refreshToken: string; user: User }>('/auth/login', {
       method: 'POST',
@@ -400,6 +418,7 @@ export interface User {
   avatarUrl?: string;
   role: 'USER' | 'OWNER' | 'ADMIN';
   status: 'ACTIVE' | 'BANNED';
+  emailVerifiedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
