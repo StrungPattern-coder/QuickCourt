@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallback: '/index.html',
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: ({ request }: any) => request.destination === 'image',
