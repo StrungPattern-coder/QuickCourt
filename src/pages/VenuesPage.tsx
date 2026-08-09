@@ -13,6 +13,7 @@ import FilterSidebar from '@/components/FilterSidebar';
 import SEO from '@/components/SEO';
 import { facilitiesApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { formatLocalDateInput } from '@/lib/datetime';
 
 interface Venue {
   id: string;
@@ -313,6 +314,7 @@ const VenuesPage = () => {
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="date"
+                  min={formatLocalDateInput()}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="pl-10 w-full sm:w-40 h-10 sm:h-12"

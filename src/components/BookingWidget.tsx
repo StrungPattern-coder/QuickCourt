@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { formatLocalDateInput, parseLocalDate } from '@/lib/datetime';
 
 interface VenueDetails {
   id: string;
@@ -64,7 +65,7 @@ const BookingWidget = ({
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString) || new Date(dateString);
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
@@ -90,9 +91,10 @@ const BookingWidget = ({
   const dateOptions = Array.from({ length: 8 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i);
+    const value = formatLocalDateInput(date);
     return {
-      value: date.toISOString().split('T')[0],
-      label: formatDate(date.toISOString().split('T')[0]),
+      value,
+      label: formatDate(value),
       date: date
     };
   });

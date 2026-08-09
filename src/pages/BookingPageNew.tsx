@@ -273,7 +273,9 @@ const BookingPageNew: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
+    const date = parseDateFromParam(dateString);
+    if (!date) return dateString;
+    return date.toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

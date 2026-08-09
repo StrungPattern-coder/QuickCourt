@@ -318,6 +318,17 @@ export const courtsApi = {
     body: JSON.stringify(data),
   }),
 
+  createMaintenance: (id: string, data: { startTime: string; endTime: string; reason?: string }) =>
+    apiRequest(`/courts/${id}/maintenance`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  removeMaintenance: (maintenanceId: string) =>
+    apiRequest<{ success: true }>(`/courts/maintenance/${maintenanceId}`, {
+      method: 'DELETE',
+    }),
+
   delete: (id: string) => apiRequest(`/courts/${id}`, {
     method: 'DELETE',
   }),

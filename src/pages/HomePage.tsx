@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import SEO from '@/components/SEO';
+import { formatLocalDateInput } from '@/lib/datetime';
 
 interface Venue {
   id: string;
@@ -243,6 +244,7 @@ const HomePage = () => {
               <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 sm:h-5 sm:w-5" />
               <Input
                 type="date"
+                min={formatLocalDateInput()}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="h-12 rounded-md border-gray-200 bg-white pl-9 text-sm text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500 sm:h-14 sm:pl-10 sm:text-base"

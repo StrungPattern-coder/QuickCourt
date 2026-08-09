@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Clock, MapPin, Calendar, CreditCard, Shield, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useRazorpayPayment, PaymentOptions } from '@/hooks/useRazorpayPayment';
 import { useToast } from '@/hooks/use-toast';
+import { parseLocalDate } from '@/lib/datetime';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const { toast } = useToast();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
+    return (parseLocalDate(dateString) || new Date(dateString)).toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

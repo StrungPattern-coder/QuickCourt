@@ -27,7 +27,10 @@ import {
   Search,
   Filter,
   MoreHorizontal,
-  IndianRupee
+  IndianRupee,
+  Wrench,
+  PauseCircle,
+  ReceiptText
 } from 'lucide-react';
 import SEO from '@/components/SEO';
 import BrandNav from '@/components/BrandNav';
@@ -48,6 +51,7 @@ const OwnerDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [ownerStats, setOwnerStats] = useState<{ totalBookings: number; payments: { succeeded: number; refunded: number; net: number } } | null>(null);
+  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
 
   // Animation variants
   const fadeInUp = {
@@ -137,12 +141,53 @@ const OwnerDashboard: React.FC = () => {
     toast.success('Venue added successfully!');
   };
 
+  useEffect(() => {
+    if (!selectedCourtId && courts.length > 0) {
+      setSelectedCourtId(courts[0].id);
+    }
+    if (selectedCourtId && courts.length > 0 && !courts.some(court => court.id === selectedCourtId)) {
+      setSelectedCourtId(courts[0].id);
+    }
+  }, [courts, selectedCourtId]);
+
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${mins.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  const formatDateTime = (value: string) => new Date(value).toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
+
+  const closeCourtForMaintenance = async (court: any) => {
+    try {
+      const start = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      await courtsApi.createMaintenance(court.id, {
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        reason: 'Temporary maintenance closure'
+      });
+      toast.success(`${court.name} is closed for maintenance today`);
+      fetchOwnerCourts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to close court for maintenance');
+    }
+  };
+
+  const reopenCourt = async (maintenanceId: string) => {
+    try {
+      await courtsApi.removeMaintenance(maintenanceId);
+      toast.success('Court reopened');
+      fetchOwnerCourts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reopen court');
+    }
   };
 
   const getStatusVariant = (status: string) => {
@@ -192,6 +237,13 @@ const OwnerDashboard: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || court.facility.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const selectedCourt = filteredCourts.find(court => court.id === selectedCourtId) || filteredCourts[0];
+  const selectedBookings = selectedCourt?.bookings || [];
+  const activeMaintenance = selectedCourt?.maintenance || [];
+  const selectedRevenue = selectedBookings
+    .filter((booking: any) => booking.payment?.status === 'SUCCEEDED')
+    .reduce((sum: number, booking: any) => sum + Number(booking.price || 0), 0);
 
   if (isLoading || !user || user.role !== 'OWNER') {
     return (
@@ -506,66 +558,151 @@ const OwnerDashboard: React.FC = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Venue Details</TableHead>
-                                <TableHead>Location</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Hours</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Bookings</TableHead>
-                                {/* Removed Actions column */}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {filteredCourts.map((court) => (
-                                <TableRow key={court.id} className="hover:bg-gray-50">
-                                  <TableCell>
-                                    <div>
-                                      <p className="font-medium text-gray-900">{court.facility.name}</p>
-                                      <p className="text-sm text-gray-500">{court.name}</p>
-                                      <p className="text-xs text-gray-400">ID: {court.id.slice(-8)}</p>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4 text-gray-400" />
-                                      <span className="text-sm">{court.facility.location}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <IndianRupee className="h-4 w-4 text-green-600" />
-                                      <span className="font-medium">₹{Number(court.pricePerHour)}/hr</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-4 w-4 text-blue-600" />
-                                      <span className="text-sm">
-                                        {formatTime(court.openTime)} - {formatTime(court.closeTime)}
-                                      </span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(court.facility.status)}`}>
-                                      {getStatusIcon(court.facility.status)}
-                                      {court.facility.status}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <Users className="h-4 w-4 text-purple-600" />
-                                      <span className="font-medium">{court._count.bookings}</span>
-                                    </div>
-                                  </TableCell>
-                                  {/* Removed Actions cell */}
+                        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                          <div className="overflow-x-auto rounded-lg border border-gray-100">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Venue Details</TableHead>
+                                  <TableHead>Location</TableHead>
+                                  <TableHead>Price</TableHead>
+                                  <TableHead>Hours</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Bookings</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredCourts.map((court) => (
+                                  <TableRow
+                                    key={court.id}
+                                    className={`cursor-pointer hover:bg-gray-50 ${selectedCourt?.id === court.id ? 'bg-emerald-50/70' : ''}`}
+                                    onClick={() => setSelectedCourtId(court.id)}
+                                  >
+                                    <TableCell>
+                                      <div>
+                                        <p className="font-medium text-gray-900">{court.facility.name}</p>
+                                        <p className="text-sm text-gray-500">{court.name}</p>
+                                        <p className="text-xs text-gray-400">ID: {court.id.slice(-8)}</p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4 text-gray-400" />
+                                        <span className="text-sm">{court.facility.location}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <IndianRupee className="h-4 w-4 text-green-600" />
+                                        <span className="font-medium">₹{Number(court.pricePerHour)}/hr</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-4 w-4 text-blue-600" />
+                                        <span className="text-sm">
+                                          {formatTime(court.openTime)} - {formatTime(court.closeTime)}
+                                        </span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(court.facility.status)}`}>
+                                        {getStatusIcon(court.facility.status)}
+                                        {court.facility.status}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1">
+                                        <Users className="h-4 w-4 text-purple-600" />
+                                        <span className="font-medium">{court._count.bookings}</span>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {selectedCourt && (
+                            <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Selected Court</p>
+                                  <h3 className="mt-2 text-xl font-bold text-gray-950">{selectedCourt.facility.name}</h3>
+                                  <p className="text-sm text-gray-600">{selectedCourt.name} • {selectedCourt.facility.location}</p>
+                                </div>
+                                <Badge className={activeMaintenance.length ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : 'bg-green-100 text-green-800 hover:bg-green-100'}>
+                                  {activeMaintenance.length ? 'Maintenance' : 'Open'}
+                                </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-3">
+                                <div className="border-l-2 border-emerald-500 pl-3">
+                                  <p className="text-xs text-gray-500">Recent revenue</p>
+                                  <p className="text-lg font-bold text-gray-950">₹{selectedRevenue.toLocaleString()}</p>
+                                </div>
+                                <div className="border-l-2 border-blue-500 pl-3">
+                                  <p className="text-xs text-gray-500">Recent bookings</p>
+                                  <p className="text-lg font-bold text-gray-950">{selectedBookings.length}</p>
+                                </div>
+                                <div className="border-l-2 border-gray-900 pl-3">
+                                  <p className="text-xs text-gray-500">Rate</p>
+                                  <p className="text-lg font-bold text-gray-950">₹{Number(selectedCourt.pricePerHour)}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-2 sm:flex-row">
+                                <Button
+                                  onClick={() => closeCourtForMaintenance(selectedCourt)}
+                                  disabled={activeMaintenance.length > 0}
+                                  className="bg-gray-950 text-white hover:bg-amber-700"
+                                >
+                                  <PauseCircle className="mr-2 h-4 w-4" />
+                                  Close Today
+                                </Button>
+                                {activeMaintenance.map((block: any) => (
+                                  <Button key={block.id} variant="outline" onClick={() => reopenCourt(block.id)}>
+                                    <Wrench className="mr-2 h-4 w-4" />
+                                    Reopen
+                                  </Button>
+                                ))}
+                              </div>
+
+                              {activeMaintenance.length > 0 && (
+                                <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                                  Closed until {formatDateTime(activeMaintenance[0].endTime)}. Reason: {activeMaintenance[0].reason || 'Maintenance'}
+                                </div>
+                              )}
+
+                              <div>
+                                <div className="mb-3 flex items-center gap-2">
+                                  <ReceiptText className="h-4 w-4 text-emerald-700" />
+                                  <h4 className="font-semibold text-gray-950">Recent Booking Information</h4>
+                                </div>
+                                {selectedBookings.length === 0 ? (
+                                  <p className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">No bookings have been made on this court yet.</p>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {selectedBookings.slice(0, 5).map((booking: any) => (
+                                      <div key={booking.id} className="rounded-md border border-gray-100 p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div>
+                                            <p className="font-medium text-gray-950">{booking.user?.fullName || 'Unknown user'}</p>
+                                            <p className="text-xs text-gray-500">{booking.user?.email}</p>
+                                          </div>
+                                          <Badge variant="outline">{booking.status}</Badge>
+                                        </div>
+                                        <div className="mt-2 grid gap-1 text-xs text-gray-600">
+                                          <span>{formatDateTime(booking.startTime)} - {new Date(booking.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                          <span>Payment: {booking.payment?.status || 'Not started'} • Amount: ₹{Number(booking.price || 0)}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>

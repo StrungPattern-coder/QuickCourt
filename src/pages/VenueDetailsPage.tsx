@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BrandNav from '@/components/BrandNav';
 import BookingWidget from '@/components/BookingWidget';
+import { formatLocalDateInput } from '@/lib/datetime';
 import ImageCarousel from '@/components/ImageCarousel';
 import ReviewCard from '@/components/ReviewCard';
 import SEO from '@/components/SEO';
@@ -86,7 +87,7 @@ const VenueDetailsPage = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedSport, setSelectedSport] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(formatLocalDateInput());
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [isLoadingVenue, setIsLoadingVenue] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -158,7 +159,7 @@ const VenueDetailsPage = () => {
 
     const shouldRefetch = (payload: any) => {
       if (!id) return false;
-      const payloadDate = new Date(payload.startTime).toISOString().split('T')[0];
+      const payloadDate = formatLocalDateInput(new Date(payload.startTime));
       return payload.facilityId === id && payloadDate === selectedDate;
     };
 

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, CheckCircle, AlertTriangle } from 'lucide-react';
 import { bookingsApi, courtsApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { formatLocalDateInput, parseLocalDate } from '@/lib/datetime';
 
 const BookingPage = () => {
   const { venueId, courtId } = useParams();
@@ -15,7 +16,7 @@ const BookingPage = () => {
   const { toast } = useToast();
   const params = new URLSearchParams(useLocation().search);
   const slotId = params.get('slot') || '';
-  const date = params.get('date') || new Date().toISOString().split('T')[0];
+  const date = params.get('date') || formatLocalDateInput();
 
   const [court, setCourt] = useState<any | null>(null);
   const [creating, setCreating] = useState(false);
@@ -30,7 +31,7 @@ const BookingPage = () => {
     const startMinStr = slotId.slice(lastDash + 1);
     const startMin = Number(startMinStr);
     if (Number.isNaN(startMin)) return null;
-    const start = new Date(date);
+    const start = parseLocalDate(date) || new Date(date);
     start.setHours(0, 0, 0, 0);
     start.setMinutes(startMin);
     const end = new Date(start);

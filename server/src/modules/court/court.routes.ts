@@ -33,6 +33,15 @@ const updateCourtSchema = z.object({
   path: ['closeTime']
 });
 
+const maintenanceSchema = z.object({
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+  reason: z.string().max(200).optional()
+}).refine(data => new Date(data.endTime) > new Date(data.startTime), {
+  message: 'Maintenance end time must be after start time',
+  path: ['endTime']
+});
+
 // Create a new court (Owner only)
 courtRouter.post('/', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
   try {
@@ -110,6 +119,7 @@ courtRouter.get('/facility/:facilityId', async (req: AuthRequest, res: Response)
 // Get owner's courts
 courtRouter.get('/owner', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
   try {
+    const now = new Date();
     const courts = await prisma.court.findMany({
       where: {
         facility: {
@@ -122,6 +132,18 @@ courtRouter.get('/owner', requireAuth, requireRoles(UserRole.OWNER), async (req:
             name: true,
             location: true,
             status: true
+          }
+        },
+        maintenance: {
+          where: { endTime: { gt: now } },
+          orderBy: { startTime: 'asc' }
+        },
+        bookings: {
+          orderBy: { startTime: 'desc' },
+          take: 8,
+          include: {
+            user: { select: { id: true, fullName: true, email: true } },
+            payment: true
           }
         },
         _count: {
@@ -137,6 +159,66 @@ courtRouter.get('/owner', requireAuth, requireRoles(UserRole.OWNER), async (req:
   } catch (error) {
     console.error('Failed to fetch owner courts:', error);
     res.status(500).json({ message: 'Failed to fetch courts' });
+  }
+});
+
+// Temporarily close a court for maintenance (Owner only)
+courtRouter.post('/:id/maintenance', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = maintenanceSchema.parse(req.body);
+
+    const court = await prisma.court.findFirst({
+      where: {
+        id,
+        facility: { ownerId: req.user!.id }
+      }
+    });
+
+    if (!court) {
+      return res.status(404).json({ message: 'Court not found or you do not have permission to manage it' });
+    }
+
+    const block = await prisma.maintenanceBlock.create({
+      data: {
+        courtId: id,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime),
+        reason: data.reason || 'Temporary maintenance closure'
+      }
+    });
+
+    res.status(201).json(block);
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return res.status(400).json({ message: 'Validation error', errors: error.errors });
+    }
+    console.error('Failed to create maintenance block:', error);
+    res.status(500).json({ message: 'Failed to close court for maintenance' });
+  }
+});
+
+// Reopen a court by removing an active maintenance block (Owner only)
+courtRouter.delete('/maintenance/:maintenanceId', requireAuth, requireRoles(UserRole.OWNER), async (req: AuthRequest, res: Response) => {
+  try {
+    const { maintenanceId } = req.params;
+
+    const block = await prisma.maintenanceBlock.findFirst({
+      where: {
+        id: maintenanceId,
+        court: { facility: { ownerId: req.user!.id } }
+      }
+    });
+
+    if (!block) {
+      return res.status(404).json({ message: 'Maintenance block not found or you do not have permission to remove it' });
+    }
+
+    await prisma.maintenanceBlock.delete({ where: { id: maintenanceId } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to remove maintenance block:', error);
+    res.status(500).json({ message: 'Failed to reopen court' });
   }
 });
 

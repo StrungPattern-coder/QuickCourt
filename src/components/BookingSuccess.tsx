@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatLocalDateInput, parseLocalDate } from '@/lib/datetime';
 
 interface BookingSuccessProps {
   isOpen: boolean;
@@ -42,8 +43,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
 
   const formatDate = (dateString: string) => {
     try {
-      const iso = /^\d{4}-\d{2}-\d{2}$/;
-      const d = iso.test(dateString) ? new Date(dateString + 'T00:00:00') : new Date(dateString);
+      const d = parseLocalDate(dateString) || new Date(dateString);
       if (Number.isNaN(d.getTime())) return dateString;
       return d.toLocaleDateString('en-IN', {
         weekday: 'long',
@@ -330,44 +330,125 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
       const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
       const durationHours = Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
       const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
+      const invoiceNo = bookingData.receiptId.replace(/[^A-Za-z0-9-]/g, '').slice(0, 28);
+      const bookingCode = bookingData.id.slice(-8).toUpperCase();
+      const issuedAt = new Date();
+      const formatMoney = (amount: number) => `INR ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(amount)}`;
 
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      let y = 40;
-      const line = (txt: string, dy = 18) => { doc.text(txt, 40, y); y += dy; };
-      const hr = (dy = 8) => { doc.setDrawColor(220); doc.line(40, y, 555, y); y += dy; };
+
+      doc.setFillColor(10, 17, 23);
+      doc.rect(0, 0, 595, 128, 'F');
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 126, 595, 5, 'F');
+
+      doc.setFillColor(16, 185, 129);
+      doc.roundedRect(40, 34, 40, 40, 8, 8, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text('QC', 52, 59);
+
+      doc.setFontSize(24);
+      doc.text('QuickCourt', 92, 51);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(205, 213, 223);
+      doc.text('Sports court booking invoice', 92, 70);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.text('TAX INVOICE', 405, 50);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(205, 213, 223);
+      doc.text(`Invoice ${invoiceNo}`, 405, 70);
+      doc.text(`Issued ${issuedAt.toLocaleString('en-IN')}`, 405, 86);
+
+      doc.setTextColor(17, 24, 39);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('Billed By', 40, 165);
+      doc.text('Booking For', 325, 165);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(75, 85, 99);
+      doc.text('QuickCourt', 40, 184);
+      doc.text('Hackathon finals project, India', 40, 200);
+      doc.text('support@quickcourt.example', 40, 216);
+      doc.text('Payment mode: Razorpay / QuickCourt demo', 40, 232);
+
+      doc.text(bookingData.facilityName, 325, 184);
+      doc.text(bookingData.courtName, 325, 200);
+      doc.text(bookingData.location, 325, 216, { maxWidth: 210 });
+      doc.text(`Booking ID ${bookingCode}`, 325, 248);
+
+      doc.setDrawColor(229, 231, 235);
+      doc.line(40, 280, 555, 280);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      line('QuickCourt Receipt');
+      doc.setFontSize(11);
+      doc.setTextColor(17, 24, 39);
+      doc.text('Booking Details', 40, 310);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(12);
-      line(`Receipt ID: ${bookingData.receiptId}`);
-      line(`Booking ID: ${bookingData.id.slice(-8).toUpperCase()}`);
-      line(`Issued: ${new Date().toLocaleDateString('en-IN')} ${new Date().toLocaleTimeString('en-IN')}`);
-      hr(12);
-      doc.setFont('helvetica', 'bold');
-      line('Booking Details');
-      doc.setFont('helvetica', 'normal');
-      line(`Facility: ${bookingData.facilityName}`);
-      line(`Court: ${bookingData.courtName}`);
-      line(`Location: ${bookingData.location}`);
-      line(`Sport: ${bookingData.sport}`);
-      line(`Date: ${formatDate(bookingData.date)}`);
-      line(`Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}`);
-      line(`Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`);
-      hr(12);
-      doc.setFont('helvetica', 'bold');
-      line('Payment Summary');
-      doc.setFont('helvetica', 'normal');
-      line(`Rate: ₹${rate}/hour`);
-      line(`Total Paid: ₹${price}`);
-      hr(12);
-      doc.setFont('helvetica', 'normal');
-      line('Thank you for booking with QuickCourt. Please arrive 10 minutes early.');
+      doc.setFontSize(10);
+      doc.setTextColor(75, 85, 99);
+      doc.text(`Sport: ${bookingData.sport}`, 40, 330);
+      doc.text(`Date: ${formatDate(bookingData.date)}`, 40, 346);
+      doc.text(`Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}`, 40, 362);
+      doc.text(`Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`, 40, 378);
 
-      const fileName = `QuickCourt_Receipt_${bookingData.receiptId}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const tableTop = 420;
+      doc.setFillColor(247, 250, 247);
+      doc.rect(40, tableTop, 515, 34, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(17, 24, 39);
+      doc.text('Description', 56, tableTop + 21);
+      doc.text('Rate', 330, tableTop + 21);
+      doc.text('Qty', 410, tableTop + 21);
+      doc.text('Amount', 486, tableTop + 21);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(55, 65, 81);
+      doc.text(`${bookingData.facilityName} - ${bookingData.courtName}`, 56, tableTop + 62, { maxWidth: 235 });
+      doc.text(formatMoney(rate), 330, tableTop + 62);
+      doc.text(String(durationHours), 410, tableTop + 62);
+      doc.text(formatMoney(price), 486, tableTop + 62);
+      doc.setDrawColor(229, 231, 235);
+      doc.line(40, tableTop + 86, 555, tableTop + 86);
+
+      doc.text('Subtotal', 380, tableTop + 122);
+      doc.text(formatMoney(price), 486, tableTop + 122);
+      doc.text('Taxes', 380, tableTop + 142);
+      doc.text('Included / NA', 486, tableTop + 142);
+      doc.setDrawColor(16, 185, 129);
+      doc.line(380, tableTop + 158, 555, tableTop + 158);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(6, 95, 70);
+      doc.text('Total Paid', 380, tableTop + 183);
+      doc.text(formatMoney(price), 486, tableTop + 183);
+
+      doc.setFillColor(236, 253, 245);
+      doc.roundedRect(40, 650, 515, 58, 8, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(6, 95, 70);
+      doc.text('Payment verified and booking confirmed', 58, 674);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(55, 65, 81);
+      doc.text('Please arrive 10 minutes early. Show this invoice at the venue if requested.', 58, 692);
+
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text('This computer-generated invoice does not require a signature.', 40, 760);
+      doc.text('QuickCourt - quickcourt-seven.vercel.app', 390, 760);
+
+      const fileName = `QuickCourt_Invoice_${bookingCode}_${formatLocalDateInput()}.pdf`;
       doc.save(fileName);
-      toast({ title: 'Receipt downloaded', description: 'PDF has been downloaded.' });
+      toast({ title: 'Invoice downloaded', description: 'Professional PDF invoice has been downloaded.' });
     } catch (e) {
       console.error('PDF download failed', e);
       toast({ variant: 'destructive', title: 'Download failed', description: 'Unable to generate PDF. Try the View button to print.' });

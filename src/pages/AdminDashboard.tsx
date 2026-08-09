@@ -75,7 +75,11 @@ interface Facility {
   };
   _count: {
     courts: number;
+    bookings?: number;
+    reviews?: number;
   };
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 interface Booking {
@@ -118,6 +122,7 @@ const AdminDashboard = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [banReason, setBanReason] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [inspectingFacility, setInspectingFacility] = useState<Facility | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -209,6 +214,16 @@ const AdminDashboard = () => {
      booking.facility.name.toLowerCase().includes(bookingFilter.toLowerCase())) &&
     (bookingStatusFilter === 'all' || booking.status === bookingStatusFilter)
   );
+
+  const facilityStatusCounts = facilities.reduce((acc, facility) => {
+    acc[facility.status] = (acc[facility.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const bookingStatusCounts = bookings.reduce((acc, booking) => {
+    acc[booking.status] = (acc[booking.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   if (loading) {
     return (
@@ -384,6 +399,17 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                   </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-900">
+                      <span className="font-semibold">{facilityStatusCounts.PENDING || 0}</span> pending review
+                    </div>
+                    <div className="rounded-lg bg-green-50 p-3 text-sm text-green-900">
+                      <span className="font-semibold">{facilityStatusCounts.APPROVED || 0}</span> approved facilities
+                    </div>
+                    <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900">
+                      <span className="font-semibold">{facilityStatusCounts.REJECTED || 0}</span> rejected facilities
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
@@ -504,7 +530,7 @@ const AdminDashboard = () => {
                                     </Dialog>
                                   </>
                                 )}
-                                <Button size="sm" variant="ghost">
+                                <Button size="sm" variant="ghost" onClick={() => setInspectingFacility(facility)}>
                                   <Eye className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -703,6 +729,13 @@ const AdminDashboard = () => {
                       </Select>
                     </div>
                   </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                    {(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const).map((status) => (
+                      <div key={status} className="rounded-lg bg-gray-50 p-3 text-sm text-gray-800">
+                        <span className="font-semibold">{bookingStatusCounts[status] || 0}</span> {status.toLowerCase()}
+                      </div>
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
@@ -799,6 +832,101 @@ const AdminDashboard = () => {
           </Tabs>
         </div>
       </div>
+
+      <Dialog open={!!inspectingFacility} onOpenChange={(open) => !open && setInspectingFacility(null)}>
+        <DialogContent className="max-w-2xl">
+          {inspectingFacility && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{inspectingFacility.name}</DialogTitle>
+                <DialogDescription>
+                  Full facility review, owner contact, usage, and approval controls.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Facility</p>
+                  <h3 className="mt-2 font-semibold text-gray-950">{inspectingFacility.name}</h3>
+                  <p className="mt-1 text-sm text-gray-600">{inspectingFacility.description || 'No description provided.'}</p>
+                  <p className="mt-3 flex items-center text-sm text-gray-700">
+                    <MapPin className="mr-2 h-4 w-4 text-emerald-700" />
+                    {inspectingFacility.location}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {inspectingFacility.sports.map((sport) => (
+                      <Badge key={sport} variant="secondary">{sport}</Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Owner</p>
+                  <h3 className="mt-2 font-semibold text-gray-950">{inspectingFacility.owner.fullName}</h3>
+                  <p className="text-sm text-gray-600">{inspectingFacility.owner.email}</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-500">Courts</p>
+                      <p className="font-semibold text-gray-950">{inspectingFacility._count.courts}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Bookings</p>
+                      <p className="font-semibold text-gray-950">{inspectingFacility._count.bookings || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Reviews</p>
+                      <p className="font-semibold text-gray-950">{inspectingFacility._count.reviews || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Price range</p>
+                      <p className="font-semibold text-gray-950">
+                        ₹{inspectingFacility.minPrice || 0} - ₹{inspectingFacility.maxPrice || 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-950">Current status</p>
+                    <Badge
+                      className={
+                        inspectingFacility.status === 'APPROVED' ? 'mt-2 bg-green-100 text-green-800 hover:bg-green-100' :
+                        inspectingFacility.status === 'PENDING' ? 'mt-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
+                        'mt-2 bg-red-100 text-red-800 hover:bg-red-100'
+                      }
+                    >
+                      {inspectingFacility.status}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    {inspectingFacility.status !== 'APPROVED' && (
+                      <Button onClick={() => {
+                        approveFacility(inspectingFacility.id);
+                        setInspectingFacility(null);
+                      }} className="bg-green-600 hover:bg-green-700">
+                        <Check className="mr-2 h-4 w-4" />
+                        Approve
+                      </Button>
+                    )}
+                    {inspectingFacility.status !== 'REJECTED' && (
+                      <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => {
+                        rejectFacility(inspectingFacility.id, 'Rejected from admin detail review');
+                        setInspectingFacility(null);
+                      }}>
+                        <X className="mr-2 h-4 w-4" />
+                        Reject
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

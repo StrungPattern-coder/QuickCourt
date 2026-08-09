@@ -8,6 +8,19 @@ import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js
 const prisma = new PrismaClient();
 export const facilityRouter = Router();
 
+const formatLocalDateInput = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseLocalDateInput = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(value);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
 const createSchema = z.object({
   name: z.string().min(2),
   location: z.string().min(2),
@@ -179,12 +192,35 @@ facilityRouter.post('/admin/:id/reject', requireAuth, requireRoles(UserRole.ADMI
 facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dateParam = (req.query.date as string) || new Date().toISOString().split('T')[0];
+    const dateParam = (req.query.date as string) || formatLocalDateInput();
+
+    // Compute day start/end before querying bookings and maintenance windows.
+    const dayStart = parseLocalDateInput(dateParam);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
 
     // Get facility with courts
     const facility = await prisma.facility.findUnique({
       where: { id },
-      include: { courts: { select: { id: true, name: true, openTime: true, closeTime: true, pricePerHour: true } } }
+      include: {
+        courts: {
+          select: {
+            id: true,
+            name: true,
+            openTime: true,
+            closeTime: true,
+            pricePerHour: true,
+            maintenance: {
+              where: {
+                startTime: { lt: dayEnd },
+                endTime: { gt: dayStart }
+              },
+              select: { id: true, startTime: true, endTime: true, reason: true }
+            }
+          }
+        }
+      }
     });
     if (!facility) return res.status(404).json({ message: 'Not found' });
     if (facility.status !== FacilityStatus.APPROVED) {
@@ -198,12 +234,6 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
         return res.status(404).json({ message: 'Not found' });
       }
     }
-
-    // Compute day start/end
-    const dayStart = new Date(dateParam);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
 
     const courtIds = facility.courts.map(c => c.id);
     // Fetch bookings for the day for these courts
@@ -240,6 +270,7 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
 
         // Check overlap with bookings
         const hasOverlap = bookings.some(b => b.courtId === court.id && (slotStart < b.endTime && slotEnd > b.startTime));
+        const hasMaintenance = court.maintenance.some(block => slotStart < block.endTime && slotEnd > block.startTime);
         // Optionally, disallow past slots on the same day
         const isPast = slotEnd <= now && dayStart.toDateString() === now.toDateString();
 
@@ -248,7 +279,7 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
           startTime: toHM(startMin),
           endTime: toHM(endMin),
           price: Number(court.pricePerHour),
-          isAvailable: !hasOverlap && !isPast,
+          isAvailable: !hasOverlap && !hasMaintenance && !isPast,
           courtId: court.id,
           courtName: court.name,
         });
