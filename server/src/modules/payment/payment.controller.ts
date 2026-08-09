@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { AuthRequest } from '../../middleware/auth.js';
-import { RazorpayService, PaymentVerificationData } from '../../services/razorpay';
+import { PaymentVerificationData, RazorpayService } from '../../services/razorpay.js';
 import { PaymentStatus, BookingStatus } from '../../types/enums.js';
+import { addPoints, recordActivityForStreak } from '../../services/loyalty.js';
+import { emitToRoom } from '../../socket.js';
 
 const prisma = new PrismaClient();
 
@@ -31,12 +33,7 @@ export class PaymentController {
    */
   static async getConfig(req: Request, res: Response) {
     try {
-      // Only expose the public key id
-      const keyId = process.env.RAZORPAY_KEY_ID || '';
-      if (!keyId) {
-        return res.status(500).json({ success: false, message: 'Razorpay key not configured' });
-      }
-      res.json({ success: true, data: { keyId } });
+      res.json({ success: true, data: RazorpayService.getPublicConfig() });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to load payment config' });
     }
@@ -73,11 +70,10 @@ export class PaymentController {
         });
       }
 
-      // Check if payment already exists for this booking
-      if (booking.payment) {
+      if (booking.payment?.status === PaymentStatus.SUCCEEDED) {
         return res.status(400).json({
           success: false,
-          message: 'Payment already initiated for this booking',
+          message: 'Payment is already complete for this booking',
         });
       }
 
@@ -99,16 +95,25 @@ export class PaymentController {
         },
       });
 
-      // Create payment record
-      const payment = await prisma.payment.create({
-        data: {
-          bookingId: booking.id,
-          amount: booking.price,
-          provider: 'razorpay',
-          providerRef: razorpayOrder.id,
-          status: PaymentStatus.PENDING,
-        },
-      });
+      const payment = booking.payment
+        ? await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: {
+              amount: booking.price,
+              provider: 'razorpay',
+              providerRef: razorpayOrder.id,
+              status: PaymentStatus.PENDING,
+            },
+          })
+        : await prisma.payment.create({
+            data: {
+              bookingId: booking.id,
+              amount: booking.price,
+              provider: 'razorpay',
+              providerRef: razorpayOrder.id,
+              status: PaymentStatus.PENDING,
+            },
+          });
 
       res.json({
         success: true,
@@ -117,6 +122,9 @@ export class PaymentController {
           amount: amountInPaise,
           currency: razorpayOrder.currency,
           receipt: razorpayOrder.receipt,
+          paymentId: payment.id,
+          keyId: RazorpayService.getPublicConfig().keyId,
+          demoMode: RazorpayService.getPublicConfig().demoMode,
           booking: {
             id: booking.id,
             facilityName: booking.court.facility.name,
@@ -150,7 +158,7 @@ export class PaymentController {
    */
   static async verifyPayment(req: AuthRequest, res: Response) {
     try {
-      const paymentData = verifyPaymentSchema.parse(req.body);
+      const paymentData = verifyPaymentSchema.parse(req.body) as PaymentVerificationData & { bookingId: string };
       const userId = req.user!.id;
 
       // Verify payment signature
@@ -204,13 +212,16 @@ export class PaymentController {
       // Get payment details from Razorpay
       const razorpayPayment = await RazorpayService.getPayment(paymentData.razorpay_payment_id);
 
+      const captured = razorpayPayment.status === 'captured';
+
       // Update payment and booking status in a transaction
       const result = await prisma.$transaction(async (tx) => {
         // Update payment status
         const updatedPayment = await tx.payment.update({
           where: { id: booking.payment!.id },
           data: {
-            status: razorpayPayment.status === 'captured' 
+            providerRef: paymentData.razorpay_payment_id,
+            status: captured
               ? PaymentStatus.SUCCEEDED 
               : PaymentStatus.PENDING,
           },
@@ -220,7 +231,7 @@ export class PaymentController {
         const updatedBooking = await tx.booking.update({
           where: { id: booking.id },
           data: {
-            status: razorpayPayment.status === 'captured' 
+            status: captured
               ? BookingStatus.CONFIRMED 
               : BookingStatus.PENDING,
           },
@@ -228,6 +239,27 @@ export class PaymentController {
 
         return { payment: updatedPayment, booking: updatedBooking };
       });
+
+      if (captured) {
+        const payload = {
+          bookingId: booking.id,
+          courtId: booking.courtId,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          facilityId: booking.court.facility.id
+        };
+        emitToRoom(`owner:${booking.court.facility.ownerId}`, 'booking:new', { ...payload, facilityName: booking.court.facility.name });
+        emitToRoom(`user:${userId}`, 'booking:confirmed', payload);
+
+        try {
+          const hours = (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / (1000 * 60 * 60);
+          const points = Math.max(1, Math.round(hours * 10));
+          await addPoints(userId, points, 'BOOKING', { bookingId: booking.id, hours });
+          await recordActivityForStreak(userId);
+        } catch (e) {
+          console.warn('Loyalty award failed after payment', e);
+        }
+      }
 
       res.json({
         success: true,

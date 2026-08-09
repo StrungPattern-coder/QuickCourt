@@ -76,7 +76,7 @@ Frontend `.env`:
 
 ```bash
 VITE_API_BASE_URL=http://localhost:4000
-VITE_RAZORPAY_KEY_ID=
+VITE_RAZORPAY_KEY_ID= # optional; backend /payments/config also exposes RAZORPAY_KEY_ID
 VITE_APP_NAME=QuickCourt
 VITE_APP_VERSION=1.0.0
 ```
@@ -94,6 +94,9 @@ REFRESH_TOKEN_TTL=7d
 OTP_TTL_MINUTES=10
 CORS_ORIGIN=http://localhost:8080,http://localhost:5173
 ADMIN_INVITE_SECRET=<random admin invite secret>
+RAZORPAY_KEY_ID= # optional; enables real Razorpay test/live Checkout when paired with secret
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
 SENTRY_DSN=
 SMTP_HOST=
 SMTP_PORT=
@@ -132,6 +135,12 @@ npm run seed
 ```
 
 Do not run the seed script against a shared or production database unless you intentionally want local test accounts and sample venues.
+
+### Razorpay Test Payments
+
+Bookings are created as pending reservations first. The payment flow then creates a Razorpay order, opens Checkout when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are configured, verifies the returned signature on the server, and only then confirms the booking.
+
+If Razorpay keys are not configured, QuickCourt runs a labelled demo payment mode so the end-to-end booking flow remains testable for free. With Razorpay test keys, use Razorpay test card `4111 1111 1111 1111`, any future expiry, any CVV, and any 4-10 digit OTP for a successful test payment.
 
 ### Run
 
@@ -292,7 +301,6 @@ Seed scripts are local/demo utilities. They are not part of the production deplo
 ## Known Follow-Ups
 
 - Move uploaded venue images to durable object storage for production.
-- Remove unused legacy Razorpay components or reintroduce a real payment provider end to end.
 - Add automated API tests for auth, booking overlap prevention, owner/admin workflows, and reviews.
 - Split the large frontend bundle with route-level dynamic imports.
 - Add a transactional email provider configuration in Vercel for production OTP/password reset delivery.

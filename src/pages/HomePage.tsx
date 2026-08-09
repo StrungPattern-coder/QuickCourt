@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { facilitiesApi } from '@/lib/api';
 import BrandNav from '@/components/BrandNav';
 import VenueCard from '@/components/VenueCard';
+import PosterHero from '@/components/PosterHero';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -46,8 +47,6 @@ interface Sport {
   icon: string;
   venueCount: number;
 }
-
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=2400&q=80';
 
 const SPORT_OPTIONS = [
   'Badminton',
@@ -199,110 +198,70 @@ const HomePage = () => {
       {/* Navigation */}
       <BrandNav />
 
-      {/* Hero Search Banner */}
-      <section className="relative flex min-h-[92svh] items-center overflow-hidden">
-        {/* Background image with overlay */}
-        <div className="absolute inset-0">
-          <img src={HERO_IMAGE} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/82 via-black/48 to-black/22" />
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-400"
-            initial={{ scaleX: 0, transformOrigin: 'left' }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 1.2, ease: 'easeOut' }}
-          />
-        </div>
+      <PosterHero
+        eyebrow="QuickCourt"
+        title="Book the right court before the next match starts."
+        description="Search approved venues, pick a sport, and reserve available courts from one live booking surface."
+      >
+        <motion.div
+          className="mt-10 max-w-5xl border-y border-gray-200 bg-white/55 py-4 backdrop-blur-sm"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.55 }}
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-4">
+            <div className="relative sm:col-span-2 md:col-span-1">
+              <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 sm:h-5 sm:w-5" />
+              <Input
+                type="text"
+                placeholder="Enter location"
+                value={searchLocation}
+                onChange={(e) => setSearchLocation(e.target.value)}
+                className="h-12 rounded-md border-gray-200 bg-white pl-9 text-sm text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500 sm:h-14 sm:pl-10 sm:text-base"
+              />
+            </div>
 
-        {/* Hero Content */}
-        <div className="relative z-20 mx-auto w-full max-w-6xl px-4 pt-28 text-white sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="max-w-4xl"
-          >
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
-              QuickCourt
-            </p>
-            <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl md:text-7xl">
-              Book the right court before the next match starts.
-            </h1>
-            
-            <motion.p
-              className="mb-8 max-w-2xl text-base leading-7 text-gray-100 sm:text-xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-            >
-              Search approved venues, pick a sport, and reserve available courts from one live booking surface.
-            </motion.p>
+            <div className="sm:col-span-1 md:col-span-1">
+              <Select value={selectedSport} onValueChange={setSelectedSport}>
+                <SelectTrigger className="h-12 rounded-md border-gray-200 bg-white text-sm text-gray-900 focus:border-green-500 focus:ring-green-500 sm:h-14 sm:text-base">
+                  <SelectValue placeholder="Select sport" className="text-gray-500" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(popularSports.length > 0 ? popularSports.map((sport) => sport.name) : SPORT_OPTIONS).map((sportName) => (
+                    <SelectItem key={sportName} value={sportName}>
+                      <span className="flex items-center gap-2">
+                        <span>{getSportIcon(sportName)}</span>
+                        {sportName}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Search Bar - Mobile Optimized */}
-            <motion.div
-              className="max-w-5xl rounded-xl border border-white/20 bg-white/95 p-3 shadow-2xl backdrop-blur sm:p-4 md:p-5"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.8 }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                {/* Location */}
-                <div className="relative sm:col-span-2 md:col-span-1">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
-                  <Input
-                    type="text"
-                    placeholder="Enter location"
-                    value={searchLocation}
-                    onChange={(e) => setSearchLocation(e.target.value)}
-                    className="pl-9 sm:pl-10 h-12 sm:h-14 text-gray-900 placeholder:text-gray-500 bg-white border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base"
-                  />
-                </div>
+            <div className="relative sm:col-span-1 md:col-span-1">
+              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 sm:h-5 sm:w-5" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-12 rounded-md border-gray-200 bg-white pl-9 text-sm text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500 sm:h-14 sm:pl-10 sm:text-base"
+              />
+            </div>
 
-                {/* Sport Selection */}
-                <div className="sm:col-span-1 md:col-span-1">
-                  <Select value={selectedSport} onValueChange={setSelectedSport}>
-                    <SelectTrigger className="h-12 sm:h-14 bg-white text-gray-900 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base">
-                      <SelectValue placeholder="Select sport" className="text-gray-500" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(popularSports.length > 0 ? popularSports.map((sport) => sport.name) : SPORT_OPTIONS).map((sportName) => (
-                        <SelectItem key={sportName} value={sportName}>
-                          <span className="flex items-center gap-2">
-                            <span>{getSportIcon(sportName)}</span>
-                            {sportName}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Date */}
-                <div className="relative sm:col-span-1 md:col-span-1">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
-                  <Input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="pl-9 sm:pl-10 h-12 sm:h-14 text-gray-900 placeholder:text-gray-500 bg-white border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-xl text-sm sm:text-base"
-                  />
-                </div>
-
-                {/* Search Button */}
-                <div className="sm:col-span-2 md:col-span-1">
-                  <Button
-                    onClick={handleSearch}
-                    size="lg"
-                    className="w-full h-12 sm:h-14 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
-                  >
-                    <Search className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                    Search
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+            <div className="sm:col-span-2 md:col-span-1">
+              <Button
+                onClick={handleSearch}
+                size="lg"
+                className="h-12 w-full rounded-md bg-gray-950 text-sm font-semibold text-white transition-all duration-200 hover:bg-emerald-700 sm:h-14 sm:text-base"
+              >
+                <Search className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Search
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </PosterHero>
 
       {/* Sports Categories Carousel */}
       <section className="bg-gray-50 py-14 sm:py-16">

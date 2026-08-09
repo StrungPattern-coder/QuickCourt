@@ -25,12 +25,21 @@ export interface PaymentResponse {
   error?: string;
 }
 
+interface PaymentOrderData {
+  orderId: string;
+  amount: number;
+  currency: string;
+  receipt: string;
+  keyId?: string;
+  demoMode?: boolean;
+}
+
 export const useRazorpayPayment = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const createOrder = async (bookingId: string) => {
+  const createOrder = async (bookingId: string): Promise<PaymentOrderData> => {
     try {
       const response = await fetch(`${API_BASE_URL}/payments/orders`, {
         method: 'POST',
@@ -100,14 +109,11 @@ export const useRazorpayPayment = () => {
     setError(null);
 
     try {
-      // Load Razorpay SDK
-      await initializeRazorpaySDK();
-
       // Create order
       const orderData = await createOrder(options.bookingId);
 
       // Resolve Razorpay key (prefer env, fallback to backend config)
-      let keyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+      let keyId = orderData.keyId || (import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined);
       if (!keyId) {
         try {
           const cfgResp = await fetch(`${API_BASE_URL}/payments/config`);
@@ -119,12 +125,31 @@ export const useRazorpayPayment = () => {
           console.warn('Failed to fetch Razorpay key from backend', e);
         }
       }
-      if (!keyId) {
-        throw new Error('Payment Failed because of a configuration error. Authentication key is missing. Set VITE_RAZORPAY_KEY_ID in .env or configure backend RAZORPAY_KEY_ID.');
+
+      if (orderData.demoMode || !keyId) {
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        const demoPaymentId = `pay_demo_${Date.now().toString(36)}`;
+        await verifyPayment({
+          razorpay_order_id: orderData.orderId,
+          razorpay_payment_id: demoPaymentId,
+          razorpay_signature: 'quickcourt_demo_signature',
+          bookingId: options.bookingId,
+        });
+
+        setIsLoading(false);
+        return {
+          success: true,
+          paymentId: demoPaymentId,
+          bookingId: options.bookingId,
+        };
       }
 
+      // Load Razorpay SDK only when real test/live keys are configured.
+      await initializeRazorpaySDK();
+
       // Configure Razorpay options
-      const razorpayOptions = {
+      return await new Promise<PaymentResponse>((resolve) => {
+        const razorpayOptions = {
         key: keyId, // Razorpay Key ID
         amount: orderData.amount,
         currency: orderData.currency,
@@ -150,21 +175,30 @@ export const useRazorpayPayment = () => {
             };
 
             await verifyPayment(verificationData);
-            
-            return {
+
+            resolve({
               success: true,
               paymentId: response.razorpay_payment_id,
               bookingId: options.bookingId,
-            };
+            });
           } catch (error) {
             console.error('Payment verification failed:', error);
-            throw error;
+            resolve({
+              success: false,
+              error: 'Payment verification failed',
+            });
+          } finally {
+            setIsLoading(false);
           }
         },
         modal: {
           ondismiss: function() {
             setError('Payment was cancelled by user');
             setIsLoading(false);
+            resolve({
+              success: false,
+              error: 'Payment was cancelled by user',
+            });
           },
         },
         notes: {
@@ -174,37 +208,8 @@ export const useRazorpayPayment = () => {
         },
       };
 
-      // Open Razorpay checkout
-      const razorpay = new window.Razorpay(razorpayOptions);
-      
-      return new Promise((resolve) => {
-        razorpay.on('payment.success', async (response: any) => {
-          try {
-            const verificationData = {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              bookingId: options.bookingId,
-            };
-
-            await verifyPayment(verificationData);
-            
-            resolve({
-              success: true,
-              paymentId: response.razorpay_payment_id,
-              bookingId: options.bookingId,
-            });
-          } catch (error) {
-            resolve({
-              success: false,
-              error: 'Payment verification failed',
-            });
-          } finally {
-            setIsLoading(false);
-          }
-        });
-
-        razorpay.on('payment.error', (response: any) => {
+        const razorpay = new window.Razorpay(razorpayOptions);
+        razorpay.on('payment.failed', (response: any) => {
           setError(response.error?.description || 'Payment failed');
           setIsLoading(false);
           resolve({
@@ -212,10 +217,8 @@ export const useRazorpayPayment = () => {
             error: response.error?.description || 'Payment failed',
           });
         });
-
         razorpay.open();
       });
-
     } catch (err: any) {
       console.error('Payment processing error:', err);
       setError(err.message || 'Payment processing failed');

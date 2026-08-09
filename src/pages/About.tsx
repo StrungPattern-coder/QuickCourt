@@ -4,7 +4,7 @@ import SEO from '@/components/SEO';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandNav from '@/components/BrandNav';
-import MaskedHeading from '@/components/MaskedHeading';
+import PosterHero from '@/components/PosterHero';
 import { ArrowRight, CheckCircle2, Clock, Layers3, Shield, Trophy } from 'lucide-react';
 
 const facts = [
@@ -34,48 +34,15 @@ const About: React.FC = () => {
       <SEO title="About QuickCourt" description="QuickCourt was built during the Odoo India Hackathon 2025 finals by a team of four." path="/about" />
       <BrandNav />
 
-      <section className="relative min-h-[88svh] overflow-hidden bg-[#f7faf7]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gray-200" />
-        <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] [background-size:64px_64px]" />
-        <motion.div
-          className="absolute left-0 right-0 top-[48%] h-px bg-emerald-500/40"
-          animate={{ scaleX: [0.65, 1, 0.65], opacity: [0.2, 0.55, 0.2] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-0 h-2 w-full bg-emerald-400"
-          initial={{ scaleX: 0, transformOrigin: 'left' }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 1.1, ease: 'easeOut' }}
-        />
-        <div className="relative z-10 mx-auto flex min-h-[88svh] w-full max-w-6xl flex-col justify-center px-5 pb-14 pt-32 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
-            className="max-w-5xl"
-          >
-            <p className="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
-              About QuickCourt
-            </p>
-            <MaskedHeading text="Built in 24 hours for the finals." />
-            <p className="mt-7 max-w-2xl text-base leading-8 text-gray-700 sm:text-xl">
-              QuickCourt is a multi-sport venue discovery and booking platform we built as a team of four during the finals of the 24-hour Odoo India Hackathon 2025.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="h-12 bg-gray-950 px-6 text-white hover:bg-emerald-700">
-                <Link to="/signup">
-                  Create Account
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-12 border-gray-300 bg-white px-6 text-gray-950 hover:bg-emerald-50">
-                <Link to="/login">Sign In</Link>
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      <PosterHero
+        eyebrow="About QuickCourt"
+        title="Built in 24 hours for the finals."
+        description="QuickCourt is a multi-sport venue discovery and booking platform we built as a team of four during the finals of the 24-hour Odoo India Hackathon 2025."
+        actions={[
+          { label: 'Create Account', to: '/signup' },
+          { label: 'Sign In', to: '/login', variant: 'secondary' }
+        ]}
+      />
 
       <section className="border-b border-gray-200 bg-gray-950 text-white">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-white/10 px-5 sm:grid-cols-4 sm:px-6 lg:px-8">

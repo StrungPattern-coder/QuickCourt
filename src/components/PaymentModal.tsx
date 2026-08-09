@@ -104,10 +104,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <CreditCard className="h-5 w-5 text-green-600" />
-            Complete Payment
+            Complete Razorpay Payment
           </DialogTitle>
           <DialogDescription>
-            Review your booking details and complete payment to confirm your reservation.
+            Review your booking details and complete payment to confirm your reservation. If Razorpay test keys are not configured, QuickCourt completes a labelled demo payment.
           </DialogDescription>
         </DialogHeader>
 
@@ -195,6 +195,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <CheckCircle className="h-3 w-3 text-green-500" />
               <span>Instant Confirmation</span>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+            <div className="mb-1 font-semibold">Demo testing</div>
+            <p>
+              With Razorpay test keys, use card <span className="font-mono">4111 1111 1111 1111</span>, any future expiry, any CVV, and any 4-10 digit OTP. Without keys, this button runs QuickCourt demo mode and still verifies the booking end to end.
+            </p>
           </div>
 
           {/* Action Buttons */}

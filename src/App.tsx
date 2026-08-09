@@ -66,6 +66,7 @@ const AppContent = () => (
     <div className="flex-1">
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/landing" element={<Index />} />
         <Route path="/play" element={
           <ProtectedRoute allowedRoles={['USER', 'ADMIN']}>
             <VenuesPage />

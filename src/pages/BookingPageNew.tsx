@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import BrandNav from '@/components/BrandNav';
 import BookingSuccess from '@/components/BookingSuccess';
+import PaymentModal from '@/components/PaymentModal';
 import SEO from '@/components/SEO';
 import { bookingsApi, courtsApi, facilitiesApi } from '@/lib/api';
 
@@ -42,6 +43,7 @@ const BookingPageNew: React.FC = () => {
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [receiptData, setReceiptData] = useState<{
     receiptId: string;
@@ -231,13 +233,9 @@ const BookingPageNew: React.FC = () => {
         endTime: endDateTime.toISOString(),
       });
 
-  // Update booking details with the created booking ID (server returns the booking object directly)
-  const createdBookingId = data.id;
-  setBookingDetails(prev => prev ? { ...prev, id: createdBookingId } : null);
-
-  // Generate a simple receipt id and show success modal directly (no payment gateway)
-  const receiptId = `RCPT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
-  handleReceiptGenerated(receiptId, createdBookingId);
+      const createdBookingId = data.id;
+      setBookingDetails(prev => prev ? { ...prev, id: createdBookingId } : null);
+      setShowPaymentModal(true);
     } catch (error: any) {
       console.error('Failed to create booking:', error);
       toast({
@@ -253,6 +251,25 @@ const BookingPageNew: React.FC = () => {
   const handleReceiptGenerated = (receiptId: string, bookingId: string) => {
     setReceiptData({ receiptId, bookingId });
     setShowSuccessModal(true);
+  };
+
+  const handlePaymentSuccess = (paymentId: string, bookingId: string) => {
+    setShowPaymentModal(false);
+    handleReceiptGenerated(`RZP-${paymentId}`, bookingId);
+  };
+
+  const handlePaymentClose = async () => {
+    const pendingBookingId = bookingDetails?.id;
+    setShowPaymentModal(false);
+
+    if (!pendingBookingId) return;
+
+    try {
+      await bookingsApi.delete(pendingBookingId);
+      setBookingDetails(prev => prev ? { ...prev, id: '' } : null);
+    } catch (error) {
+      console.warn('Failed to release pending booking after payment dismissal', error);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -445,7 +462,7 @@ const BookingPageNew: React.FC = () => {
               {isCreatingBooking ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Creating Booking...
+                  Reserving Slot...
                 </>
               ) : !isAuthenticated ? (
                 <>
@@ -453,7 +470,7 @@ const BookingPageNew: React.FC = () => {
                 </>
               ) : (
                 <>
-                  Confirm Booking & Generate Receipt - ₹{bookingDetails.price}
+                  Continue to Payment - ₹{bookingDetails.price}
                 </>
               )}
             </Button>
@@ -473,6 +490,15 @@ const BookingPageNew: React.FC = () => {
           </motion.div>
         </div>
       </div>
+
+      {showPaymentModal && bookingDetails.id && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentClose}
+          onSuccess={handlePaymentSuccess}
+          bookingData={bookingDetails}
+        />
+      )}
 
       {/* Success Modal */}
   {showSuccessModal && receiptData && bookingDetails && (

@@ -3,7 +3,6 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { BookingStatus, UserRole, PaymentStatus } from '../../types/enums.js';
 import { z } from 'zod';
 import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js';
-import { addPoints, recordActivityForStreak } from '../../services/loyalty.js';
 import { emitToRoom } from '../../socket.js';
 
 const prisma = new PrismaClient();
@@ -42,26 +41,10 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
       if (!court) throw new Error('Court not found');
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const price = hours * Number(court.pricePerHour);
-      const created = await tx.booking.create({ data: { courtId, userId: req.user!.id, startTime: start, endTime: end, price: price.toFixed(2) as any, status: BookingStatus.CONFIRMED } });
-      // Record an internal successful payment for revenue tracking.
-      await tx.payment.create({ data: { bookingId: created.id, amount: price.toFixed(2) as any, provider: 'internal', providerRef: `bk_${created.id}`, status: PaymentStatus.SUCCEEDED } });
-      return { created, ownerId: court.facility.ownerId, facilityId: court.facility.id, facilityName: court.facility.name };
+      return tx.booking.create({ data: { courtId, userId: req.user!.id, startTime: start, endTime: end, price: price.toFixed(2) as any, status: BookingStatus.PENDING } });
     });
 
-    // Notify owner and user via socket rooms
-    const payload = { bookingId: booking.created.id, courtId, startTime, endTime, facilityId: booking.facilityId };
-    emitToRoom(`owner:${booking.ownerId}`, 'booking:new', { ...payload, facilityName: booking.facilityName });
-    emitToRoom(`user:${req.user!.id}`, 'booking:confirmed', payload);
-
-    // Award loyalty points (simple rule: 10 points per hour)
-    try {
-      const start = new Date(startTime); const end = new Date(endTime);
-      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      const points = Math.max(1, Math.round(hours * 10));
-      await addPoints(req.user!.id, points, 'BOOKING', { bookingId: booking.created.id, hours });
-      await recordActivityForStreak(req.user!.id);
-    } catch (e) { console.warn('Loyalty award failed', e); }
-    res.status(201).json(booking.created);
+    res.status(201).json(booking);
   } catch (e: any) { res.status(400).json({ message: e.message }); }
 });
 
@@ -113,10 +96,13 @@ bookingRouter.delete('/:id', requireAuth, async (req: AuthRequest, res: Response
     if (existing.userId !== req.user!.id && req.user!.role !== UserRole.ADMIN) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    if (![BookingStatus.CANCELLED, BookingStatus.COMPLETED].includes(existing.status as any)) {
-      return res.status(400).json({ message: 'Only cancelled or completed bookings can be deleted' });
+    if (![BookingStatus.PENDING, BookingStatus.CANCELLED, BookingStatus.COMPLETED].includes(existing.status as any)) {
+      return res.status(400).json({ message: 'Only pending, cancelled, or completed bookings can be deleted' });
     }
-    await prisma.booking.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.deleteMany({ where: { bookingId: id } });
+      await tx.booking.delete({ where: { id } });
+    });
     res.json({ success: true });
   } catch (e: any) {
     res.status(400).json({ message: e.message || 'Failed to delete booking' });

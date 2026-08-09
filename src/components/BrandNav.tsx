@@ -23,7 +23,7 @@ const BrandNav = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Pages with hero sections that should have transparent navbar initially
-  const heroPages = ['/'];
+  const heroPages = ['/', '/landing'];
 
   const getInitials = (name: string) => {
     return name
@@ -49,14 +49,14 @@ const BrandNav = () => {
     const isHeroPage = heroPages.includes(location.pathname);
     
     if (isHeroPage && scrollY < window.innerHeight * 0.8) {
-      // In hero section - transparent with white text
+      // In the pale poster hero - transparent shell with dark, readable controls
       return {
         background: 'transparent',
-        textColor: 'text-white',
-        logoColor: 'text-white drop-shadow-lg',
-        buttonStyle: 'text-white hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none drop-shadow-[0_1px_8px_rgba(0,0,0,0.45)]',
-        navBackground: 'bg-black/38 backdrop-blur-md border-white/18 shadow-[0_12px_34px_rgba(0,0,0,0.22)]',
-        loginButton: 'bg-white text-gray-950 hover:bg-emerald-50 shadow-lg shadow-black/20 focus-visible:ring-2 focus-visible:ring-white/80'
+        textColor: 'text-gray-950',
+        logoColor: 'text-gray-950',
+        buttonStyle: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none',
+        navBackground: 'bg-white/78 backdrop-blur-md border-gray-200/80 shadow-[0_12px_34px_rgba(15,23,42,0.12)]',
+        loginButton: 'bg-gray-950 text-white hover:bg-emerald-700 shadow-lg shadow-gray-900/15 focus-visible:ring-2 focus-visible:ring-emerald-500'
       };
     } else {
       // Past hero section or non-hero pages - white background with dark text
@@ -84,11 +84,7 @@ const BrandNav = () => {
         {/* Logo */}
         <div className="px-2 sm:px-6 py-3 flex items-center">
           <Link to="/" className={`flex items-center gap-2 text-lg sm:text-xl font-bold tracking-tight transition-colors duration-300 ${navStyle.logoColor}`}>
-            <span className={`inline-grid place-items-center w-8 h-8 rounded-md text-sm font-bold transition-all duration-300 ${
-              scrollY < window.innerHeight * 0.8 && heroPages.includes(location.pathname)
-                ? 'bg-black/35 backdrop-blur-sm text-white border border-white/30 shadow-lg'
-                : 'bg-gradient-to-br from-green-600 to-emerald-500 text-white shadow-md'
-            }`}>QC</span>
+            <span className="inline-grid place-items-center w-8 h-8 rounded-md bg-gradient-to-br from-green-600 to-emerald-500 text-sm font-bold text-white shadow-md transition-all duration-300">QC</span>
             <span>QuickCourt</span>
           </Link>
         </div>
@@ -134,7 +130,7 @@ const BrandNav = () => {
                 <Button variant="ghost" className={`relative h-9 w-9 rounded-full ml-2 transition-colors duration-300 ${navStyle.buttonStyle}`}>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={user?.avatarUrl} alt={user?.fullName} />
-                    <AvatarFallback className={`transition-colors duration-300 ${scrollY < window.innerHeight * 0.8 ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                    <AvatarFallback className="bg-gray-200 text-gray-700 transition-colors duration-300">
                       {user?.fullName ? getInitials(user.fullName) : 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -205,7 +201,7 @@ const BrandNav = () => {
                 <Button variant="ghost" className={`relative h-9 w-9 rounded-full transition-colors duration-300 ${navStyle.buttonStyle}`}>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={user?.avatarUrl} alt={user?.fullName} />
-                    <AvatarFallback className={`transition-colors duration-300 ${scrollY < window.innerHeight * 0.8 ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                    <AvatarFallback className="bg-gray-200 text-gray-700 transition-colors duration-300">
                       {user?.fullName ? getInitials(user.fullName) : 'U'}
                     </AvatarFallback>
                   </Avatar>
