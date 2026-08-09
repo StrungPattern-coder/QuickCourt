@@ -1,108 +1,185 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import ImageCarousel from '@/components/ImageCarousel';
 import SEO from '@/components/SEO';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Users, Shield, Trophy, Sparkles } from 'lucide-react';
+import BrandNav from '@/components/BrandNav';
+import { ArrowRight, CheckCircle2, Clock, Layers3, Shield, Trophy, Users } from 'lucide-react';
 
-const heroImages = [
-  'https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=60',
-  'https://images.unsplash.com/photo-1534158914592-062992fbe900?auto=format&fit=crop&w=1200&q=60',
-  'https://images.unsplash.com/photo-1601584115197-04ecc0da28d9?auto=format&fit=crop&w=1200&q=60',
-  'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=1200&q=60'
+const HERO_IMAGE = '#';
+
+const facts = [
+  { label: 'Built At', value: 'Odoo India Hackathon 2025' },
+  { label: 'Stage', value: 'Finals' },
+  { label: 'Duration', value: '24 hours' },
+  { label: 'Team', value: '4 members' }
 ];
 
-const values = [
-  { icon: <Users className="h-6 w-6" />, title: 'Community First', desc: 'Connecting players, owners, and trainers into a thriving ecosystem.' },
-  { icon: <Shield className="h-6 w-6" />, title: 'Trust & Safety', desc: 'Secure bookings, verified venues, fair policies, transparent reviews.' },
-  { icon: <Trophy className="h-6 w-6" />, title: 'Healthy Competition', desc: 'Gamified loyalty, badges & streaks to stay active and engaged.' },
-  { icon: <Sparkles className="h-6 w-6" />, title: 'Continuous Innovation', desc: 'Iterating fast on analytics, PWA, realtime, and performance features.' }
+const pillars = [
+  { icon: <Layers3 className="h-5 w-5" />, title: 'One booking surface', desc: 'Players can search venues, inspect courts, reserve slots, and track bookings from one flow.' },
+  { icon: <Shield className="h-5 w-5" />, title: 'Role-aware operations', desc: 'Owners manage facilities while admins review venues, users, bookings, and platform health.' },
+  { icon: <Trophy className="h-5 w-5" />, title: 'Engagement layer', desc: 'Points, streaks, badges, referrals, and reviews make repeat play feel rewarding.' }
 ];
 
-const milestones = [
-  'Unified booking & training discovery flow',
-  'Realtime court availability prototype',
-  'Gamification layer: points, streaks, badges',
-  'Referral & sharing infrastructure',
-  'Robust admin & owner access controls'
+const built = [
+  'Dynamic venue discovery with filters and approved-facility visibility',
+  'Email/password auth, OTP verification, OTP login, and password reset support',
+  'Owner dashboard for facility and court setup',
+  'Admin dashboard for approvals, users, bookings, and analytics',
+  'Booking overlap prevention, receipts, reviews, and loyalty tracking'
 ];
 
 const About: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      <SEO title="About QuickCourt" description="Learn about QuickCourt's mission and platform" path="/about" />
-      {/* Hero */}
-      <section className="relative">
-        <div className="max-w-6xl mx-auto px-4 pt-10 md:pt-16">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-3xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-green-600 to-emerald-500 bg-clip-text text-transparent">
-                Play. Improve. Belong.
-              </motion.h1>
-              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6 }} className="mt-6 text-gray-600 text-lg leading-relaxed">
-                QuickCourt is building the connective tissue for local sports. We help players discover courts, owners manage facilities, and communities grow through smart scheduling, gamification, and delightful user experience.
-              </motion.p>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="mt-8 flex flex-wrap gap-4">
-                <Button asChild className="bg-green-600 hover:bg-green-700">
-                  <Link to="/venues">Explore Venues</Link>
-                </Button>
-                <Button asChild variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
-                  <Link to="/signup">Get Started</Link>
-                </Button>
-              </motion.div>
+    <div className="min-h-screen bg-white text-gray-950">
+      <SEO title="About QuickCourt" description="QuickCourt was built during the Odoo India Hackathon 2025 finals by a team of four." path="/about" />
+      <BrandNav />
+
+      <section className="relative flex min-h-[88svh] items-end overflow-hidden">
+        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-black/28" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/66 to-black/22" />
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16 pt-32 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65 }}
+            className="max-w-3xl text-white"
+          >
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-emerald-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.75)]">
+              About QuickCourt
+            </p>
+            <h1 className="text-4xl font-bold leading-tight drop-shadow-[0_4px_18px_rgba(0,0,0,0.65)] sm:text-6xl md:text-7xl">
+              Built in 24 hours for the finals.
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)] sm:text-xl">
+              QuickCourt is a multi-sport venue discovery and booking platform we built as a team of four during the finals of the 24-hour Odoo India Hackathon 2025.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
+                <Link to="/signup">
+                  Create Account
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+                <Button asChild variant="outline" className="h-12 border-white/30 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white">
+                <Link to="/login">Sign In</Link>
+              </Button>
             </div>
-            <div className="order-first lg:order-last">
-              <ImageCarousel images={heroImages} venueName="About QuickCourt" />
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="border-b border-gray-200 bg-gray-950 text-white">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-white/10 px-5 sm:grid-cols-4 sm:px-6 lg:px-8">
+          {facts.map((fact) => (
+            <div key={fact.label} className="bg-gray-950 py-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">{fact.label}</p>
+              <p className="mt-2 text-base font-semibold text-white sm:text-lg">{fact.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.55 }}
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Origin</p>
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+                A finals project shaped by speed, scope, and real product pressure.
+              </h2>
+            </motion.div>
+            <div className="space-y-6 text-base leading-8 text-gray-600">
+              <p>
+                The brief pushed us to think beyond a static booking screen. We designed QuickCourt as a working platform with players, venue owners, and admins all operating on the same live data model.
+              </p>
+              <p>
+                The result is a full-stack product: auth, profiles, role-based dashboards, venue approval, court booking, reviews, receipts, and loyalty mechanics. The production version now starts clean, without seeded demo accounts or fake venue data.
+              </p>
             </div>
           </div>
         </div>
       </section>
-      {/* Values */}
-      <section className="mt-20 max-w-6xl mx-auto px-4">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {values.map((v, i) => (
-            <motion.div key={v.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
-                {v.icon}
-              </div>
-              <h3 className="font-semibold text-gray-900 text-lg">{v.title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{v.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-      {/* Milestones */}
-      <section className="mt-24 max-w-5xl mx-auto px-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 md:p-10 shadow-sm">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">What We've Built So Far</h2>
-          <p className="text-gray-600 mb-6 leading-relaxed">Relentless iteration has already produced a feature set that accelerates adoption and engagement.</p>
-          <ul className="space-y-3">
-            {milestones.map(m => (
-              <li key={m} className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700">{m}</span>
-              </li>
+
+      <section className="bg-gray-50 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
+          <div className="mb-10 flex items-end justify-between gap-6">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Product pillars</p>
+              <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+                Built for the full sports booking loop.
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {pillars.map((pillar, index) => (
+              <motion.div
+                key={pillar.title}
+                initial={{ opacity: 0, y: 22 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08, duration: 0.45 }}
+                className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                  {pillar.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-950">{pillar.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{pillar.desc}</p>
+              </motion.div>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
-      {/* CTA Band */}
-      <section className="mt-24">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-600 via-emerald-600 to-teal-500 p-10 md:p-16">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_30%,white,transparent_60%)]" />
-            <div className="relative z-10 max-w-2xl">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Ready to Play Smarter?</h2>
-              <p className="mt-4 text-green-50 text-lg leading-relaxed">Join a platform that rewards activity, simplifies management, and grows with your community.</p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Button asChild className="bg-white text-green-700 hover:bg-green-50 font-semibold">
-                  <Link to="/signup">Create Account</Link>
-                </Button>
-                <Button asChild variant="outline" className="border-white text-white hover:bg-white/10">
-                  <Link to="/login">Sign In</Link>
-                </Button>
+
+      <section className="py-20 sm:py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">What is included</p>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
+              The build is practical, not just presentational.
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {built.map((item) => (
+              <div key={item} className="flex gap-3 border-b border-gray-200 pb-4">
+                <CheckCircle2 className="mt-1 h-5 w-5 flex-shrink-0 text-emerald-600" />
+                <p className="text-base leading-7 text-gray-700">{item}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-gray-950 py-16 text-white">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <div className="mb-4 flex items-center gap-3 text-emerald-300">
+                <Clock className="h-5 w-5" />
+                <span className="text-sm font-semibold uppercase tracking-[0.18em]">24-hour build</span>
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From hackathon finals to deployed product.</h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-white/70">
+                QuickCourt now runs as a Vercel-deployed app backed by PostgreSQL, ready for fresh accounts, venue submissions, approvals, and bookings.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
+                <Link to="/signup">
+                  Get Started
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-12 border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
+                <Link to="/login">Log In</Link>
+              </Button>
             </div>
           </div>
         </div>
