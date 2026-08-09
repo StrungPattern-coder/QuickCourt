@@ -37,7 +37,7 @@ Email verification, OTP login, and password reset generate real tokens in the da
 
 ```text
 .
-├── api/[...path].ts        # Vercel serverless bridge to Express
+├── api/index.ts            # Vercel serverless bridge to Express
 ├── public/                 # Static assets
 ├── src/                    # React + Vite frontend
 │   ├── components/
@@ -162,7 +162,7 @@ npm run build
 npm run lint
 npm --prefix server run build
 npm --prefix server run lint
-npx tsc --module ESNext --moduleResolution bundler --target ES2022 --noEmit --skipLibCheck "api/[...path].ts"
+npx tsc --module ESNext --moduleResolution bundler --target ES2022 --noEmit --skipLibCheck api/index.ts
 ```
 
 Production dependency audit:
@@ -181,7 +181,7 @@ Current state: frontend and server builds pass. Lint exits successfully; the fro
 The app deploys as a single Vercel project:
 
 - `npm run build` builds the Vite frontend to `dist/`.
-- `api/[...path].ts` exposes the Express app as a Vercel Function.
+- `api/index.ts` exposes the Express app as a Vercel Function.
 - `vercel.json` rewrites existing API paths (`/auth`, `/facilities`, `/bookings`, `/reviews`, etc.) to the serverless function.
 
 ### 1. Create a Hosted PostgreSQL Database
