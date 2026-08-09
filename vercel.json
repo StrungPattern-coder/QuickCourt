@@ -25,7 +25,8 @@
     { "source": "/payments", "destination": "/api?path=/payments" },
     { "source": "/payments/:path*", "destination": "/api?path=/payments/:path*" },
     { "source": "/uploads/:path*", "destination": "/api?path=/uploads/:path*" },
-    { "source": "/health", "destination": "/api?path=/health" }
+    { "source": "/health", "destination": "/api?path=/health" },
+    { "source": "/:path*", "destination": "/index.html" }
   ],
   "functions": {
     "api/index.ts": {
