@@ -288,7 +288,7 @@ const BrandNav = () => {
                       className="justify-start text-base py-5 flex flex-col items-start h-auto"
                       onClick={() => handleMobileNavClick('/play')}
                     >
-                      <span className="font-bold text-gray-900">🏸 Play</span>
+                      <span className="font-bold text-gray-900">Play</span>
                       <span className="text-xs text-gray-500 font-normal">Open matches & casual pickup games</span>
                     </Button>
                     <Button
@@ -296,7 +296,7 @@ const BrandNav = () => {
                       className="justify-start text-base py-5 flex flex-col items-start h-auto"
                       onClick={() => handleMobileNavClick('/book')}
                     >
-                      <span className="font-bold text-gray-900">📅 Book</span>
+                      <span className="font-bold text-gray-900">Book</span>
                       <span className="text-xs text-gray-500 font-normal">Reserve private courts & turfs</span>
                     </Button>
                     <Button
@@ -304,7 +304,7 @@ const BrandNav = () => {
                       className="justify-start text-base py-5 flex flex-col items-start h-auto"
                       onClick={() => handleMobileNavClick('/train')}
                     >
-                      <span className="font-bold text-gray-900">🏆 Train</span>
+                      <span className="font-bold text-gray-900">Train</span>
                       <span className="text-xs text-gray-500 font-normal">Coaching & athletic academies</span>
                     </Button>
                   </>

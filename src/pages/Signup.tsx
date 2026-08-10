@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, ArrowLeft, User, Mail, Lock, Upload, Camera, Gift } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, User, Mail, Lock, Upload, Camera, Gift, Building2, Trophy, CheckCircle2, UserCheck, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SEO from '@/components/SEO';
 import OtpVerification from '@/components/OtpVerification';
@@ -295,30 +295,98 @@ const Signup = () => {
                 </div>
               </div>
 
-              {/* Role Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-gray-700 font-medium">
-                  Account Type
-                </Label>
-                <Select value={role} onValueChange={(value) => setRole(value as 'USER' | 'OWNER')}>
-                  <SelectTrigger className="h-12 border-gray-200 focus:border-[#2ECC71] focus:ring-[#2ECC71]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USER">
-                      <div className="flex items-center space-x-2">
-                        <span>🏃‍♂️</span>
-                        <span>User - Book courts and play</span>
+              {/* Material Design 3 Account Type Selector */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-800 font-semibold text-xs uppercase tracking-wider">
+                    Account Category
+                  </Label>
+                  <span className="text-[11px] text-slate-500 font-medium">Select one</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Player / Athlete Option (Material Card) */}
+                  <button
+                    type="button"
+                    onClick={() => setRole('USER')}
+                    className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer outline-none select-none ${
+                      role === 'USER'
+                        ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-600 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center transition-colors ${
+                        role === 'USER' 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <UserCheck className="h-4 w-4" />
                       </div>
-                    </SelectItem>
-                    <SelectItem value="OWNER">
-                      <div className="flex items-center space-x-2">
-                        <span>🏢</span>
-                        <span>Facility Owner - List your venues</span>
+                      
+                      {/* Material Radio Indicator */}
+                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        role === 'USER' 
+                          ? 'border-emerald-600 bg-emerald-600 text-white' 
+                          : 'border-slate-300 bg-transparent'
+                      }`}>
+                        {role === 'USER' && (
+                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        )}
                       </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    </div>
+
+                    <div>
+                      <span className="block font-bold text-sm text-slate-900 leading-snug">
+                        Player / Athlete
+                      </span>
+                      <span className="block text-[11px] text-slate-500 mt-0.5 leading-tight font-normal">
+                        Book courts, join open matches & track bookings
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Facility Owner Option (Material Card) */}
+                  <button
+                    type="button"
+                    onClick={() => setRole('OWNER')}
+                    className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer outline-none select-none ${
+                      role === 'OWNER'
+                        ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-600 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center transition-colors ${
+                        role === 'OWNER' 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <Building2 className="h-4 w-4" />
+                      </div>
+
+                      {/* Material Radio Indicator */}
+                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        role === 'OWNER' 
+                          ? 'border-emerald-600 bg-emerald-600 text-white' 
+                          : 'border-slate-300 bg-transparent'
+                      }`}>
+                        {role === 'OWNER' && (
+                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="block font-bold text-sm text-slate-900 leading-snug">
+                        Facility Owner
+                      </span>
+                      <span className="block text-[11px] text-slate-500 mt-0.5 leading-tight font-normal">
+                        List venues, manage courts & pricing
+                      </span>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {/* Password Input */}
