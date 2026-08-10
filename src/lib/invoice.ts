@@ -143,10 +143,10 @@ export function generateInvoicePDF(booking: InvoiceBookingData): void {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text('Registered Office: Sports Hub, HSR Layout', 48, y + 54);
-  doc.text('Bengaluru, Karnataka 560102', 48, y + 68);
-  doc.text('Email: support@quickcourt.in', 48, y + 82);
-  doc.text('GSTIN: 29AAACQ9988K1Z5 (Demo)', 48, y + 96);
+  doc.text('Registered Office: NO OFFICE', 48, y + 54);
+  doc.text('<city_name>, <state_name> <pin_code>', 48, y + 68);
+  doc.text('Email: <email>', 48, y + 82);
+  doc.text('GSTIN: <gstin>', 48, y + 96);
 
   // Billed To / Venue Details Card
   doc.setFillColor(248, 250, 252);
@@ -300,7 +300,7 @@ export function generateInvoicePDF(booking: InvoiceBookingData): void {
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
   doc.text('This is a computer-generated tax invoice and requires no physical signature.', 36, 814);
-  doc.text('QuickCourt Platform • www.quickcourt.in • support@quickcourt.in', 559, 814, { align: 'right' });
+  doc.text('QuickCourt • <website_link> • <support_email>', 559, 814, { align: 'right' });
 
   // Save the PDF
   const filename = `QuickCourt_Invoice_${bookingCode}_${formatLocalDateInput()}.pdf`;

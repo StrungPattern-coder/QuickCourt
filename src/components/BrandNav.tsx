@@ -106,7 +106,7 @@ const BrandNav = () => {
                 className={`rounded-full px-5 transition-colors duration-300 ${navStyle.buttonStyle}`} 
                 onClick={() => navigate('/play')}
               >
-                🏸 Play
+                Play
               </Button>
               <Button 
                 variant="ghost" 
@@ -114,7 +114,7 @@ const BrandNav = () => {
                 className={`rounded-full px-5 transition-colors duration-300 ${navStyle.buttonStyle}`} 
                 onClick={() => navigate('/book')}
               >
-                📅 Book
+                Book
               </Button>
               <Button 
                 variant="ghost" 
@@ -122,7 +122,7 @@ const BrandNav = () => {
                 className={`rounded-full px-5 transition-colors duration-300 ${navStyle.buttonStyle}`} 
                 onClick={() => navigate('/train')}
               >
-                🏆 Train
+                Train
               </Button>
             </>
           )}

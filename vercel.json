@@ -26,6 +26,8 @@
     { "source": "/payments/:path*", "destination": "/api?path=/payments/:path*" },
     { "source": "/uploads/:path*", "destination": "/api?path=/uploads/:path*" },
     { "source": "/health", "destination": "/api?path=/health" },
+    { "source": "/socket.io", "destination": "/api?path=/socket.io" },
+    { "source": "/socket.io/:path*", "destination": "/api?path=/socket.io/:path*" },
     { "source": "/:path*", "destination": "/index.html" }
   ],
   "functions": {

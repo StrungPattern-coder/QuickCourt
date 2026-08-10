@@ -41,8 +41,8 @@ import BrandNav from '@/components/BrandNav';
 import AddCourtForm from '@/components/AddCourtForm';
 import { courtsApi, bookingsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { io as ioClient, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/api';
+import type { Socket } from 'socket.io-client';
+import { createSafeSocket } from '@/lib/socket';
 
 const OwnerDashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -111,24 +111,26 @@ const OwnerDashboard: React.FC = () => {
         navigate('/', { replace: true });
       } else {
         fetchOwnerCourts();
-        // connect socket for owner
+        // connect socket safely for owner
         const token = localStorage.getItem('accessToken');
-        const s = ioClient(API_BASE_URL, { auth: { token } });
-        setSocket(s);
-        s.on('connect', () => {
-          console.log('Socket connected (owner)');
-        });
-        s.on('booking:new', (payload: any) => {
-          // New booking on any of my facilities
-          toast.success('New booking received');
-          fetchOwnerCourts();
-          loadOwnerStats();
-        });
-        s.on('booking:cancelled', (payload: any) => {
-          toast('A booking was cancelled');
-          fetchOwnerCourts();
-          loadOwnerStats();
-        });
+        const s = createSafeSocket(token);
+        if (s) {
+          setSocket(s);
+          s.on('connect', () => {
+            console.log('Socket connected (owner)');
+          });
+          s.on('booking:new', (payload: any) => {
+            // New booking on any of my facilities
+            toast.success('New booking received');
+            fetchOwnerCourts();
+            loadOwnerStats();
+          });
+          s.on('booking:cancelled', (payload: any) => {
+            toast('A booking was cancelled');
+            fetchOwnerCourts();
+            loadOwnerStats();
+          });
+        }
         return () => {
           s.disconnect();
         };

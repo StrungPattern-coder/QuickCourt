@@ -118,8 +118,26 @@ export async function apiRequest<T>(
       }
     }
     
-    const error = await response.json().catch(() => ({ message: 'Network error' }));
-    throw new ApiError(response.status, error.message || 'Request failed');
+    let errorMessage = 'Request failed';
+    try {
+      const text = await response.text();
+      try {
+        const json = JSON.parse(text);
+        errorMessage = json.message || json.error || 'Request failed';
+      } catch {
+        // Handle non-JSON HTML response (e.g. Vercel 404 NOT_FOUND)
+        if (response.status === 404) {
+          errorMessage = 'API endpoint not found. Please verify backend server configuration.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again in a moment.';
+        } else {
+          errorMessage = `Server returned status ${response.status}`;
+        }
+      }
+    } catch {
+      errorMessage = 'Network connection failed.';
+    }
+    throw new ApiError(response.status, errorMessage);
   }
 
   return response.json();

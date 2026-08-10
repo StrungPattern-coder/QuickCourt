@@ -17,8 +17,7 @@ import SEO from '@/components/SEO';
 import { facilitiesApi, reviewsApi, type Review as ApiReview } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { io as ioClient } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/api';
+import { createSafeSocket } from '@/lib/socket';
 
 export interface VenueDetails {
   id: string;
@@ -155,23 +154,25 @@ const VenueDetailsPage = () => {
   // Refetch availability on booking events for this venue/date
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    const socket = ioClient(API_BASE_URL, { auth: { token } });
+    const socket = createSafeSocket(token);
 
-    const shouldRefetch = (payload: any) => {
-      if (!id) return false;
-      const payloadDate = formatLocalDateInput(new Date(payload.startTime));
-      return payload.facilityId === id && payloadDate === selectedDate;
-    };
+    if (socket) {
+      const shouldRefetch = (payload: any) => {
+        if (!id) return false;
+        const payloadDate = formatLocalDateInput(new Date(payload.startTime));
+        return payload.facilityId === id && payloadDate === selectedDate;
+      };
 
-    socket.on('booking:confirmed', (payload: any) => {
-      if (shouldRefetch(payload)) fetchTimeSlots();
-    });
-    socket.on('booking:cancelled', (payload: any) => {
-      if (shouldRefetch(payload)) fetchTimeSlots();
-    });
+      socket.on('booking:confirmed', (payload: any) => {
+        if (shouldRefetch(payload)) fetchTimeSlots();
+      });
+      socket.on('booking:cancelled', (payload: any) => {
+        if (shouldRefetch(payload)) fetchTimeSlots();
+      });
+    }
 
     return () => {
-      socket.disconnect();
+      socket?.disconnect();
     };
   }, [id, selectedDate]);
 
