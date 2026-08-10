@@ -541,15 +541,47 @@ const Profile = () => {
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Streak</p>
                       <p className="text-2xl font-bold mt-1">{loyalty.currentStreak} <span className="text-sm font-medium text-muted-foreground">day{loyalty.currentStreak===1?'':'s'}</span></p>
                     </div>
-                    <div className="p-4 rounded-lg border bg-white flex flex-col justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Referral Code</p>
-                        <p className="font-mono text-sm break-all">{referralCodeData?.code || '—'}</p>
-                      </div>
-                      <div className="mt-2">
-                        <Button variant="outline" size="sm" onClick={() => { if(referralCodeData?.code){ navigator.clipboard.writeText(referralCodeData.code); toast({ title:'Copied', description:'Referral code copied.'}); } else { refetchReferral(); } }}>
-                          {referralCodeData?.code ? 'Copy Code' : 'Generate Code'}
-                        </Button>
+                    <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-50/50 flex flex-col justify-between sm:col-span-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="p-1 rounded bg-emerald-500/10 text-emerald-600 font-bold text-xs uppercase tracking-wider">
+                              QC Referral Program
+                            </span>
+                          </div>
+                          <h4 className="text-base font-bold text-gray-900 mt-1">Invite Friends & Earn Points</h4>
+                          <p className="text-xs text-gray-600 mt-0.5">
+                            Earn <strong className="text-emerald-700">+50 Points</strong> for every friend who registers and books a court. Your friend gets <strong className="text-emerald-700">+20 Bonus Points</strong>!
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col sm:items-end gap-1.5 w-full sm:w-auto">
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <div className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-mono text-sm font-bold text-emerald-800 shadow-sm">
+                              {referralCodeData?.code || 'QC-JOIN'}
+                            </div>
+                            <Button 
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                              onClick={() => {
+                                const code = referralCodeData?.code;
+                                if (code) {
+                                  const refLink = `${window.location.protocol}//${window.location.host}/signup?ref=${code}`;
+                                  navigator.clipboard.writeText(refLink);
+                                  toast({
+                                    title: "Referral Link Copied!",
+                                    description: `Shared link (${refLink}) copied to clipboard.`,
+                                  });
+                                } else {
+                                  refetchReferral();
+                                }
+                              }}
+                            >
+                              Copy Link
+                            </Button>
+                          </div>
+                          <p className="text-[11px] text-gray-500">Share your link: quickcourt.app/signup?ref={referralCodeData?.code || '...'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>

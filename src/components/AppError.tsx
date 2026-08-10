@@ -1,7 +1,10 @@
+import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Home, RefreshCw, Search } from 'lucide-react';
+import { Home, Search, MapPin, ArrowRight, Sparkles, Compass, Trophy, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import BrandNav from '@/components/BrandNav';
+import SEO from '@/components/SEO';
 
 interface AppErrorProps {
   code?: string;
@@ -11,94 +14,164 @@ interface AppErrorProps {
   path?: string;
 }
 
-const courtLines = [
-  'left-[14%] top-[18%] h-[64%] w-px',
-  'right-[14%] top-[18%] h-[64%] w-px',
-  'left-[14%] right-[14%] top-[18%] h-px',
-  'left-[14%] right-[14%] bottom-[18%] h-px',
-  'left-1/2 top-[18%] h-[64%] w-px',
-  'left-[14%] right-[14%] top-1/2 h-px'
-];
-
 export default function AppError({ code = '404', title, description, action = 'home', path }: AppErrorProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07110d] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(46,204,113,0.22),transparent_38%),linear-gradient(135deg,rgba(7,17,13,0.98),rgba(8,31,22,0.92))]" />
-      <motion.div
-        className="absolute inset-x-[8%] top-[16%] h-[62vh] rounded-[28px] border border-emerald-300/20 bg-emerald-400/[0.04]"
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
-      >
-        {courtLines.map((line) => (
-          <motion.span
-            key={line}
-            className={`absolute ${line} bg-emerald-200/20`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0.15, 0.42, 0.15] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        ))}
-        <motion.span
-          className="absolute left-[calc(50%-10px)] top-[calc(50%-10px)] h-5 w-5 rounded-full bg-emerald-300 shadow-[0_0_28px_rgba(110,231,183,0.8)]"
-          animate={{ x: [-180, 180, -180], y: [-90, 90, -90] }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      </motion.div>
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between relative overflow-hidden selection:bg-emerald-500 selection:text-slate-950">
+      <SEO title={`${code} - Page Out of Bounds | QuickCourt`} description="The requested page could not be found on QuickCourt." />
+      
+      {/* Background Decorative Gradients & Glows */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px]" />
+        <div className="absolute bottom-10 left-10 w-[350px] h-[350px] bg-teal-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-20 right-10 w-[300px] h-[300px] bg-emerald-400/10 rounded-full blur-[100px]" />
+        {/* Court Grid Overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-25" />
+      </div>
 
-      <section className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-16">
+      {/* Brand Navbar */}
+      <div className="relative z-20">
+        <BrandNav />
+      </div>
+
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1 flex items-center justify-center container mx-auto px-4 py-12">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55 }}
-          className="max-w-2xl"
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="w-full max-w-3xl text-center space-y-8"
         >
-          <div className="mb-6 flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-emerald-200">
-            <Search className="h-4 w-4" />
-            QuickCourt
+          {/* Animated Sports Graphic & 404 Badge */}
+          <div className="relative flex justify-center items-center py-4">
+            {/* Glowing Backdrop Circle */}
+            <div className="relative flex items-center justify-center">
+              {/* Outer Pulsing Ring */}
+              <motion.div
+                className="absolute w-44 h-44 sm:w-56 sm:h-56 rounded-full border border-emerald-500/30 bg-emerald-500/5"
+                animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.7, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              
+              {/* Glowing Inner Ring */}
+              <motion.div
+                className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full border border-emerald-400/50 bg-emerald-500/10 shadow-[0_0_50px_rgba(16,185,129,0.2)]"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+              />
+
+              {/* Bouncing Ball Animation */}
+              <motion.div
+                className="absolute -top-3 sm:-top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] border-2 border-yellow-100 flex items-center justify-center"
+                animate={{
+                  y: [0, -28, 0],
+                  scale: [1, 0.9, 1],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="w-full h-[1.5px] bg-yellow-600/60 rounded-full" />
+              </motion.div>
+
+              {/* 404 Big Code display */}
+              <motion.h1
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-7xl sm:text-9xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-emerald-100 to-emerald-500/40 select-none drop-shadow-2xl"
+              >
+                {code}
+              </motion.h1>
+            </div>
           </div>
-          <motion.p
-            className="mb-3 text-8xl font-black leading-none text-white/10 sm:text-9xl"
-            initial={{ letterSpacing: '0.08em', opacity: 0 }}
-            animate={{ letterSpacing: '0em', opacity: 1 }}
-            transition={{ duration: 0.7 }}
-          >
-            {code}
-          </motion.p>
-          <h1 className="max-w-xl text-4xl font-semibold leading-tight sm:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-emerald-50/75 sm:text-lg">
-            {description}
-          </p>
-          {path && (
-            <p className="mt-4 max-w-full break-all rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-emerald-100/75">
-              {path}
+
+          {/* Text Content */}
+          <div className="space-y-4 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs sm:text-sm font-semibold tracking-wide uppercase">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Out of Bounds</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              {title}
+            </h2>
+
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-normal">
+              {description}
             </p>
-          )}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+
+            {path && (
+              <div className="inline-block mt-2">
+                <span className="inline-flex items-center gap-2 text-xs font-mono bg-slate-900 border border-slate-800 text-emerald-400 px-3 py-1.5 rounded-lg max-w-full truncate">
+                  <span className="text-slate-500">Requested Route:</span> {path}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Primary Action Buttons */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             {action === 'reload' ? (
-              <Button onClick={() => window.location.reload()} className="h-12 bg-emerald-400 px-6 text-sm font-semibold text-emerald-950 hover:bg-emerald-300">
+              <Button
+                onClick={() => window.location.reload()}
+                size="lg"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-8 h-12 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-300"
+              >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reload Page
               </Button>
             ) : (
-              <Button asChild className="h-12 bg-emerald-400 px-6 text-sm font-semibold text-emerald-950 hover:bg-emerald-300">
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-8 h-12 rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:scale-[1.02]"
+              >
                 <Link to="/">
                   <Home className="mr-2 h-4 w-4" />
-                  Go Home
+                  Return to Home
                 </Link>
               </Button>
             )}
-            <Button asChild variant="outline" className="h-12 border-white/18 bg-white/[0.03] px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white">
+
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto border-slate-700 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white px-8 h-12 rounded-xl transition-all duration-300"
+            >
               <Link to="/venues">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <Compass className="mr-2 h-4 w-4 text-emerald-400" />
                 Browse Venues
               </Link>
             </Button>
           </div>
+
+          {/* Quick Category Chips */}
+          <div className="pt-6 border-t border-slate-800/80 max-w-xl mx-auto">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+              Quick Venue Discovery
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {['Badminton', 'Tennis', 'Football', 'Cricket', 'Basketball'].map((sport) => (
+                <Link
+                  key={sport}
+                  to={`/venues?sport=${encodeURIComponent(sport)}`}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs font-medium text-slate-300 hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+                >
+                  {sport}
+                </Link>
+              ))}
+            </div>
+          </div>
         </motion.div>
-      </section>
-    </main>
+      </main>
+
+      {/* Footer Branding Bar */}
+      <footer className="relative z-10 border-t border-slate-900 py-4 text-center text-xs text-slate-500">
+        © {new Date().getFullYear()} QuickCourt • Premium Sports Facility Booking Platform
+      </footer>
+    </div>
   );
 }

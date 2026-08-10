@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   PlusCircle, 
@@ -28,7 +29,10 @@ import {
   Upload,
   Image as ImageIcon,
   Building,
-  IndianRupee
+  IndianRupee,
+  Building2,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { facilitiesApi, courtsApi } from '@/lib/api';
 import MapPicker, { type LatLng } from '@/components/MapPicker';
@@ -36,6 +40,8 @@ import MapPicker, { type LatLng } from '@/components/MapPicker';
 interface AddCourtFormProps {
   onCourtAdded?: () => void;
   onCancel?: () => void;
+  preselectedFacilityId?: string;
+  initialMode?: 'existing' | 'new';
 }
 
 const SPORTS_OPTIONS = [
@@ -48,7 +54,9 @@ const SPORTS_OPTIONS = [
   'Volleyball',
   'Table Tennis',
   'Hockey',
-  'Swimming'
+  'Swimming',
+  'Pickleball',
+  'Padely'
 ];
 
 const AMENITIES_OPTIONS = [
@@ -75,13 +83,61 @@ const PROPERTY_TYPES = [
   { id: 'TRAIN', label: 'Train' },
 ] as const;
 
-export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormProps) {
+export default function AddCourtForm({ onCourtAdded, onCancel, preselectedFacilityId, initialMode }: AddCourtFormProps) {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [coords, setCoords] = useState<LatLng | null>(null);
 
-  // Form state - simplified with no required fields
+  // Form Mode: 'existing' = Add court to existing venue, 'new' = Create new venue & court
+  const [mode, setMode] = useState<'existing' | 'new'>(initialMode || 'existing');
+  const [existingFacilities, setExistingFacilities] = useState<Array<{ id: string; name: string; location: string; sports: string[] }>>([]);
+  const [loadingFacilities, setLoadingFacilities] = useState(false);
+
+  // Add court to existing facility state
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string>(preselectedFacilityId || '');
+  const [existingCourtName, setExistingCourtName] = useState('');
+  const [existingSport, setExistingSport] = useState('Badminton');
+  const [existingPricePerHour, setExistingPricePerHour] = useState('500');
+  const [existingOpenTime, setExistingOpenTime] = useState(6 * 60);
+  const [existingCloseTime, setExistingCloseTime] = useState(23 * 60);
+  const [existingCapacity, setExistingCapacity] = useState('10');
+  const [existingCourtType, setExistingCourtType] = useState<'indoor' | 'outdoor'>('indoor');
+
+  // Load existing facilities owned by this user
+  useEffect(() => {
+    const fetchOwnerFacilities = async () => {
+      try {
+        setLoadingFacilities(true);
+        const ownerCourts = await courtsApi.getOwnerCourts();
+        const facMap = new Map();
+        ownerCourts.forEach((c: any) => {
+          if (c.facility?.id && !facMap.has(c.facility.id)) {
+            facMap.set(c.facility.id, {
+              id: c.facility.id,
+              name: c.facility.name,
+              location: c.facility.location,
+              sports: c.facility.sports || [],
+            });
+          }
+        });
+        const list = Array.from(facMap.values());
+        setExistingFacilities(list);
+        if (list.length > 0 && !selectedFacilityId) {
+          setSelectedFacilityId(preselectedFacilityId || list[0].id);
+        } else if (list.length === 0) {
+          setMode('new');
+        }
+      } catch (err) {
+        console.error('Failed to load owner facilities', err);
+      } finally {
+        setLoadingFacilities(false);
+      }
+    };
+    fetchOwnerFacilities();
+  }, [preselectedFacilityId]);
+
+  // Form state for creating a new venue
   const [formData, setFormData] = useState({
     // Facility details
     facilityName: '',
@@ -92,17 +148,15 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
     address: '',
     sports: [] as string[],
     amenities: [] as string[],
-    // new property types
     propertyTypes: ['BOOK'] as string[],
-    // geo
     latitude: '' as string | number,
     longitude: '' as string | number,
     
     // Court details
     courtName: '',
     pricePerHour: '',
-    openTime: 6 * 60, // 6:00 AM in minutes
-    closeTime: 22 * 60, // 10:00 PM in minutes
+    openTime: 6 * 60,
+    closeTime: 22 * 60,
     capacity: '',
     courtType: 'indoor' as 'indoor' | 'outdoor',
     
@@ -159,6 +213,41 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddExistingCourtSubmit = async () => {
+    if (!selectedFacilityId) {
+      toast.error('Please select an existing venue');
+      return;
+    }
+    if (!existingCourtName.trim()) {
+      toast.error('Please enter a court name (e.g., Court 2, Turf B)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await courtsApi.create({
+        facilityId: selectedFacilityId,
+        name: existingCourtName.trim(),
+        pricePerHour: parseFloat(existingPricePerHour) || 0,
+        openTime: existingOpenTime,
+        closeTime: existingCloseTime,
+        capacity: parseInt(existingCapacity) || 10,
+        courtType: existingCourtType
+      });
+
+      const targetFacility = existingFacilities.find(f => f.id === selectedFacilityId);
+      toast.success(`New court "${existingCourtName.trim()}" added to ${targetFacility?.name || 'venue'}!`);
+
+      setExistingCourtName('');
+      onCourtAdded?.();
+    } catch (error: any) {
+      console.error('Failed to add court to existing facility:', error);
+      toast.error(error.message || 'Failed to add court. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -240,488 +329,617 @@ export default function AddCourtForm({ onCourtAdded, onCancel }: AddCourtFormPro
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PlusCircle className="h-5 w-5 text-green-600" />
-            Add New Venue
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Create a new sports facility. All fields are optional - add as much detail as you'd like.
-          </p>
-        </CardHeader>
+      <Tabs value={mode} onValueChange={(val: any) => setMode(val)} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-12 bg-gray-100 p-1 rounded-xl">
+          <TabsTrigger
+            value="existing"
+            disabled={existingFacilities.length === 0}
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <Layers className="h-4 w-4 text-emerald-600" />
+            <span>Add Court to Existing Venue ({existingFacilities.length})</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="new"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <Building2 className="h-4 w-4 text-blue-600" />
+            <span>Create Brand New Venue</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <CardContent className="space-y-8">
-          {/* Facility Information */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Facility Information</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Facility Name */}
+        {/* TAB 1: Add Court to Existing Facility */}
+        <TabsContent value="existing" className="mt-4">
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader className="bg-emerald-50/60 border-b border-emerald-100 rounded-t-xl">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-950">
+                <Layers className="h-5 w-5 text-emerald-600" />
+                Add Court / Turf to Existing Venue
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Add another court for the same sport or introduce a new sport to one of your existing facilities.
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-6 pt-6">
+              {/* Target Venue */}
               <div className="space-y-2">
-                <Label htmlFor="facilityName" className="text-sm font-medium">
-                  Facility Name
-                </Label>
-                <Input
-                  id="facilityName"
-                  placeholder="e.g., Elite Sports Complex"
-                  value={formData.facilityName}
-                  onChange={(e) => updateFormData('facilityName', e.target.value)}
-                />
-              </div>
-
-              {/* Location */}
-              <div className="space-y-2">
-                <Label htmlFor="location" className="text-sm font-medium">
-                  Location
-                </Label>
-                <Input
-                  id="location"
-                  placeholder="e.g., Downtown, City Center"
-                  value={formData.location}
-                  onChange={(e) => updateFormData('location', e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Tip: Use the map below to drop a pin; this field will update automatically.</p>
-              </div>
-
-              {/* Contact Phone */}
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone" className="text-sm font-medium">
-                  Contact Phone
-                </Label>
-                <Input
-                  id="contactPhone"
-                  type="tel"
-                  placeholder="e.g., +1 (555) 123-4567"
-                  value={formData.contactPhone}
-                  onChange={(e) => updateFormData('contactPhone', e.target.value)}
-                />
-              </div>
-
-              {/* Contact Email */}
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail" className="text-sm font-medium">
-                  Contact Email
-                </Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  placeholder="e.g., info@facility.com"
-                  value={formData.contactEmail}
-                  onChange={(e) => updateFormData('contactEmail', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Property Types */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Property Types</Label>
-              <div className="flex flex-wrap gap-2">
-                {PROPERTY_TYPES.map(pt => (
-                  <Button
-                    key={pt.id}
-                    type="button"
-                    variant={formData.propertyTypes.includes(pt.id) ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      const exists = formData.propertyTypes.includes(pt.id);
-                      const next = exists
-                        ? formData.propertyTypes.filter(x => x !== pt.id)
-                        : [...formData.propertyTypes, pt.id];
-                      updateFormData('propertyTypes', next);
-                    }}
-                  >
-                    {pt.label}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">Choose one or more to describe what you offer at this venue.</p>
-            </div>
-
-            {/* Full Address */}
-            <div className="space-y-2">
-              <Label htmlFor="address" className="text-sm font-medium">
-                Full Address
-              </Label>
-              <Textarea
-                id="address"
-                placeholder="e.g., 123 Sports Street, Downtown District, City 12345"
-                value={formData.address}
-                onChange={(e) => updateFormData('address', e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your facility, its features, and what makes it special..."
-                value={formData.description}
-                onChange={(e) => updateFormData('description', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Map Picker */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-green-600" /> Pick Exact Location
-              </Label>
-              <MapPicker
-                value={coords}
-                onChange={(c) => {
-                  setCoords(c);
-                  updateFormData('latitude', c.lat);
-                  updateFormData('longitude', c.lng);
-                }}
-                onAddressChange={(addr) => {
-                  if (!formData.address) updateFormData('address', addr);
-                  if (!formData.location) updateFormData('location', addr.split(',')[0] || addr);
-                }}
-                height={340}
-                className="rounded-lg overflow-hidden border"
-              />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-muted-foreground">
-                <div><strong>Latitude:</strong> {coords?.lat?.toFixed?.(6) ?? '—'}</div>
-                <div><strong>Longitude:</strong> {coords?.lng?.toFixed?.(6) ?? '—'}</div>
-                <div className="truncate"><strong>Address:</strong> {formData.address || '—'}</div>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Sports & Amenities */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Sports & Amenities</h3>
-            </div>
-
-            {/* Sports */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Sports Offered</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                {SPORTS_OPTIONS.map((sport) => (
-                  <Button
-                    key={sport}
-                    type="button"
-                    variant={formData.sports.includes(sport) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => formData.sports.includes(sport) ? removeSport(sport) : addSport(sport)}
-                    className="justify-start"
-                  >
-                    {sport}
-                  </Button>
-                ))}
-              </div>
-              {formData.sports.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {formData.sports.map((sport) => (
-                    <Badge key={sport} variant="secondary" className="gap-1">
-                      {sport}
-                      <button
-                        onClick={() => removeSport(sport)}
-                        className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Amenities */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">Amenities Available</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {AMENITIES_OPTIONS.map((amenity) => {
-                  const Icon = amenity.icon;
-                  return (
-                    <div key={amenity.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={amenity.id}
-                        checked={formData.amenities.includes(amenity.id)}
-                        onCheckedChange={() => toggleAmenity(amenity.id)}
-                      />
-                      <Label
-                        htmlFor={amenity.id}
-                        className="text-sm flex items-center gap-2 cursor-pointer"
-                      >
-                        <Icon className="h-4 w-4" />
-                        {amenity.label}
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Court Details */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Building className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Court Details</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Court Name */}
-              <div className="space-y-2">
-                <Label htmlFor="courtName" className="text-sm font-medium">
-                  Court Name
-                </Label>
-                <Input
-                  id="courtName"
-                  placeholder="e.g., Court 1, Tennis Court A"
-                  value={formData.courtName}
-                  onChange={(e) => updateFormData('courtName', e.target.value)}
-                />
-              </div>
-
-              {/* Court Type */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Court Type</Label>
-                <Select
-                  value={formData.courtType}
-                  onValueChange={(value: 'indoor' | 'outdoor') => updateFormData('courtType', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
+                <Label className="text-sm font-semibold text-gray-800">Target Venue / Facility</Label>
+                <Select value={selectedFacilityId} onValueChange={setSelectedFacilityId}>
+                  <SelectTrigger className="h-11 border-gray-300">
+                    <SelectValue placeholder="Select one of your venues" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="indoor">Indoor</SelectItem>
-                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                    {existingFacilities.map((facility) => (
+                      <SelectItem key={facility.id} value={facility.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-semibold text-gray-900">{facility.name}</span>
+                          <span className="ml-3 text-xs text-gray-500">📍 {facility.location}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Price per Hour */}
-              <div className="space-y-2">
-                <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
-                  <IndianRupee className="h-4 w-4" />
-                  Price per Hour (₹)
-                </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="e.g., 500"
-                  value={formData.pricePerHour}
-                  onChange={(e) => updateFormData('pricePerHour', e.target.value)}
-                />
-              </div>
-
-              {/* Capacity */}
-              <div className="space-y-2">
-                <Label htmlFor="capacity" className="text-sm font-medium">
-                  Max Capacity (people)
-                </Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  min="1"
-                  placeholder="e.g., 10"
-                  value={formData.capacity}
-                  onChange={(e) => updateFormData('capacity', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Operating Hours */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Operating Hours
-              </Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Court Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="openTime" className="text-xs text-muted-foreground">
-                    Opening Time
+                  <Label htmlFor="existingCourtName" className="text-sm font-semibold text-gray-800">
+                    Court / Turf Name
                   </Label>
-                  <Select
-                    value={formData.openTime.toString()}
-                    onValueChange={(value) => updateFormData('openTime', parseInt(value))}
-                  >
-                    <SelectTrigger>
+                  <Input
+                    id="existingCourtName"
+                    placeholder="e.g. Court 2, Synthetic Turf B, Court 3 (Pickleball)"
+                    value={existingCourtName}
+                    onChange={(e) => setExistingCourtName(e.target.value)}
+                    className="border-gray-300"
+                  />
+                </div>
+
+                {/* Sport Category */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-800">Sport Category</Label>
+                  <Select value={existingSport} onValueChange={setExistingSport}>
+                    <SelectTrigger className="h-10 border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TIME_OPTIONS.map((time) => (
-                        <SelectItem key={time.value} value={time.value.toString()}>
-                          {time.label}
-                        </SelectItem>
+                      {SPORTS_OPTIONS.map((sport) => (
+                        <SelectItem key={sport} value={sport}>{sport}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
+                {/* Price per Hour */}
                 <div className="space-y-2">
-                  <Label htmlFor="closeTime" className="text-xs text-muted-foreground">
-                    Closing Time
+                  <Label htmlFor="existingPrice" className="text-sm font-semibold text-gray-800 flex items-center gap-1">
+                    <IndianRupee className="h-4 w-4 text-emerald-600" />
+                    Price per Hour (₹)
                   </Label>
-                  <Select
-                    value={formData.closeTime.toString()}
-                    onValueChange={(value) => updateFormData('closeTime', parseInt(value))}
-                  >
-                    <SelectTrigger>
+                  <Input
+                    id="existingPrice"
+                    type="number"
+                    min="0"
+                    value={existingPricePerHour}
+                    onChange={(e) => setExistingPricePerHour(e.target.value)}
+                    placeholder="e.g. 500"
+                    className="border-gray-300"
+                  />
+                </div>
+
+                {/* Court Type */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-800">Court Type</Label>
+                  <Select value={existingCourtType} onValueChange={(v: 'indoor' | 'outdoor') => setExistingCourtType(v)}>
+                    <SelectTrigger className="h-10 border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TIME_OPTIONS.filter(time => time.value > formData.openTime).map((time) => (
-                        <SelectItem key={time.value} value={time.value.toString()}>
-                          {time.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="indoor">Indoor (Covered / AC)</SelectItem>
+                      <SelectItem value="outdoor">Outdoor (Open Air / Floodlights)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Hours: {formatTime(formData.openTime)} - {formatTime(formData.closeTime)}
-              </p>
-            </div>
-          </div>
 
-          <Separator />
-
-          {/* Images Upload */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <ImageIcon className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Photos</h3>
-            </div>
-
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                <div className="text-center">
-                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <div className="space-y-2">
-                    <Label htmlFor="image-upload" className="cursor-pointer">
-                      <span className="text-sm font-medium text-green-600 hover:text-green-700">
-                        Upload photos
-                      </span>
-                      <span className="text-sm text-gray-500 ml-1">
-                        or drag and drop
-                      </span>
-                    </Label>
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF up to 10MB each
-                    </p>
+              {/* Operating Hours */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-gray-800 flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  Daily Operating Hours
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Opening Time</Label>
+                    <Select value={String(existingOpenTime)} onValueChange={(v) => setExistingOpenTime(Number(v))}>
+                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIME_OPTIONS.map(t => (
+                          <SelectItem key={t.value} value={String(t.value)}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500 mb-1 block">Closing Time</Label>
+                    <Select value={String(existingCloseTime)} onValueChange={(v) => setExistingCloseTime(Number(v))}>
+                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIME_OPTIONS.filter(t => t.value > existingOpenTime).map(t => (
+                          <SelectItem key={t.value} value={String(t.value)}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
 
-              {/* Image Preview */}
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Upload ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+              <Separator />
 
-          <Separator />
-
-          {/* Additional Information */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Additional Information</h3>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              {/* Rules */}
-              <div className="space-y-2">
-                <Label htmlFor="rules" className="text-sm font-medium">
-                  Rules & Guidelines
-                </Label>
-                <Textarea
-                  id="rules"
-                  placeholder="e.g., No outside food allowed, Proper sports attire required..."
-                  value={formData.rules}
-                  onChange={(e) => updateFormData('rules', e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-sm font-medium">
-                  Additional Notes
-                </Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Any other information about your facility..."
-                  value={formData.notes}
-                  onChange={(e) => updateFormData('notes', e.target.value)}
-                  rows={2}
-                />
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Submit Actions */}
-          <div className="flex justify-between items-center pt-6">
-            <div className="text-sm text-muted-foreground">
-              Your venue will be reviewed by our team before being published.
-            </div>
-            
-            <div className="flex gap-3">
-              {onCancel && (
-                <Button variant="outline" onClick={onCancel}>
-                  Cancel
+              <div className="flex justify-between items-center pt-2">
+                {onCancel && (
+                  <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                )}
+                <Button
+                  onClick={handleAddExistingCourtSubmit}
+                  disabled={isSubmitting}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6"
+                >
+                  {isSubmitting ? 'Adding Court...' : 'Add Court to Venue'}
                 </Button>
-              )}
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Venue'}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 2: Create Brand New Venue */}
+        <TabsContent value="new" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlusCircle className="h-5 w-5 text-green-600" />
+                Add Brand New Venue & Facility
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Register a new sports facility location with your first court.
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-8">
+              {/* Facility Information */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Facility Information</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Facility Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="facilityName" className="text-sm font-medium">
+                      Facility Name
+                    </Label>
+                    <Input
+                      id="facilityName"
+                      placeholder="e.g., Elite Sports Complex"
+                      value={formData.facilityName}
+                      onChange={(e) => updateFormData('facilityName', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium">
+                      Location
+                    </Label>
+                    <Input
+                      id="location"
+                      placeholder="e.g., Downtown, City Center"
+                      value={formData.location}
+                      onChange={(e) => updateFormData('location', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Tip: Use the map below to drop a pin; this field will update automatically.</p>
+                  </div>
+
+                  {/* Contact Phone */}
+                  <div className="space-y-2">
+                    <Label htmlFor="contactPhone" className="text-sm font-medium">
+                      Contact Phone
+                    </Label>
+                    <Input
+                      id="contactPhone"
+                      type="tel"
+                      placeholder="e.g., +1 (555) 123-4567"
+                      value={formData.contactPhone}
+                      onChange={(e) => updateFormData('contactPhone', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Contact Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="contactEmail" className="text-sm font-medium">
+                      Contact Email
+                    </Label>
+                    <Input
+                      id="contactEmail"
+                      type="email"
+                      placeholder="e.g., info@facility.com"
+                      value={formData.contactEmail}
+                      onChange={(e) => updateFormData('contactEmail', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Property Types */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Property Types</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PROPERTY_TYPES.map(pt => (
+                      <Button
+                        key={pt.id}
+                        type="button"
+                        variant={formData.propertyTypes.includes(pt.id) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          const exists = formData.propertyTypes.includes(pt.id);
+                          const next = exists
+                            ? formData.propertyTypes.filter(x => x !== pt.id)
+                            : [...formData.propertyTypes, pt.id];
+                          updateFormData('propertyTypes', next);
+                        }}
+                      >
+                        {pt.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Choose one or more to describe what you offer at this venue.</p>
+                </div>
+
+                {/* Full Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-medium">
+                    Full Address
+                  </Label>
+                  <Textarea
+                    id="address"
+                    placeholder="e.g., 123 Sports Street, Downtown District, City 12345"
+                    value={formData.address}
+                    onChange={(e) => updateFormData('address', e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your facility, its features, and what makes it special..."
+                    value={formData.description}
+                    onChange={(e) => updateFormData('description', e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                {/* Map Picker */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-green-600" /> Pick Exact Location
+                  </Label>
+                  <MapPicker
+                    value={coords}
+                    onChange={(c) => {
+                      setCoords(c);
+                      updateFormData('latitude', c.lat);
+                      updateFormData('longitude', c.lng);
+                    }}
+                    onAddressChange={(addr) => {
+                      if (!formData.address) updateFormData('address', addr);
+                      if (!formData.location) updateFormData('location', addr.split(',')[0] || addr);
+                    }}
+                    height={340}
+                    className="rounded-lg overflow-hidden border"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-muted-foreground">
+                    <div><strong>Latitude:</strong> {coords?.lat?.toFixed?.(6) ?? '—'}</div>
+                    <div><strong>Longitude:</strong> {coords?.lng?.toFixed?.(6) ?? '—'}</div>
+                    <div className="truncate"><strong>Address:</strong> {formData.address || '—'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Sports & Amenities */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Sports & Amenities</h3>
+                </div>
+
+                {/* Sports */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Sports Offered</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                    {SPORTS_OPTIONS.map((sport) => (
+                      <Button
+                        key={sport}
+                        type="button"
+                        variant={formData.sports.includes(sport) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => formData.sports.includes(sport) ? removeSport(sport) : addSport(sport)}
+                        className="justify-start"
+                      >
+                        {sport}
+                      </Button>
+                    ))}
+                  </div>
+                  {formData.sports.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.sports.map((sport) => (
+                        <Badge key={sport} variant="secondary" className="gap-1">
+                          {sport}
+                          <button
+                            onClick={() => removeSport(sport)}
+                            className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Amenities */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Amenities Available</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {AMENITIES_OPTIONS.map((amenity) => {
+                      const Icon = amenity.icon;
+                      return (
+                        <div key={amenity.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={amenity.id}
+                            checked={formData.amenities.includes(amenity.id)}
+                            onCheckedChange={() => toggleAmenity(amenity.id)}
+                          />
+                          <Label
+                            htmlFor={amenity.id}
+                            className="text-sm flex items-center gap-2 cursor-pointer"
+                          >
+                            <Icon className="h-4 w-4" />
+                            {amenity.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Initial Court Details */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Building className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Initial Court Details</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Court Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="courtName" className="text-sm font-medium">
+                      Court Name
+                    </Label>
+                    <Input
+                      id="courtName"
+                      placeholder="e.g., Court 1, Tennis Court A"
+                      value={formData.courtName}
+                      onChange={(e) => updateFormData('courtName', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Court Type */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Court Type</Label>
+                    <Select
+                      value={formData.courtType}
+                      onValueChange={(value: 'indoor' | 'outdoor') => updateFormData('courtType', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="indoor">Indoor</SelectItem>
+                        <SelectItem value="outdoor">Outdoor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Price per Hour */}
+                  <div className="space-y-2">
+                    <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
+                      <IndianRupee className="h-4 w-4" />
+                      Price per Hour (₹)
+                    </Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g., 500"
+                      value={formData.pricePerHour}
+                      onChange={(e) => updateFormData('pricePerHour', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Capacity */}
+                  <div className="space-y-2">
+                    <Label htmlFor="capacity" className="text-sm font-medium">
+                      Max Capacity (people)
+                    </Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 10"
+                      value={formData.capacity}
+                      onChange={(e) => updateFormData('capacity', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Operating Hours */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Operating Hours
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="openTime" className="text-xs text-muted-foreground">
+                        Opening Time
+                      </Label>
+                      <Select
+                        value={formData.openTime.toString()}
+                        onValueChange={(value) => updateFormData('openTime', parseInt(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OPTIONS.map((time) => (
+                            <SelectItem key={time.value} value={time.value.toString()}>
+                              {time.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="closeTime" className="text-xs text-muted-foreground">
+                        Closing Time
+                      </Label>
+                      <Select
+                        value={formData.closeTime.toString()}
+                        onValueChange={(value) => updateFormData('closeTime', parseInt(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OPTIONS.filter(time => time.value > formData.openTime).map((time) => (
+                            <SelectItem key={time.value} value={time.value.toString()}>
+                              {time.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Hours: {formatTime(formData.openTime)} - {formatTime(formData.closeTime)}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Images Upload */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <ImageIcon className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Photos</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                    <div className="text-center">
+                      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <div className="space-y-2">
+                        <Label htmlFor="image-upload" className="cursor-pointer">
+                          <span className="text-sm font-medium text-green-600 hover:text-green-700">
+                            Upload photos
+                          </span>
+                          <span className="text-sm text-gray-500 ml-1">
+                            or drag and drop
+                          </span>
+                        </Label>
+                        <Input
+                          id="image-upload"
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 10MB each
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image Preview */}
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={image}
+                            alt={`Upload ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Submit Actions */}
+              <div className="flex justify-between items-center pt-6">
+                <div className="text-sm text-muted-foreground">
+                  Your venue will be reviewed by our team before being published.
+                </div>
+                
+                <div className="flex gap-3">
+                  {onCancel && (
+                    <Button variant="outline" onClick={onCancel}>
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Venue'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

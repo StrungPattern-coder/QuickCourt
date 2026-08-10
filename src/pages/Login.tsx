@@ -22,6 +22,15 @@ const Login = () => {
   const from = location.state?.from?.pathname || '/';
   const isAdminLogin = new URLSearchParams(location.search).get('role') === 'admin';
 
+  // Load remembered credentials on mount
+  React.useEffect(() => {
+    const rememberedEmail = localStorage.getItem('qc_remembered_email');
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -30,6 +39,15 @@ const Login = () => {
     try {
       await login(email, password);
       
+      // Save or clear remembered email
+      if (rememberMe) {
+        localStorage.setItem('qc_remembered_email', email);
+        localStorage.setItem('qc_remember_me', 'true');
+      } else {
+        localStorage.removeItem('qc_remembered_email');
+        localStorage.removeItem('qc_remember_me');
+      }
+
       // Role-based redirection
       const userData = localStorage.getItem('userData');
       if (userData) {

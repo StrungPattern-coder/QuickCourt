@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import BrandNav from '@/components/BrandNav';
 import PosterHero from '@/components/PosterHero';
 import { ArrowRight, CheckCircle2, Clock, Layers3, Shield, Trophy } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const facts = [
   { label: 'Built At', value: 'Odoo India Hackathon 2025' },
@@ -29,6 +30,18 @@ const built = [
 ];
 
 const About: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+
+  const heroActions = isAuthenticated
+    ? [
+        { label: 'Explore Venues', to: '/venues' },
+        { label: user?.role === 'OWNER' ? 'Owner Dashboard' : user?.role === 'ADMIN' ? 'Admin Dashboard' : 'My Bookings', to: user?.role === 'OWNER' ? '/owner/dashboard' : user?.role === 'ADMIN' ? '/admin' : '/my-bookings', variant: 'secondary' as const }
+      ]
+    : [
+        { label: 'Create Account', to: '/signup' },
+        { label: 'Sign In', to: '/login', variant: 'secondary' as const }
+      ];
+
   return (
     <div className="min-h-screen bg-white text-gray-950">
       <SEO title="About QuickCourt" description="QuickCourt was built during the Odoo India Hackathon 2025 finals by a team of four." path="/about" />
@@ -38,10 +51,7 @@ const About: React.FC = () => {
         eyebrow="About QuickCourt"
         title="Built in 24 hours for the finals."
         description="QuickCourt is a multi-sport venue discovery and booking platform we built as a team of four during the finals of the 24-hour Odoo India Hackathon 2025."
-        actions={[
-          { label: 'Create Account', to: '/signup' },
-          { label: 'Sign In', to: '/login', variant: 'secondary' }
-        ]}
+        actions={heroActions}
       />
 
       <section className="border-b border-gray-200 bg-gray-950 text-white">
@@ -145,15 +155,33 @@ const About: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
-                <Link to="/signup">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-12 border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
-                <Link to="/login">Log In</Link>
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
+                    <Link to="/venues">
+                      Explore Venues
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-12 border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
+                    <Link to={user?.role === 'OWNER' ? '/owner/dashboard' : user?.role === 'ADMIN' ? '/admin' : '/my-bookings'}>
+                      {user?.role === 'OWNER' ? 'Owner Dashboard' : user?.role === 'ADMIN' ? 'Admin Dashboard' : 'My Bookings'}
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild className="h-12 bg-emerald-400 px-6 text-gray-950 hover:bg-emerald-300">
+                    <Link to="/signup">
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-12 border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white">
+                    <Link to="/login">Log In</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

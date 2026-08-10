@@ -1,11 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
-import { Clock, MapPin, Calendar, CreditCard, Shield, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Clock, MapPin, Calendar, CreditCard, ShieldCheck, AlertCircle, Loader2, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useRazorpayPayment, PaymentOptions } from '@/hooks/useRazorpayPayment';
 import { useToast } from '@/hooks/use-toast';
 import { parseLocalDate } from '@/lib/datetime';
@@ -39,10 +37,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const formatDate = (dateString: string) => {
     return (parseLocalDate(dateString) || new Date(dateString)).toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -72,8 +70,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       if (result.success && result.paymentId && result.bookingId) {
         toast({
           title: "Payment Successful!",
-          description: "Your booking has been confirmed successfully.",
-          variant: "default",
+          description: "Your slot has been reserved successfully.",
         });
         onSuccess(result.paymentId, result.bookingId);
       } else {
@@ -101,117 +98,91 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <CreditCard className="h-5 w-5 text-green-600" />
-            Complete Razorpay Payment
-          </DialogTitle>
-          <DialogDescription>
-            Review your booking details and complete payment to confirm your reservation. If Razorpay test keys are not configured, QuickCourt completes a labelled demo payment.
+      <DialogContent className="max-w-md w-[92vw] sm:w-full max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 text-white p-4 sm:p-6 shadow-2xl backdrop-blur-xl transition-all">
+        <DialogHeader className="text-left space-y-1 pb-2 border-b border-slate-800">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
+              <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              Checkout Payment
+            </DialogTitle>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              <Lock className="h-3 w-3" />
+              256-Bit SSL
+            </span>
+          </div>
+          <DialogDescription className="text-xs text-slate-400">
+            Powered by Razorpay Secure. Review order details below.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           {/* Booking Summary Card */}
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-green-900">{bookingData.facilityName}</h3>
-                  <p className="text-sm text-green-700">{bookingData.courtName}</p>
-                </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  {bookingData.sport}
-                </Badge>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-sm text-white">{bookingData.facilityName}</h3>
+                <p className="text-xs font-medium text-emerald-400">{bookingData.courtName}</p>
               </div>
+              <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[11px]">
+                {bookingData.sport}
+              </Badge>
+            </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-green-700">
-                  <MapPin className="h-4 w-4" />
-                  <span>{bookingData.location}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-green-700">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatDate(bookingData.date)}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-green-700">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}
-                  </span>
-                  <span className="text-xs">({bookingData.duration}h)</span>
-                </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-1 border-t border-slate-800/80">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <span className="truncate">{formatDate(bookingData.date)}</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <span className="truncate">{formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}</span>
+              </div>
+            </div>
+          </div>
 
           {/* Price Breakdown */}
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <h4 className="font-medium">Price Breakdown</h4>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Court rental ({bookingData.duration}h)</span>
-                  <span>₹{(bookingData.price / bookingData.duration).toFixed(0)}/hour</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span>Duration</span>
-                  <span>{bookingData.duration} hour{bookingData.duration > 1 ? 's' : ''}</span>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between font-semibold text-base">
-                  <span>Total Amount</span>
-                  <span className="text-green-600">₹{bookingData.price}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl border border-slate-800/80 bg-slate-900/50 p-3.5 space-y-2 text-xs">
+            <div className="flex justify-between text-slate-400">
+              <span>Court Rate ({bookingData.duration}h)</span>
+              <span className="text-slate-200">₹{(bookingData.price / bookingData.duration).toFixed(0)} / hr</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Duration</span>
+              <span className="text-slate-200">{bookingData.duration} Hour{bookingData.duration > 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Convenience & Tax</span>
+              <span className="text-emerald-400 font-medium">Included</span>
+            </div>
+            
+            <div className="pt-2 border-t border-slate-800 flex justify-between items-center font-bold text-sm text-white">
+              <span>Total Payable</span>
+              <span className="text-base text-emerald-400 font-extrabold">₹{bookingData.price}</span>
+            </div>
+          </div>
 
           {/* Error Message */}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
-            >
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-              <span className="text-sm text-red-700">{error}</span>
-            </motion.div>
+            <div className="flex items-center gap-2 p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-300">
+              <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
 
-          {/* Security Features */}
-          <div className="flex items-center justify-center gap-4 py-2 text-xs text-gray-600">
-            <div className="flex items-center gap-1">
-              <Shield className="h-3 w-3 text-green-500" />
-              <span>Secure Payment</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3 text-green-500" />
-              <span>Instant Confirmation</span>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-            <div className="mb-1 font-semibold">Demo testing</div>
-            <p>
-              With Razorpay test keys, use card <span className="font-mono">4111 1111 1111 1111</span>, any future expiry, any CVV, and any 4-10 digit OTP. Without keys, this button runs QuickCourt demo mode and still verifies the booking end to end.
-            </p>
+          {/* Demo Info Box */}
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 text-[11px] leading-relaxed text-amber-200/90">
+            <span className="font-bold text-amber-300">Demo Gateway Mode:</span> Standard test cards or instant click verification process payment smoothly.
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2.5 pt-1">
             <Button
               onClick={handleClose}
               variant="outline"
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs h-11"
             >
               Cancel
             </Button>
@@ -219,7 +190,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <Button
               onClick={handlePayment}
               disabled={isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs h-11 shadow-lg shadow-emerald-500/20 transition-all"
             >
               {isLoading ? (
                 <>
@@ -229,15 +200,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               ) : (
                 <>
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Pay ₹{bookingData.price}
+                  Pay ₹{bookingData.price} Now
                 </>
               )}
             </Button>
-          </div>
-
-          {/* Payment Methods Info */}
-          <div className="text-center text-xs text-gray-500 pt-2">
-            <p>Powered by Razorpay • UPI, Cards, Wallets & More</p>
           </div>
         </div>
       </DialogContent>

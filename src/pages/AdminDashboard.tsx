@@ -834,90 +834,104 @@ const AdminDashboard = () => {
       </div>
 
       <Dialog open={!!inspectingFacility} onOpenChange={(open) => !open && setInspectingFacility(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           {inspectingFacility && (
             <>
               <DialogHeader>
-                <DialogTitle>{inspectingFacility.name}</DialogTitle>
-                <DialogDescription>
-                  Full facility review, owner contact, usage, and approval controls.
-                </DialogDescription>
+                <div className="flex items-center justify-between pr-4">
+                  <div>
+                    <DialogTitle className="text-2xl font-bold">{inspectingFacility.name}</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      Complete admin deep-dive inspection, owner management, and facility controls.
+                    </DialogDescription>
+                  </div>
+                  <Badge
+                    className={
+                      inspectingFacility.status === 'APPROVED' ? 'bg-green-100 text-green-800 text-sm px-3 py-1 hover:bg-green-100' :
+                      inspectingFacility.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800 text-sm px-3 py-1 hover:bg-yellow-100' :
+                      'bg-red-100 text-red-800 text-sm px-3 py-1 hover:bg-red-100'
+                    }
+                  >
+                    {inspectingFacility.status}
+                  </Badge>
+                </div>
               </DialogHeader>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Facility</p>
-                  <h3 className="mt-2 font-semibold text-gray-950">{inspectingFacility.name}</h3>
-                  <p className="mt-1 text-sm text-gray-600">{inspectingFacility.description || 'No description provided.'}</p>
-                  <p className="mt-3 flex items-center text-sm text-gray-700">
-                    <MapPin className="mr-2 h-4 w-4 text-emerald-700" />
-                    {inspectingFacility.location}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {inspectingFacility.sports.map((sport) => (
-                      <Badge key={sport} variant="secondary">{sport}</Badge>
-                    ))}
+              <div className="grid gap-4 md:grid-cols-2 mt-2">
+                <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Facility Profile</p>
+                    <span className="text-xs text-gray-400">ID: {inspectingFacility.id.slice(-8)}</span>
+                  </div>
+                  <h3 className="font-bold text-gray-950 text-lg">{inspectingFacility.name}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{inspectingFacility.description || 'No description provided.'}</p>
+                  <div className="flex items-center text-sm text-gray-700">
+                    <MapPin className="mr-2 h-4 w-4 text-emerald-600 flex-shrink-0" />
+                    <span>{inspectingFacility.location}</span>
+                  </div>
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold text-gray-500 mb-1.5">Sports Offered</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {inspectingFacility.sports.map((sport) => (
+                        <Badge key={sport} variant="secondary" className="bg-white text-gray-800 border border-gray-200">{sport}</Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Owner</p>
-                  <h3 className="mt-2 font-semibold text-gray-950">{inspectingFacility.owner.fullName}</h3>
+                <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">Owner Profile</p>
+                    <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">OWNER</Badge>
+                  </div>
+                  <h3 className="font-bold text-gray-950 text-lg">{inspectingFacility.owner.fullName}</h3>
                   <p className="text-sm text-gray-600">{inspectingFacility.owner.email}</p>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-500">Courts</p>
-                      <p className="font-semibold text-gray-950">{inspectingFacility._count.courts}</p>
+                  
+                  <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
+                    <div className="rounded-lg bg-white p-2.5 border border-gray-200">
+                      <p className="text-xs text-gray-500">Courts Count</p>
+                      <p className="text-lg font-bold text-gray-950">{inspectingFacility._count.courts}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-500">Bookings</p>
-                      <p className="font-semibold text-gray-950">{inspectingFacility._count.bookings || 0}</p>
+                    <div className="rounded-lg bg-white p-2.5 border border-gray-200">
+                      <p className="text-xs text-gray-500">Total Bookings</p>
+                      <p className="text-lg font-bold text-gray-950">{inspectingFacility._count.bookings || 0}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-500">Reviews</p>
-                      <p className="font-semibold text-gray-950">{inspectingFacility._count.reviews || 0}</p>
+                    <div className="rounded-lg bg-white p-2.5 border border-gray-200">
+                      <p className="text-xs text-gray-500">Reviews</p>
+                      <p className="text-lg font-bold text-gray-950">{inspectingFacility._count.reviews || 0}</p>
                     </div>
-                    <div>
-                      <p className="text-gray-500">Price range</p>
-                      <p className="font-semibold text-gray-950">
-                        ₹{inspectingFacility.minPrice || 0} - ₹{inspectingFacility.maxPrice || 0}
-                      </p>
+                    <div className="rounded-lg bg-white p-2.5 border border-gray-200">
+                      <p className="text-xs text-gray-500">Rate Range</p>
+                      <p className="text-lg font-bold text-gray-950">₹{inspectingFacility.minPrice || 0} - ₹{inspectingFacility.maxPrice || 0}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="flex items-center justify-between gap-4">
+              {/* Admin Action Bar */}
+              <div className="rounded-xl bg-slate-900 text-white p-4 mt-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-950">Current status</p>
-                    <Badge
-                      className={
-                        inspectingFacility.status === 'APPROVED' ? 'mt-2 bg-green-100 text-green-800 hover:bg-green-100' :
-                        inspectingFacility.status === 'PENDING' ? 'mt-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
-                        'mt-2 bg-red-100 text-red-800 hover:bg-red-100'
-                      }
-                    >
-                      {inspectingFacility.status}
-                    </Badge>
+                    <p className="text-sm font-semibold">Admin Actions & Controls</p>
+                    <p className="text-xs text-slate-300">Approve, reject, or manage facility status directly.</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {inspectingFacility.status !== 'APPROVED' && (
                       <Button onClick={() => {
                         approveFacility(inspectingFacility.id);
                         setInspectingFacility(null);
-                      }} className="bg-green-600 hover:bg-green-700">
-                        <Check className="mr-2 h-4 w-4" />
-                        Approve
+                      }} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                        <Check className="mr-1.5 h-4 w-4" />
+                        Approve Facility
                       </Button>
                     )}
                     {inspectingFacility.status !== 'REJECTED' && (
-                      <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => {
-                        rejectFacility(inspectingFacility.id, 'Rejected from admin detail review');
+                      <Button variant="outline" className="border-red-400 text-red-300 hover:bg-red-950 hover:text-red-200" onClick={() => {
+                        rejectFacility(inspectingFacility.id, 'Rejected during admin review');
                         setInspectingFacility(null);
                       }}>
-                        <X className="mr-2 h-4 w-4" />
-                        Reject
+                        <X className="mr-1.5 h-4 w-4" />
+                        Reject Facility
                       </Button>
                     )}
                   </div>

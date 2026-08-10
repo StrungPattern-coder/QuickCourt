@@ -12,6 +12,7 @@ interface AuthContextType {
     fullName: string;
     role: 'USER' | 'OWNER' | 'ADMIN';
     inviteSecret?: string;
+    referralCode?: string;
   }) => Promise<{ userId: string; delivery?: { devOtp?: string; disabled?: boolean } }>;
   verifyOtp: (userId: string, otp: string) => Promise<void>;
   loginWithOtp: (userId: string, otp: string) => Promise<User>;
@@ -111,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fullName: string;
     role: 'USER' | 'OWNER' | 'ADMIN';
     inviteSecret?: string;
+    referralCode?: string;
   }) => {
     try {
       const response = await authApi.signup(data);

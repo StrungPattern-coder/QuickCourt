@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Activity, 
   PlusCircle, 
@@ -30,7 +31,10 @@ import {
   IndianRupee,
   Wrench,
   PauseCircle,
-  ReceiptText
+  ReceiptText,
+  Edit3,
+  Sliders,
+  ShieldCheck
 } from 'lucide-react';
 import SEO from '@/components/SEO';
 import BrandNav from '@/components/BrandNav';
@@ -52,6 +56,17 @@ const OwnerDashboard: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [ownerStats, setOwnerStats] = useState<{ totalBookings: number; payments: { succeeded: number; refunded: number; net: number } } | null>(null);
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
+
+  const [addCourtPreselectedFacilityId, setAddCourtPreselectedFacilityId] = useState<string | undefined>(undefined);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editPrice, setEditPrice] = useState('');
+  const [editOpenHour, setEditOpenHour] = useState('6');
+  const [editCloseHour, setEditCloseHour] = useState('23');
+  const [courtBookingFilter, setCourtBookingFilter] = useState('ALL');
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [maintReason, setMaintReason] = useState('Scheduled Maintenance & Cleaning');
+  const [maintHours, setMaintHours] = useState('24');
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Animation variants
   const fadeInUp = {
@@ -180,6 +195,46 @@ const OwnerDashboard: React.FC = () => {
     }
   };
 
+  const handleCustomMaintenance = async (court: any) => {
+    try {
+      setIsSubmittingEdit(true);
+      const start = new Date();
+      const end = new Date(Date.now() + (Number(maintHours) || 24) * 3600000);
+      await courtsApi.createMaintenance(court.id, {
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        reason: maintReason.trim() || 'Scheduled maintenance'
+      });
+      toast.success(`${court.name} closed for ${maintHours} hours (${maintReason})`);
+      setIsMaintenanceModalOpen(false);
+      fetchOwnerCourts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create maintenance block');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  const handleUpdateCourt = async (court: any) => {
+    try {
+      setIsSubmittingEdit(true);
+      const openMinutes = (Number(editOpenHour) || 6) * 60;
+      const closeMinutes = (Number(editCloseHour) || 23) * 60;
+      await courtsApi.update(court.id, {
+        pricePerHour: Number(editPrice) || Number(court.pricePerHour),
+        openTime: openMinutes,
+        closeTime: closeMinutes
+      });
+      toast.success('Court pricing and hours updated!');
+      setIsEditModalOpen(false);
+      fetchOwnerCourts();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update court details');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
   const reopenCourt = async (maintenanceId: string) => {
     try {
       await courtsApi.removeMaintenance(maintenanceId);
@@ -275,8 +330,15 @@ const OwnerDashboard: React.FC = () => {
             transition={{ duration: 0.6 }}
           >
             <AddCourtForm 
-              onCourtAdded={handleCourtAdded}
-              onCancel={() => setShowAddForm(false)}
+              onCourtAdded={() => {
+                setAddCourtPreselectedFacilityId(undefined);
+                handleCourtAdded();
+              }}
+              onCancel={() => {
+                setShowAddForm(false);
+                setAddCourtPreselectedFacilityId(undefined);
+              }}
+              preselectedFacilityId={addCourtPreselectedFacilityId}
             />
           </motion.div>
         </div>
@@ -624,80 +686,239 @@ const OwnerDashboard: React.FC = () => {
                           </div>
 
                           {selectedCourt && (
-                            <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
+                            <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
                               <div className="flex items-start justify-between gap-4">
                                 <div>
-                                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Selected Court</p>
-                                  <h3 className="mt-2 text-xl font-bold text-gray-950">{selectedCourt.facility.name}</h3>
-                                  <p className="text-sm text-gray-600">{selectedCourt.name} • {selectedCourt.facility.location}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Selected Venue Details</p>
+                                    <Badge variant="outline" className="text-xs">{selectedCourt.facility.status}</Badge>
+                                  </div>
+                                  <h3 className="mt-1 text-xl font-bold text-gray-950">{selectedCourt.facility.name}</h3>
+                                  <p className="text-sm text-gray-600 font-medium">{selectedCourt.name} • {selectedCourt.facility.location}</p>
                                 </div>
                                 <Badge className={activeMaintenance.length ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : 'bg-green-100 text-green-800 hover:bg-green-100'}>
-                                  {activeMaintenance.length ? 'Maintenance' : 'Open'}
+                                  {activeMaintenance.length ? 'In Maintenance' : 'Active / Open'}
                                 </Badge>
                               </div>
 
                               <div className="grid grid-cols-3 gap-3">
                                 <div className="border-l-2 border-emerald-500 pl-3">
-                                  <p className="text-xs text-gray-500">Recent revenue</p>
+                                  <p className="text-xs text-gray-500">Revenue</p>
                                   <p className="text-lg font-bold text-gray-950">₹{selectedRevenue.toLocaleString()}</p>
                                 </div>
                                 <div className="border-l-2 border-blue-500 pl-3">
-                                  <p className="text-xs text-gray-500">Recent bookings</p>
+                                  <p className="text-xs text-gray-500">Bookings</p>
                                   <p className="text-lg font-bold text-gray-950">{selectedBookings.length}</p>
                                 </div>
-                                <div className="border-l-2 border-gray-900 pl-3">
-                                  <p className="text-xs text-gray-500">Rate</p>
+                                <div className="border-l-2 border-purple-500 pl-3">
+                                  <p className="text-xs text-gray-500">Hourly Rate</p>
                                   <p className="text-lg font-bold text-gray-950">₹{Number(selectedCourt.pricePerHour)}</p>
                                 </div>
                               </div>
 
-                              <div className="flex flex-col gap-2 sm:flex-row">
+                              {/* Court Controls Bar */}
+                              <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setAddCourtPreselectedFacilityId(selectedCourt.facility.id);
+                                    setShowAddForm(true);
+                                  }}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                                >
+                                  <PlusCircle className="mr-1.5 h-4 w-4" />
+                                  Add Court to Venue
+                                </Button>
+
                                 <Button
                                   onClick={() => closeCourtForMaintenance(selectedCourt)}
                                   disabled={activeMaintenance.length > 0}
-                                  className="bg-gray-950 text-white hover:bg-amber-700"
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-amber-800 border-amber-300 hover:bg-amber-50"
                                 >
-                                  <PauseCircle className="mr-2 h-4 w-4" />
+                                  <PauseCircle className="mr-1.5 h-4 w-4 text-amber-600" />
                                   Close Today
                                 </Button>
+
+                                <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="border-gray-300 text-gray-700">
+                                      <Wrench className="mr-1.5 h-4 w-4 text-gray-600" />
+                                      Schedule Maintenance
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Close Court for Maintenance</DialogTitle>
+                                      <DialogDescription>
+                                        Specify reason and closure duration for "{selectedCourt.name}".
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-2">
+                                      <div>
+                                        <label className="text-xs font-semibold text-gray-700 block mb-1">Reason for Closure</label>
+                                        <Input
+                                          value={maintReason}
+                                          onChange={(e) => setMaintReason(e.target.value)}
+                                          placeholder="e.g. Turf resurfacing, Light repair"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-xs font-semibold text-gray-700 block mb-1">Duration (Hours)</label>
+                                        <Select value={maintHours} onValueChange={setMaintHours}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="6">6 Hours</SelectItem>
+                                            <SelectItem value="12">12 Hours</SelectItem>
+                                            <SelectItem value="24">24 Hours (1 Day)</SelectItem>
+                                            <SelectItem value="48">48 Hours (2 Days)</SelectItem>
+                                            <SelectItem value="72">72 Hours (3 Days)</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => setIsMaintenanceModalOpen(false)}>Cancel</Button>
+                                      <Button onClick={() => handleCustomMaintenance(selectedCourt)} disabled={isSubmittingEdit} className="bg-amber-600 hover:bg-amber-700 text-white">
+                                        Close Court
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+
+                                <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+                                  if (open) {
+                                    setEditPrice(String(selectedCourt.pricePerHour));
+                                    setEditOpenHour(String(Math.floor(selectedCourt.openTime / 60)));
+                                    setEditCloseHour(String(Math.floor(selectedCourt.closeTime / 60)));
+                                  }
+                                  setIsEditModalOpen(open);
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-50">
+                                      <Edit3 className="mr-1.5 h-4 w-4 text-emerald-600" />
+                                      Edit Price & Hours
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Edit Court Price & Operating Hours</DialogTitle>
+                                      <DialogDescription>
+                                        Update pricing and daily availability hours for "{selectedCourt.name}".
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-2">
+                                      <div>
+                                        <label className="text-xs font-semibold text-gray-700 block mb-1">Price Per Hour (₹)</label>
+                                        <Input
+                                          type="number"
+                                          value={editPrice}
+                                          onChange={(e) => setEditPrice(e.target.value)}
+                                          placeholder="e.g. 500"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="text-xs font-semibold text-gray-700 block mb-1">Opening Hour (AM/PM)</label>
+                                          <Select value={editOpenHour} onValueChange={setEditOpenHour}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                              {[...Array(24)].map((_, i) => (
+                                                <SelectItem key={i} value={String(i)}>{formatTime(i * 60)}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div>
+                                          <label className="text-xs font-semibold text-gray-700 block mb-1">Closing Hour (AM/PM)</label>
+                                          <Select value={editCloseHour} onValueChange={setEditCloseHour}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                              {[...Array(24)].map((_, i) => (
+                                                <SelectItem key={i} value={String(i)}>{formatTime(i * 60)}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <DialogFooter>
+                                      <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                                      <Button onClick={() => handleUpdateCourt(selectedCourt)} disabled={isSubmittingEdit} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        Save Changes
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+
                                 {activeMaintenance.map((block: any) => (
-                                  <Button key={block.id} variant="outline" onClick={() => reopenCourt(block.id)}>
-                                    <Wrench className="mr-2 h-4 w-4" />
-                                    Reopen
+                                  <Button key={block.id} size="sm" variant="default" onClick={() => reopenCourt(block.id)} className="bg-green-600 hover:bg-green-700 text-white">
+                                    <Wrench className="mr-1.5 h-4 w-4" />
+                                    Reopen Court
                                   </Button>
                                 ))}
                               </div>
 
                               {activeMaintenance.length > 0 && (
-                                <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
-                                  Closed until {formatDateTime(activeMaintenance[0].endTime)}. Reason: {activeMaintenance[0].reason || 'Maintenance'}
+                                <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 border border-amber-200">
+                                  <strong>Court Closed:</strong> Until {formatDateTime(activeMaintenance[0].endTime)}.<br />
+                                  <span className="text-xs text-amber-800">Reason: {activeMaintenance[0].reason || 'Maintenance'}</span>
                                 </div>
                               )}
 
+                              {/* Booking List with Status Filter */}
                               <div>
-                                <div className="mb-3 flex items-center gap-2">
-                                  <ReceiptText className="h-4 w-4 text-emerald-700" />
-                                  <h4 className="font-semibold text-gray-950">Recent Booking Information</h4>
+                                <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <ReceiptText className="h-4 w-4 text-emerald-700" />
+                                    <h4 className="font-semibold text-gray-950">Court Booking Log</h4>
+                                  </div>
+                                  <Select value={courtBookingFilter} onValueChange={setCourtBookingFilter}>
+                                    <SelectTrigger className="h-8 text-xs w-36">
+                                      <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ALL">All Status</SelectItem>
+                                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                                      <SelectItem value="PENDING">Pending</SelectItem>
+                                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
+
                                 {selectedBookings.length === 0 ? (
-                                  <p className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">No bookings have been made on this court yet.</p>
+                                  <p className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">No bookings recorded for this court.</p>
                                 ) : (
-                                  <div className="space-y-3">
-                                    {selectedBookings.slice(0, 5).map((booking: any) => (
-                                      <div key={booking.id} className="rounded-md border border-gray-100 p-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div>
-                                            <p className="font-medium text-gray-950">{booking.user?.fullName || 'Unknown user'}</p>
-                                            <p className="text-xs text-gray-500">{booking.user?.email}</p>
+                                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                                    {selectedBookings
+                                      .filter((b: any) => courtBookingFilter === 'ALL' || b.status === courtBookingFilter)
+                                      .map((booking: any) => (
+                                        <div key={booking.id} className="rounded-md border border-gray-200 bg-white p-3 hover:border-emerald-300 transition-colors">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <p className="font-semibold text-gray-950 text-sm">{booking.user?.fullName || 'QuickCourt Player'}</p>
+                                              <p className="text-xs text-gray-500">{booking.user?.email}</p>
+                                            </div>
+                                            <Badge
+                                              variant="outline"
+                                              className={
+                                                booking.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                                                booking.status === 'COMPLETED' ? 'bg-blue-50 text-blue-800 border-blue-300' :
+                                                booking.status === 'CANCELLED' ? 'bg-red-50 text-red-800 border-red-300' :
+                                                'bg-yellow-50 text-yellow-800 border-yellow-300'
+                                              }
+                                            >
+                                              {booking.status}
+                                            </Badge>
                                           </div>
-                                          <Badge variant="outline">{booking.status}</Badge>
+                                          <div className="mt-2 flex items-center justify-between text-xs text-gray-600 border-t border-gray-100 pt-2">
+                                            <span>📅 {formatDateTime(booking.startTime)} - {new Date(booking.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="font-semibold text-gray-900">₹{Number(booking.price || 0)}</span>
+                                          </div>
                                         </div>
-                                        <div className="mt-2 grid gap-1 text-xs text-gray-600">
-                                          <span>{formatDateTime(booking.startTime)} - {new Date(booking.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                          <span>Payment: {booking.payment?.status || 'Not started'} • Amount: ₹{Number(booking.price || 0)}</span>
-                                        </div>
-                                      </div>
-                                    ))}
+                                      ))}
                                   </div>
                                 )}
                               </div>

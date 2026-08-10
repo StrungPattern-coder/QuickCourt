@@ -110,9 +110,45 @@ All colors MUST be HSL. */
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+    line-height: 1.65;
+    letter-spacing: -0.011em;
+  }
+
+  /* Global Responsive Typography, Dynamic Line-Spacing & Indentation */
+  h1, .h1 {
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  h2, .h2 {
+    line-height: 1.24;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  h3, .h3 {
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+  }
+
+  h4, h5, h6 {
+    line-height: 1.4;
+  }
+
+  p {
+    line-height: 1.68;
+    text-wrap: pretty;
   }
 }
 

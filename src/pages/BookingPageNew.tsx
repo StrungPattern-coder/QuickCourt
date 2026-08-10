@@ -322,7 +322,7 @@ const BookingPageNew: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500 selection:text-slate-950 flex flex-col justify-between">
       <SEO 
         title={`Book ${bookingDetails.facilityName} - QuickCourt`}
         description={`Complete your booking for ${bookingDetails.courtName} at ${bookingDetails.facilityName}`}
@@ -330,54 +330,54 @@ const BookingPageNew: React.FC = () => {
       
       <BrandNav />
       
-      <div className="pt-20 pb-8">
-        <div className="container mx-auto px-4 max-w-2xl">
+      <div className="pt-24 pb-12 flex-1">
+        <div className="container mx-auto px-4 max-w-xl">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <Button
               onClick={() => navigate(-1)}
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="border-slate-800 bg-slate-900/80 text-slate-300 hover:bg-slate-800 hover:text-white flex-shrink-0 rounded-xl"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
               Back
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Complete Booking</h1>
-              <p className="text-gray-600">Review details and confirm your reservation</p>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Checkout Reservation</h1>
+              <p className="text-xs sm:text-sm text-slate-400">Review schedule and lock in your court slot</p>
             </div>
           </div>
 
           {/* Booking Details Card */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
           >
-            <Card className="mb-6">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+            <Card className="mb-6 border-slate-800 bg-slate-900/90 text-white shadow-xl rounded-2xl overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-900">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-800 rounded-xl flex-shrink-0 overflow-hidden border border-slate-700">
                     <img 
                       src={bookingDetails.facilityImage} 
                       alt={bookingDetails.facilityName}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{bookingDetails.facilityName}</CardTitle>
-                        <p className="text-sm text-gray-600">{bookingDetails.courtName}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="truncate">
+                        <CardTitle className="text-base sm:text-lg font-bold text-white truncate">{bookingDetails.facilityName}</CardTitle>
+                        <p className="text-xs sm:text-sm font-semibold text-emerald-400 truncate">{bookingDetails.courtName}</p>
                         {bookingDetails.rating && (
                           <div className="flex items-center gap-1 mt-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-medium">{bookingDetails.rating}</span>
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span className="text-xs font-semibold text-slate-200">{bookingDetails.rating}</span>
                           </div>
                         )}
                       </div>
-                      <Badge variant="secondary">
+                      <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-xs flex-shrink-0">
                         {bookingDetails.sport}
                       </Badge>
                     </div>
@@ -385,25 +385,25 @@ const BookingPageNew: React.FC = () => {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span>{bookingDetails.location}</span>
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                <div className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                  <div className="flex items-center gap-2.5 text-slate-300">
+                    <MapPin className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                    <span className="truncate">{bookingDetails.location}</span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Calendar className="h-4 w-4 text-gray-500" />
+                  <div className="flex items-center gap-2.5 text-slate-300">
+                    <Calendar className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                     <span>{formatDate(bookingDetails.date)}</span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Clock className="h-4 w-4 text-gray-500" />
+                  <div className="flex items-center gap-2.5 text-slate-300">
+                    <Clock className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                     <span>
                       {formatTime(bookingDetails.startTime)} - {formatTime(bookingDetails.endTime)}
                     </span>
-                    <span className="text-sm text-gray-500">
-                      ({bookingDetails.duration} hour{bookingDetails.duration > 1 ? 's' : ''})
+                    <span className="text-xs text-slate-400">
+                      ({bookingDetails.duration} hr{bookingDetails.duration > 1 ? 's' : ''})
                     </span>
                   </div>
                 </div>
@@ -411,12 +411,12 @@ const BookingPageNew: React.FC = () => {
                 {/* Amenities */}
                 {bookingDetails.amenities && bookingDetails.amenities.length > 0 && (
                   <>
-                    <Separator />
+                    <Separator className="bg-slate-800" />
                     <div>
-                      <h4 className="font-medium mb-2">Amenities</h4>
-                      <div className="flex flex-wrap gap-2">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Facility Amenities</h4>
+                      <div className="flex flex-wrap gap-1.5">
                         {bookingDetails.amenities.slice(0, 6).map((amenity, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="outline" className="border-slate-800 bg-slate-950/60 text-slate-300 text-[11px]">
                             {amenity}
                           </Badge>
                         ))}
@@ -425,23 +425,23 @@ const BookingPageNew: React.FC = () => {
                   </>
                 )}
 
-                <Separator />
+                <Separator className="bg-slate-800" />
 
                 {/* Price Breakdown */}
                 <div className="space-y-2">
-                  <h4 className="font-medium">Price Breakdown</h4>
-                  <div className="space-y-1 text-sm">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Price Breakdown</h4>
+                  <div className="space-y-1.5 text-xs sm:text-sm text-slate-300">
                     <div className="flex justify-between">
-                      <span>Court rental rate</span>
-                      <span>₹{(bookingDetails.price / bookingDetails.duration).toFixed(0)}/hour</span>
+                      <span className="text-slate-400">Rate per hour</span>
+                      <span>₹{(bookingDetails.price / bookingDetails.duration).toFixed(0)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Duration</span>
-                      <span>{bookingDetails.duration} hour{bookingDetails.duration > 1 ? 's' : ''}</span>
+                      <span className="text-slate-400">Slot Duration</span>
+                      <span>{bookingDetails.duration} Hour{bookingDetails.duration > 1 ? 's' : ''}</span>
                     </div>
-                    <div className="flex justify-between font-semibold text-base pt-1 border-t">
-                      <span>Total Amount</span>
-                      <span className="text-green-600">₹{bookingDetails.price}</span>
+                    <div className="flex justify-between font-bold text-sm sm:text-base pt-2 border-t border-slate-800 text-white">
+                      <span>Total Booking Price</span>
+                      <span className="text-emerald-400 font-extrabold text-base sm:text-lg">₹{bookingDetails.price}</span>
                     </div>
                   </div>
                 </div>
@@ -451,20 +451,20 @@ const BookingPageNew: React.FC = () => {
 
           {/* Action Button */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
           >
             <Button
               onClick={createBooking}
               disabled={isCreatingBooking}
-              className="w-full h-14 text-lg font-semibold bg-green-600 hover:bg-green-700"
+              className="w-full h-12 sm:h-14 text-sm sm:text-base font-extrabold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
               size="lg"
             >
               {isCreatingBooking ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Reserving Slot...
+                  Locking Slot...
                 </>
               ) : !isAuthenticated ? (
                 <>
@@ -472,7 +472,7 @@ const BookingPageNew: React.FC = () => {
                 </>
               ) : (
                 <>
-                  Continue to Payment - ₹{bookingDetails.price}
+                  Proceed to Payment • ₹{bookingDetails.price}
                 </>
               )}
             </Button>
@@ -482,12 +482,11 @@ const BookingPageNew: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-4 text-center text-xs text-gray-500"
+            transition={{ duration: 0.4, delay: 0.25 }}
+            className="mt-4 text-center text-[11px] text-slate-500"
           >
             <p>
-              By proceeding, you agree to our Terms of Service and Privacy Policy.
-              Cancellations are subject to the facility's cancellation policy.
+              🔒 100% Instant Slot Guarantee. Subject to venue rules and cancellation policies.
             </p>
           </motion.div>
         </div>

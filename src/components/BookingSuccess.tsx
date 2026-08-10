@@ -1,20 +1,20 @@
 import React from 'react';
-import jsPDF from 'jspdf';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileDown } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileText, Sparkles, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatLocalDateInput, parseLocalDate } from '@/lib/datetime';
+import { parseLocalDate } from '@/lib/datetime';
+import { generateInvoicePDF } from '@/lib/invoice';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BookingSuccessProps {
   isOpen: boolean;
   onClose: () => void;
   bookingData: {
     id: string;
-  receiptId: string;
+    receiptId: string;
     facilityName: string;
     courtName: string;
     location: string;
@@ -33,23 +33,17 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Debug: Log the booking data when component mounts
-  React.useEffect(() => {
-    if (isOpen && bookingData) {
-      console.log('BookingSuccess component opened with data:', bookingData);
-    }
-  }, [isOpen, bookingData]);
+  const { user } = useAuth();
 
   const formatDate = (dateString: string) => {
     try {
       const d = parseLocalDate(dateString) || new Date(dateString);
       if (Number.isNaN(d.getTime())) return dateString;
       return d.toLocaleDateString('en-IN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
+        weekday: 'short',
+        month: 'short',
         day: 'numeric',
+        year: 'numeric'
       });
     } catch {
       return dateString;
@@ -79,8 +73,8 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
           title: 'QuickCourt Booking Confirmed',
           text: bookingText,
         });
-      } catch (error) {
-        console.log('Share cancelled');
+      } catch {
+        console.log('Share dismissed');
       }
     } else {
       await navigator.clipboard.writeText(bookingText);
@@ -91,367 +85,24 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
     }
   };
 
-  // Estimate points (mirrors backend: ~10 pts per hour) so user sees immediate feedback.
-  const estimatedPoints = (() => {
-    try {
-      const [sh] = bookingData.startTime.split(':').map(Number);
-      const [eh] = bookingData.endTime.split(':').map(Number);
-      const dur = Math.max(1, eh - sh);
-      return dur * 10;
-    } catch { return 10; }
-  })();
-
   const handleDownloadReceipt = () => {
-    console.log('PDF download initiated', { bookingData });
-    
-    const w = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
-    if (!w) {
-      console.error('Failed to open print window - likely blocked by popup blocker');
-      // Show user-friendly error if popup is blocked
-      toast({
-        title: "PDF Download Failed",
-        description: "Unable to open print window. Please allow popups for this site and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    console.log('Print window opened successfully');
-    
     try {
-    const price = Number(bookingData.price) || 0;
-    const durationHours = (() => {
-      const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
-      const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
-      return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
-    })();
-    const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
-    const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-
-    const html = `
-      <html>
-      <head>
-        <title>Receipt - QuickCourt</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>
-          :root{ --green:#065f46; --muted:#6b7280; --border:#e5e7eb; --bg:#ffffff; }
-          *{ box-sizing:border-box; }
-          body{ margin:0; background:#f8fafc; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-          .page{ max-width:760px; margin:24px auto; background:var(--bg); padding:28px; border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.06); }
-          .header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-          .brand{ display:flex; align-items:center; gap:10px; }
-          .logo{ width:36px; height:36px; border-radius:8px; background:#d1fae5; display:flex; align-items:center; justify-content:center; color:var(--green); font-weight:900; }
-          .brand-text{ font-weight:800; font-size:20px; color:var(--green); letter-spacing:0.2px; }
-          .receipt-meta{ text-align:right; font-size:12px; color:var(--muted); }
-          .title{ font-weight:700; font-size:22px; margin:8px 0 2px; color:#111827; }
-          .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin:16px 0 10px; }
-          .panel{ border:1px solid var(--border); border-radius:8px; padding:12px; }
-          .panel h4{ margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#374151; }
-          .kv{ display:flex; justify-content:space-between; gap:16px; font-size:14px; margin:6px 0; }
-          .kv .k{ color:#4b5563; }
-          table{ width:100%; border-collapse:collapse; margin-top:8px; }
-          th, td{ font-size:14px; text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); }
-          th{ background:#f9fafb; color:#374151; font-weight:600; }
-          .right{ text-align:right; }
-          .totals{ margin-top:12px; width:100%; }
-          .totals .row{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
-          .totals .grand{ border-top:1px dashed var(--border); margin-top:6px; padding-top:12px; font-weight:800; color:var(--green); font-size:18px; }
-          .footer{ margin-top:18px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; }
-          .note{ max-width:70%; }
-          @media print{
-            body{ background:#fff; }
-            .page{ margin:0; border:none; box-shadow:none; }
-            .footer{ color:#6b7280; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-          <div class="header">
-            <div class="brand">
-              <div class="logo">QC</div>
-              <div class="brand-text">QuickCourt</div>
-            </div>
-            <div class="receipt-meta">
-              <div>Receipt No: <strong>${bookingData.receiptId}</strong></div>
-              <div>Booking ID: <strong>${bookingData.id.slice(-8).toUpperCase()}</strong></div>
-              <div>Date Issued: ${new Date().toLocaleDateString('en-IN')}</div>
-            </div>
-          </div>
-
-          <div class="title">Payment Receipt</div>
-
-          <div class="grid">
-            <div class="panel">
-              <h4>Venue Details</h4>
-              <div class="kv"><div class="k">Facility</div><div class="v">${bookingData.facilityName}</div></div>
-              <div class="kv"><div class="k">Court</div><div class="v">${bookingData.courtName}</div></div>
-              <div class="kv"><div class="k">Location</div><div class="v">${bookingData.location}</div></div>
-            </div>
-            <div class="panel">
-              <h4>Booking Info</h4>
-              <div class="kv"><div class="k">Sport</div><div class="v">${bookingData.sport}</div></div>
-              <div class="kv"><div class="k">Date</div><div class="v">${formatDate(bookingData.date)}</div></div>
-              <div class="kv"><div class="k">Time</div><div class="v">${formatTime(bookingData.startTime)} – ${formatTime(bookingData.endTime)}</div></div>
-              <div class="kv"><div class="k">Duration</div><div class="v">${durationHours} hour${durationHours > 1 ? 's' : ''}</div></div>
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th class="right">Rate</th>
-                <th class="right">Qty (hrs)</th>
-                <th class="right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Court booking — ${bookingData.facilityName} (${bookingData.courtName})</td>
-                <td class="right">${currency(rate)}</td>
-                <td class="right">${durationHours}</td>
-                <td class="right">${currency(price)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="totals">
-            <div class="row"><div>Subtotal</div><div>${currency(price)}</div></div>
-            <div class="row"><div>Taxes</div><div>—</div></div>
-            <div class="row grand"><div>Total Paid</div><div>${currency(price)}</div></div>
-          </div>
-
-          <div class="footer">
-            <div class="note">Thank you for booking with QuickCourt. Please arrive 10 minutes early. For changes or cancellations, see your booking details in the app.</div>
-            <div>quickcourt.example • support@quickcourt.example</div>
-          </div>
-        </div>
-        <script>
-          window.print();
-          // Close window after user finishes with print dialog
-          window.onafterprint = function() {
-            window.close();
-          };
-          // Fallback: close after 3 seconds if onafterprint is not supported
-          setTimeout(function() {
-            window.close();
-          }, 3000);
-        </script>
-      </body>
-      </html>`;
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    console.log('PDF generation completed successfully');
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      toast({
-        title: "PDF Generation Failed",
-        description: "An error occurred while creating the receipt. Please try again.",
-        variant: "destructive"
+      generateInvoicePDF({
+        ...bookingData,
+        userName: user?.fullName,
+        userEmail: user?.email,
       });
-    }
-  };
-
-  // Alternative download method using HTML download attribute
-  const handleDownloadReceiptHtml = () => {
-    try {
-      const price = Number(bookingData.price) || 0;
-      const durationHours = (() => {
-        const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
-        const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
-        return Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
-      })();
-      const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
-      const currency = (n: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-
-      const html = `<!DOCTYPE html>
-        <html>
-        <head>
-          <title>Receipt - QuickCourt</title>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: white; }
-            .receipt { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .details { margin: 20px 0; }
-            .total { font-weight: bold; font-size: 18px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="header">
-              <h1>QuickCourt Receipt</h1>
-              <p>Booking ID: ${bookingData.id.slice(-8).toUpperCase()}</p>
-            </div>
-            <div class="details">
-              <p><strong>Venue:</strong> ${bookingData.facilityName}</p>
-              <p><strong>Court:</strong> ${bookingData.courtName}</p>
-              <p><strong>Date:</strong> ${formatDate(bookingData.date)}</p>
-              <p><strong>Time:</strong> ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}</p>
-              <p><strong>Location:</strong> ${bookingData.location}</p>
-            </div>
-            <div class="total">
-              <p>Total Paid: ${currency(price)}</p>
-            </div>
-          </div>
-        </body>
-        </html>`;
-
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `QuickCourt-Receipt-${bookingData.id.slice(-8)}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
       toast({
-        title: "Receipt Downloaded",
-        description: "Receipt has been downloaded as an HTML file.",
+        title: "Tax Invoice Downloaded",
+        description: "Official PDF Tax Invoice downloaded successfully.",
       });
     } catch (error) {
-      console.error('Alternative download failed:', error);
+      console.error('Invoice download failed', error);
       toast({
         title: "Download Failed",
-        description: "Unable to download receipt. Please try the print option.",
+        description: "Unable to generate invoice PDF. Please try again.",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleDirectDownload = () => {
-    try {
-      const price = Number(bookingData.price) || 0;
-      const [sh, sm] = bookingData.startTime.split(':').map(n => Number(n) || 0);
-      const [eh, em] = bookingData.endTime.split(':').map(n => Number(n) || 0);
-      const durationHours = Math.max(0.5, (eh * 60 + em - (sh * 60 + sm)) / 60);
-      const rate = durationHours > 0 ? Math.round(price / durationHours) : price;
-      const invoiceNo = bookingData.receiptId.replace(/[^A-Za-z0-9-]/g, '').slice(0, 28);
-      const bookingCode = bookingData.id.slice(-8).toUpperCase();
-      const issuedAt = new Date();
-      const formatMoney = (amount: number) => `INR ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(amount)}`;
-
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-      doc.setFillColor(10, 17, 23);
-      doc.rect(0, 0, 595, 128, 'F');
-      doc.setFillColor(16, 185, 129);
-      doc.rect(0, 126, 595, 5, 'F');
-
-      doc.setFillColor(16, 185, 129);
-      doc.roundedRect(40, 34, 40, 40, 8, 8, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.text('QC', 52, 59);
-
-      doc.setFontSize(24);
-      doc.text('QuickCourt', 92, 51);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(205, 213, 223);
-      doc.text('Sports court booking invoice', 92, 70);
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(26);
-      doc.text('TAX INVOICE', 405, 50);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(205, 213, 223);
-      doc.text(`Invoice ${invoiceNo}`, 405, 70);
-      doc.text(`Issued ${issuedAt.toLocaleString('en-IN')}`, 405, 86);
-
-      doc.setTextColor(17, 24, 39);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('Billed By', 40, 165);
-      doc.text('Booking For', 325, 165);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(75, 85, 99);
-      doc.text('QuickCourt', 40, 184);
-      doc.text('Hackathon finals project, India', 40, 200);
-      doc.text('support@quickcourt.example', 40, 216);
-      doc.text('Payment mode: Razorpay / QuickCourt demo', 40, 232);
-
-      doc.text(bookingData.facilityName, 325, 184);
-      doc.text(bookingData.courtName, 325, 200);
-      doc.text(bookingData.location, 325, 216, { maxWidth: 210 });
-      doc.text(`Booking ID ${bookingCode}`, 325, 248);
-
-      doc.setDrawColor(229, 231, 235);
-      doc.line(40, 280, 555, 280);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(17, 24, 39);
-      doc.text('Booking Details', 40, 310);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(75, 85, 99);
-      doc.text(`Sport: ${bookingData.sport}`, 40, 330);
-      doc.text(`Date: ${formatDate(bookingData.date)}`, 40, 346);
-      doc.text(`Time: ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}`, 40, 362);
-      doc.text(`Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`, 40, 378);
-
-      const tableTop = 420;
-      doc.setFillColor(247, 250, 247);
-      doc.rect(40, tableTop, 515, 34, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(17, 24, 39);
-      doc.text('Description', 56, tableTop + 21);
-      doc.text('Rate', 330, tableTop + 21);
-      doc.text('Qty', 410, tableTop + 21);
-      doc.text('Amount', 486, tableTop + 21);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(55, 65, 81);
-      doc.text(`${bookingData.facilityName} - ${bookingData.courtName}`, 56, tableTop + 62, { maxWidth: 235 });
-      doc.text(formatMoney(rate), 330, tableTop + 62);
-      doc.text(String(durationHours), 410, tableTop + 62);
-      doc.text(formatMoney(price), 486, tableTop + 62);
-      doc.setDrawColor(229, 231, 235);
-      doc.line(40, tableTop + 86, 555, tableTop + 86);
-
-      doc.text('Subtotal', 380, tableTop + 122);
-      doc.text(formatMoney(price), 486, tableTop + 122);
-      doc.text('Taxes', 380, tableTop + 142);
-      doc.text('Included / NA', 486, tableTop + 142);
-      doc.setDrawColor(16, 185, 129);
-      doc.line(380, tableTop + 158, 555, tableTop + 158);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(6, 95, 70);
-      doc.text('Total Paid', 380, tableTop + 183);
-      doc.text(formatMoney(price), 486, tableTop + 183);
-
-      doc.setFillColor(236, 253, 245);
-      doc.roundedRect(40, 650, 515, 58, 8, 8, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(6, 95, 70);
-      doc.text('Payment verified and booking confirmed', 58, 674);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(55, 65, 81);
-      doc.text('Please arrive 10 minutes early. Show this invoice at the venue if requested.', 58, 692);
-
-      doc.setFontSize(9);
-      doc.setTextColor(107, 114, 128);
-      doc.text('This computer-generated invoice does not require a signature.', 40, 760);
-      doc.text('QuickCourt - quickcourt-seven.vercel.app', 390, 760);
-
-      const fileName = `QuickCourt_Invoice_${bookingCode}_${formatLocalDateInput()}.pdf`;
-      doc.save(fileName);
-      toast({ title: 'Invoice downloaded', description: 'Professional PDF invoice has been downloaded.' });
-    } catch (e) {
-      console.error('PDF download failed', e);
-      toast({ variant: 'destructive', title: 'Download failed', description: 'Unable to generate PDF. Try the View button to print.' });
     }
   };
 
@@ -467,157 +118,108 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto">
-        <div className="text-center space-y-6">
-          {/* Success Animation */}
+      <DialogContent className="max-w-md w-[92vw] sm:w-full max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 text-white p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
+        <div className="text-center space-y-4">
+          {/* Animated Success Badge */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="flex justify-center"
+            transition={{ type: "spring", stiffness: 220, delay: 0.1 }}
+            className="flex justify-center pt-1"
           >
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-600" />
+            <div className="relative">
+              <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                <CheckCircle className="h-8 w-8 text-emerald-400" />
+              </div>
             </div>
           </motion.div>
 
-          {/* Success Message */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-2"
-          >
-            <h2 className="text-2xl font-bold text-green-600">
-              Booking Confirmed!
+          {/* Heading */}
+          <div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold tracking-wide uppercase mb-1">
+              <Sparkles className="h-3 w-3" /> Booking Confirmed
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              You're All Set to Play!
             </h2>
-            <p className="text-gray-600">
-              Your court has been successfully booked. A receipt has been generated.
+            <p className="text-xs text-slate-400 mt-0.5">
+              Your court reservation has been verified and confirmed.
             </p>
-          </motion.div>
+          </div>
 
-          {/* Booking Details Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="p-4 space-y-3">
-                <div className="text-left">
-                  <h3 className="font-semibold text-green-900 text-lg">
-                    {bookingData.facilityName}
-                  </h3>
-                  <p className="text-sm text-green-700">{bookingData.courtName}</p>
-                </div>
-
-                <div className="space-y-2 text-sm text-left">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                    <span>{bookingData.location}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-green-700">
-                    <Calendar className="h-4 w-4 flex-shrink-0" />
-                    <span>{formatDate(bookingData.date)}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-green-700">
-                    <Clock className="h-4 w-4 flex-shrink-0" />
-                    <span>
-                      {formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-green-200">
-                  <span className="text-sm text-green-700">Total</span>
-                  <span className="font-bold text-green-900">₹{bookingData.price}</span>
-                </div>
-
-                <div className="mt-2 rounded-md bg-white/60 border border-green-200 p-3">
-                  <p className="text-xs font-medium text-green-800 mb-1">Loyalty Reward (est.)</p>
-                  <p className="text-xs text-green-700">~{estimatedPoints} points will be added for this booking.</p>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-green-600">
-                  <span>Booking ID: {bookingData.id.slice(-8).toUpperCase()}</span>
-                  <span>Receipt: {bookingData.receiptId}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="space-y-3"
-          >
-            {/* Quick Actions */}
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                onClick={handleShare}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <Share2 className="h-4 w-4 mr-1" />
-                Share
-              </Button>
-              <Button
-                onClick={handleDownloadReceipt}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                View
-              </Button>
-              <Button
-                onClick={handleDirectDownload}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <FileDown className="h-4 w-4 mr-1" />
-                Download
-              </Button>
+          {/* Compact Facility Card */}
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3.5 space-y-2.5 text-left">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-sm text-white">{bookingData.facilityName}</h3>
+                <p className="text-xs font-medium text-emerald-400">{bookingData.courtName}</p>
+              </div>
+              <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                ₹{bookingData.price}
+              </span>
             </div>
 
-            {/* Primary Actions */}
-            <div className="space-y-2">
-              <Button
-                onClick={handleViewBookings}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                View My Bookings
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-
-              <Button
-                onClick={handleBookAnother}
-                variant="outline"
-                className="w-full"
-              >
-                Book Another Court
-              </Button>
+            <div className="space-y-1.5 text-xs text-slate-300 pt-2 border-t border-slate-800">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <span className="truncate">{bookingData.location}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <span>{formatDate(bookingData.date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                <span>{formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}</span>
+              </div>
             </div>
-          </motion.div>
 
-          {/* Important Note */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.0 }}
-            className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg"
-          >
-            <p>
-              📧 A confirmation email has been sent to your registered email address.
-              Please arrive 10 minutes before your booking time.
-            </p>
-          </motion.div>
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800/60">
+              <span>ID: {bookingData.id.slice(-8).toUpperCase()}</span>
+              <span>Receipt: {bookingData.receiptId}</span>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={handleDownloadReceipt}
+              variant="outline"
+              size="sm"
+              className="border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs h-10 font-semibold"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+              Tax Invoice PDF
+            </Button>
+            <Button
+              onClick={handleShare}
+              variant="outline"
+              size="sm"
+              className="border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs h-10 font-semibold"
+            >
+              <Share2 className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+              Share Details
+            </Button>
+          </div>
+
+          {/* Primary Navigation Actions */}
+          <div className="space-y-2 pt-1">
+            <Button
+              onClick={handleViewBookings}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs h-11 shadow-lg shadow-emerald-500/20"
+            >
+              View My Bookings
+              <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+
+            <Button
+              onClick={handleBookAnother}
+              variant="outline"
+              className="w-full border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs h-10"
+            >
+              Book Another Venue
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

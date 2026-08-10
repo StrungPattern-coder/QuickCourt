@@ -73,29 +73,37 @@ const VenuesPage = () => {
     switch (path) {
       case '/play':
         return {
-          title: 'Find Courts to Play',
-          subtitle: 'Discover the perfect courts for recreational play',
+          title: 'Find Open Play & Casual Matches',
+          subtitle: 'Join pickup games, open matchmaking, and casual recreational sports',
+          badge: 'OPEN PLAY & MATCHES',
+          description: 'Open Play is designed for casual games and public matchmaking. Connect with fellow players, drop into open court sessions, or join casual pickup matches.',
           defaultSports: ['Badminton', 'Tennis', 'Football'],
           icon: '🏸'
         };
       case '/book':
         return {
-          title: 'Book Your Court',
-          subtitle: 'Reserve courts for matches and events',
+          title: 'Reserve Private Courts & Turfs',
+          subtitle: 'Direct hourly reservations with instant digital confirmation',
+          badge: 'PRIVATE COURT BOOKING',
+          description: 'Book Mode allows you to reserve exclusive private courts or turfs for you and your group. Select exact hourly time slots, view court types, and lock in your schedule.',
           defaultSports: ['All Sports'],
           icon: '📅'
         };
       case '/train':
         return {
-          title: 'Training Facilities',
-          subtitle: 'Professional coaching and training venues',
+          title: 'Sports Coaching & Academies',
+          subtitle: 'Professional coaching sessions, practice drills, and training facilities',
+          badge: 'COACHING & TRAINING',
+          description: 'Train Mode connects you with certified sports academies and coaches. Ideal for skill development, professional drills, and structured athletic practice.',
           defaultSports: ['Tennis', 'Badminton', 'Cricket'],
           icon: '🏆'
         };
       default:
         return {
-          title: 'Find Sports Venues',
-          subtitle: 'Discover and book the best sports facilities',
+          title: 'Find & Book Sports Venues',
+          subtitle: 'Discover and reserve the best sports facilities near you',
+          badge: 'ALL VENUES',
+          description: 'Search verified sports facilities, compare prices per hour, inspect amenities, and book available courts instantly.',
           defaultSports: ['All Sports'],
           icon: '🏟️'
         };
@@ -385,6 +393,28 @@ const VenuesPage = () => {
 
           {/* Main Content */}
           <div className="flex-1">
+            {/* Mode Feature Banner */}
+            <div className="mb-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 text-white p-4 sm:p-5 shadow-xl relative overflow-hidden">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-2xl flex-shrink-0 shadow-inner">
+                  {pageContext.icon}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                      {pageContext.badge}
+                    </span>
+                  </div>
+                  <h2 className="text-base sm:text-lg font-bold text-white mt-1">
+                    {pageContext.title}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1">
+                    {pageContext.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Results Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
               <div className="flex-1">

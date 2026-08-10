@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatLocalDateInput, parseLocalDate } from '@/lib/datetime';
+import { formatLocalDateInput, parseLocalDate, getRelativeDateLabel } from '@/lib/datetime';
 
 interface VenueDetails {
   id: string;
@@ -65,22 +65,7 @@ const BookingWidget = ({
   };
 
   const formatDate = (dateString: string) => {
-    const date = parseLocalDate(dateString) || new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
-    } else {
-      return date.toLocaleDateString('en-IN', { 
-        weekday: 'short',
-        month: 'short', 
-        day: 'numeric' 
-      });
-    }
+    return getRelativeDateLabel(dateString);
   };
 
   const selectedSlotData = timeSlots.find(slot => slot.id === selectedSlot);
@@ -199,19 +184,19 @@ const BookingWidget = ({
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => slot.isAvailable && onSlotSelect(slot.id)}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                       selectedSlot === slot.id
-                        ? 'border-green-500 bg-green-50'
+                        ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-400/20'
                         : slot.isAvailable
-                          ? 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
-                          : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                          ? 'border-gray-200 hover:border-green-400 hover:bg-emerald-50/50 cursor-pointer'
+                          : 'border-red-200 bg-red-50/80 cursor-not-allowed select-none'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm font-medium ${
-                            slot.isAvailable ? 'text-gray-900' : 'text-gray-500'
+                          <span className={`text-sm font-semibold ${
+                            slot.isAvailable ? 'text-gray-900' : 'text-red-950 line-through'
                           }`}>
                             {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                           </span>
@@ -220,21 +205,25 @@ const BookingWidget = ({
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">{slot.courtName}</span>
+                          <span className={`text-xs ${slot.isAvailable ? 'text-gray-500' : 'text-red-800'}`}>
+                            {slot.courtName}
+                          </span>
                           {!slot.isAvailable && (
-                            <Badge variant="secondary" className="text-xs">
-                              Booked
-                            </Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white uppercase tracking-wider shadow-sm">
+                              BOOKED
+                            </span>
                           )}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className={`font-bold ${
-                          slot.isAvailable ? 'text-green-600' : 'text-gray-400'
+                          slot.isAvailable ? 'text-green-600' : 'text-red-600 line-through text-sm'
                         }`}>
                           ₹{slot.price}
                         </div>
-                        <div className="text-xs text-gray-500">per hour</div>
+                        <div className={`text-xs ${slot.isAvailable ? 'text-gray-500' : 'text-red-700/80'}`}>
+                          {slot.isAvailable ? 'per hour' : 'Unavailable'}
+                        </div>
                       </div>
                     </div>
                   </motion.div>

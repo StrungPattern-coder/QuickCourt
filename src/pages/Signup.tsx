@@ -1,21 +1,23 @@
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, ArrowLeft, User, Mail, Lock, Upload, Camera } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, User, Mail, Lock, Upload, Camera, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SEO from '@/components/SEO';
 import OtpVerification from '@/components/OtpVerification';
 
 const Signup = () => {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'USER' | 'OWNER'>('USER');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +28,14 @@ const Signup = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  // Parse referral code from URL if present
+  useEffect(() => {
+    const refFromUrl = searchParams.get('ref') || searchParams.get('referral');
+    if (refFromUrl) {
+      setReferralCode(refFromUrl.toUpperCase());
+    }
+  }, [searchParams]);
 
   // Password strength calculation
   const getPasswordStrength = (password: string) => {
@@ -92,7 +102,7 @@ const Signup = () => {
 
     setIsLoading(true);
     try {
-      const result = await signup({ email, password, fullName, role });
+      const result = await signup({ email, password, fullName, role, referralCode: referralCode.trim() || undefined });
       setUserId(result.userId);
       setDevOtp(result.delivery?.devOtp);
     } catch (error) {
@@ -396,6 +406,29 @@ const Signup = () => {
                 {password !== confirmPassword && confirmPassword && (
                   <p className="text-sm text-red-500 mt-1">Passwords don't match</p>
                 )}
+              </div>
+
+              {/* Referral Code Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="referralCode" className="text-gray-700 font-medium">
+                    Referral Code (Optional)
+                  </Label>
+                  <span className="text-xs text-emerald-600 font-semibold">+20 Bonus Pts</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Gift className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <Input
+                    id="referralCode"
+                    type="text"
+                    placeholder="e.g. QC-AB1234"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    className="pl-10 h-12 border-gray-200 focus:border-[#2ECC71] focus:ring-[#2ECC71] uppercase font-mono tracking-wider transition-colors"
+                  />
+                </div>
               </div>
 
               {/* Create Account Button */}

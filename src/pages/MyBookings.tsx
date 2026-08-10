@@ -4,16 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Calendar, Clock, MapPin, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, X, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { bookingsApi, Booking } from '@/lib/api';
 import BrandNav from '@/components/BrandNav';
 import SEO from '@/components/SEO';
 import { useToast } from '@/hooks/use-toast';
+import { generateInvoicePDF } from '@/lib/invoice';
+import { formatLocalDateInput } from '@/lib/datetime';
 
 const MyBookings = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -108,6 +110,44 @@ const MyBookings = () => {
     });
   };
 
+  const handleDownloadInvoice = (booking: Booking) => {
+    try {
+      const startTimeDate = new Date(booking.startTime);
+      const endTimeDate = new Date(booking.endTime);
+      
+      const startTimeStr = `${String(startTimeDate.getHours()).padStart(2, '0')}:${String(startTimeDate.getMinutes()).padStart(2, '0')}`;
+      const endTimeStr = `${String(endTimeDate.getHours()).padStart(2, '0')}:${String(endTimeDate.getMinutes()).padStart(2, '0')}`;
+
+      generateInvoicePDF({
+        id: booking.id,
+        receiptId: `REC-${booking.id.slice(-8).toUpperCase()}`,
+        facilityName: booking.court.facility.name,
+        courtName: booking.court.name,
+        location: booking.court.facility.location,
+        sport: booking.court.facility.sports?.[0] || 'Sports',
+        date: formatLocalDateInput(startTimeDate),
+        startTime: startTimeStr,
+        endTime: endTimeStr,
+        price: Number(booking.price),
+        userName: user?.fullName,
+        userEmail: user?.email,
+        createdAt: booking.createdAt,
+      });
+
+      toast({
+        title: "Invoice Downloaded",
+        description: "Official Tax Invoice PDF has been downloaded successfully.",
+      });
+    } catch (e) {
+      console.error('Invoice download failed', e);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Unable to generate invoice. Please try again."
+      });
+    }
+  };
+
   const BookingCard = ({ booking }: { booking: Booking }) => (
     <Card>
       <CardHeader>
@@ -142,41 +182,55 @@ const MyBookings = () => {
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <span className="font-semibold">
-              ${Number(booking.price).toFixed(2)}
+            <span className="font-semibold text-lg text-emerald-700">
+              ₹{Number(booking.price).toFixed(0)}
             </span>
             
-            {canCancel(booking) && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    disabled={cancellingId === booking.id}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    {cancellingId === booking.id ? 'Cancelling...' : 'Cancel'}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to cancel this booking? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>No, keep booking</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => handleCancel(booking.id)}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex items-center gap-2">
+              {(booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadInvoice(booking)}
+                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" />
+                  Invoice
+                </Button>
+              )}
+
+              {canCancel(booking) && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      disabled={cancellingId === booking.id}
                     >
-                      Yes, cancel booking
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                      <X className="mr-2 h-4 w-4" />
+                      {cancellingId === booking.id ? 'Cancelling...' : 'Cancel'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to cancel this booking? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>No, keep booking</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleCancel(booking.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, cancel booking
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
