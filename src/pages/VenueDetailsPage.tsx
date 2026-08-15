@@ -151,6 +151,18 @@ const VenueDetailsPage = () => {
     }
   }, [selectedSport, selectedDate]);
 
+  // Production on Vercel does not keep a persistent Socket.IO connection, so
+  // refresh availability periodically as a fallback to keep booked slots current.
+  useEffect(() => {
+    if (!selectedSport || !selectedDate) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchTimeSlots();
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [selectedSport, selectedDate]);
+
   // Refetch availability on booking events for this venue/date
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
