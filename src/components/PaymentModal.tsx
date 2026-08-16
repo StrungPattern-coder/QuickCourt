@@ -99,14 +99,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               Secure Checkout
             </DialogTitle>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-              <Lock className="h-3.5 w-3.5" />
-              256-Bit SSL
-            </span>
           </div>
-          <DialogDescription className="text-xs text-slate-500">
-            Powered by Razorpay Secure Gateway. Review your booking details below.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-3">
