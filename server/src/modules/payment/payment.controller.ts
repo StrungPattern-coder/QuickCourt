@@ -248,6 +248,7 @@ export class PaymentController {
           endTime: booking.endTime,
           facilityId: booking.court.facility.id
         };
+        emitToRoom(`facility:${booking.court.facility.id}`, 'booking:slot_updated', payload);
         emitToRoom(`owner:${booking.court.facility.ownerId}`, 'booking:new', { ...payload, facilityName: booking.court.facility.name });
         emitToRoom(`user:${userId}`, 'booking:confirmed', payload);
 

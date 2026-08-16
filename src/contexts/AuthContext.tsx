@@ -13,7 +13,7 @@ interface AuthContextType {
     role: 'USER' | 'OWNER' | 'ADMIN';
     inviteSecret?: string;
     referralCode?: string;
-  }) => Promise<{ userId: string; delivery?: { devOtp?: string; disabled?: boolean } }>;
+  }) => Promise<{ userId: string; userRole?: 'USER' | 'OWNER' | 'ADMIN'; accessToken?: string; refreshToken?: string; user?: User; delivery?: { devOtp?: string; disabled?: boolean } }>;
   verifyOtp: (userId: string, otp: string) => Promise<void>;
   loginWithOtp: (userId: string, otp: string) => Promise<User>;
   updateProfile: (data: {
@@ -117,11 +117,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authApi.signup(data);
       
+      if (response.accessToken && response.user) {
+        localStorage.setItem('accessToken', response.accessToken);
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken);
+        }
+        localStorage.setItem('userData', JSON.stringify(response.user));
+        setUser(response.user);
+      }
+      
       toast({
-        title: 'Account created!',
-        description: response.delivery?.devOtp
-          ? 'Temporary free mode: your OTP is shown on the next screen.'
-          : 'Please check your email for the verification code.',
+        title: 'Account created successfully!',
+        description: 'Welcome to QuickCourt.',
       });
       
       return response;

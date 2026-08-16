@@ -180,16 +180,26 @@ const VenueDetailsPage = () => {
     if (socket) {
       const shouldRefetch = (payload: any) => {
         if (!id) return false;
-        const payloadDate = formatLocalDateInput(new Date(payload.startTime));
-        return payload.facilityId === id && payloadDate === selectedDate;
+        if (payload?.facilityId && payload.facilityId !== id) return false;
+        if (payload?.startTime) {
+          const payloadDate = typeof payload.startTime === 'string' && payload.startTime.includes('T')
+            ? payload.startTime.split('T')[0]
+            : formatLocalDateInput(new Date(payload.startTime));
+          return payloadDate === selectedDate;
+        }
+        return true;
       };
 
-      socket.on('booking:confirmed', (payload: any) => {
-        if (shouldRefetch(payload)) fetchTimeSlots();
-      });
-      socket.on('booking:cancelled', (payload: any) => {
-        if (shouldRefetch(payload)) fetchTimeSlots();
-      });
+      const handleUpdate = (payload: any) => {
+        if (shouldRefetch(payload)) {
+          fetchTimeSlots();
+        }
+      };
+
+      socket.on('booking:slot_updated', handleUpdate);
+      socket.on('booking:confirmed', handleUpdate);
+      socket.on('booking:cancelled', handleUpdate);
+      socket.on('booking:new', handleUpdate);
     }
 
     return () => {
@@ -350,9 +360,18 @@ const VenueDetailsPage = () => {
     }
 
     const slot = timeSlots.find(s => s.id === selectedSlot);
-    if (slot && slot.isAvailable) {
-      navigate(`/book/${venue?.id}/${slot.courtId}?slot=${selectedSlot}&date=${selectedDate}&sport=${selectedSport}`);
+    if (!slot) return;
+
+    if (!slot.isAvailable) {
+      toast({
+        title: "Slot Unavailable",
+        description: "This court slot has already been booked. Please choose another time.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    navigate(`/book/${venue?.id}/${slot.courtId}?slot=${selectedSlot}&date=${selectedDate}&sport=${selectedSport}`);
   };
 
   const handleShare = async () => {

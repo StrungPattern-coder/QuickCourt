@@ -205,13 +205,25 @@ facilityRouter.post('/admin/:id/reject', requireAuth, requireRoles(UserRole.ADMI
 facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const dateParam = (req.query.date as string) || formatLocalDateInput();
+    const rawDate = (req.query.date as string) || formatLocalDateInput();
 
-    // Compute day start/end before querying bookings and maintenance windows.
-    const dayStart = parseLocalDateInput(dateParam);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
+    // Auto-expire stale pending bookings older than 10 minutes
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    await prisma.booking.updateMany({
+      where: {
+        status: 'PENDING' as any,
+        createdAt: { lt: tenMinsAgo }
+      },
+      data: { status: 'CANCELLED' as any }
+    }).catch(err => console.warn('Stale booking cleanup warning:', err));
+
+    // Normalize dateParam to YYYY-MM-DD
+    const dateMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(rawDate);
+    const dateParam = dateMatch ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}` : formatLocalDateInput();
+
+    // Standardize day range in UTC
+    const dayStart = new Date(`${dateParam}T00:00:00.000Z`);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
     // Get facility with courts
     const facility = await prisma.facility.findUnique({
@@ -249,7 +261,7 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
     }
 
     const courtIds = facility.courts.map(c => c.id);
-    // Fetch bookings for the day for these courts
+    // Fetch bookings for the day for these courts (PENDING < 10min or CONFIRMED)
     const activePendingSince = new Date(Date.now() - PENDING_HOLD_MINUTES * 60 * 1000);
     const bookings = await prisma.booking.findMany({
       where: {
@@ -263,10 +275,13 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
         startTime: { lt: dayEnd },
         endTime: { gt: dayStart },
       },
-      select: { id: true, courtId: true, startTime: true, endTime: true }
+      select: { id: true, courtId: true, startTime: true, endTime: true, status: true }
     });
 
     const now = new Date();
+    const todayStr = formatLocalDateInput(now);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
     const slots: Array<{ id: string; startTime: string; endTime: string; price: number; isAvailable: boolean; courtId: string; courtName: string; }>
       = [];
 
@@ -285,10 +300,21 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
         const slotEnd = new Date(dayStart.getTime() + endMin * 60 * 1000);
 
         // Check overlap with bookings
-        const hasOverlap = bookings.some(b => b.courtId === court.id && (slotStart < b.endTime && slotEnd > b.startTime));
-        const hasMaintenance = court.maintenance.some(block => slotStart < block.endTime && slotEnd > block.startTime);
-        // Optionally, disallow past slots on the same day
-        const isPast = slotEnd <= now && dayStart.toDateString() === now.toDateString();
+        const hasOverlap = bookings.some(b => {
+          if (b.courtId !== court.id) return false;
+          const bStart = new Date(b.startTime).getTime();
+          const bEnd = new Date(b.endTime).getTime();
+          return slotStart.getTime() < bEnd && slotEnd.getTime() > bStart;
+        });
+
+        const hasMaintenance = court.maintenance.some(block => {
+          const mStart = new Date(block.startTime).getTime();
+          const mEnd = new Date(block.endTime).getTime();
+          return slotStart.getTime() < mEnd && slotEnd.getTime() > mStart;
+        });
+
+        // Determine if slot has already passed
+        const isPast = dateParam < todayStr || (dateParam === todayStr && endMin <= currentMins);
 
         slots.push({
           id: `${court.id}-${dateParam}-${startMin}`,

@@ -24,20 +24,28 @@ export async function registerUser(params: { email: string; password: string; fu
   const existing = await prisma.user.findUnique({ where: { email: params.email } });
   if (existing) throw new Error('Email already registered');
   const passwordHash = await hashPassword(params.password);
-  const user = await prisma.user.create({ data: { email: params.email, passwordHash, fullName: params.fullName, role: params.role, avatarUrl: params.avatarUrl } });
-  const delivery = await issueOtp(user.id, user.email, 'Verify your QuickCourt account');
-  return { userId: user.id, delivery };
+  const user = await prisma.user.create({
+    data: {
+      email: params.email,
+      passwordHash,
+      fullName: params.fullName,
+      role: params.role,
+      avatarUrl: params.avatarUrl,
+      emailVerifiedAt: new Date()
+    }
+  });
+  const session = await createSession(user.id, user.role);
+  return {
+    userId: user.id,
+    userRole: user.role,
+    accessToken: session.accessToken,
+    refreshToken: session.refreshToken,
+    user: session.user
+  };
 }
 
 export async function verifyOtp(userId: string, otp: string) {
-  const token = await prisma.verificationToken.findFirst({ where: { userId, usedAt: null }, orderBy: { createdAt: 'desc' } });
-  if (!token) throw new Error('No verification token');
-  if (token.expiresAt < new Date()) throw new Error('OTP expired');
-  if (token.otpHash !== sha256(otp)) throw new Error('Invalid OTP');
-  await prisma.$transaction([
-    prisma.verificationToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
-    prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } })
-  ]);
+  await prisma.user.updateMany({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
   return { success: true };
 }
 
@@ -47,7 +55,6 @@ export async function login(email: string, password: string) {
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) throw new Error('Invalid credentials');
   if (user.status === 'BANNED') throw new Error('User banned');
-  if (!user.emailVerifiedAt) throw new Error('Email verification required before login');
   return createSession(user.id, user.role);
 }
 

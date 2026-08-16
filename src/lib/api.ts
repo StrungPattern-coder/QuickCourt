@@ -154,7 +154,7 @@ export const authApi = {
     avatarUrl?: string;
     inviteSecret?: string;
     referralCode?: string;
-  }) => apiRequest<{ userId: string; delivery?: OtpDelivery }>('/auth/signup', {
+  }) => apiRequest<{ userId: string; userRole?: 'USER' | 'OWNER' | 'ADMIN'; accessToken?: string; refreshToken?: string; user?: User; delivery?: OtpDelivery }>('/auth/signup', {
     method: 'POST',
     body: JSON.stringify(data),
   }),

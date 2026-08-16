@@ -25,8 +25,20 @@ async function completeElapsedBookings(where: Prisma.BookingWhereInput = {}) {
 bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER, UserRole.ADMIN), async (req: AuthRequest, res: Response) => {
   try {
     const { courtId, startTime, endTime } = bookingSchema.parse(req.body);
-    const start = new Date(startTime); const end = new Date(endTime);
+    const start = new Date(startTime);
+    const end = new Date(endTime);
     if (end <= start) return res.status(400).json({ message: 'Invalid time range' });
+
+    // Auto-expire stale pending bookings older than 10 minutes
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    await prisma.booking.updateMany({
+      where: {
+        status: BookingStatus.PENDING,
+        createdAt: { lt: tenMinsAgo }
+      },
+      data: { status: BookingStatus.CANCELLED }
+    }).catch(err => console.warn('Stale booking cleanup warning:', err));
+
     const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const activePendingSince = new Date(Date.now() - PENDING_HOLD_MINUTES * 60 * 1000);
       const overlap = await tx.booking.findFirst({
@@ -40,16 +52,44 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
           endTime: { gt: start },
         }
       });
-      if (overlap) throw new Error('Slot unavailable');
-      const court = await tx.court.findUnique({ where: { id: courtId }, include: { facility: { select: { ownerId: true, id: true, name: true } } } });
+      if (overlap) {
+        throw new Error('This court slot is already booked or reserved. Please choose another slot.');
+      }
+      const court = await tx.court.findUnique({
+        where: { id: courtId },
+        include: { facility: { select: { ownerId: true, id: true, name: true } } }
+      });
       if (!court) throw new Error('Court not found');
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const price = hours * Number(court.pricePerHour);
-      return tx.booking.create({ data: { courtId, userId: req.user!.id, startTime: start, endTime: end, price: price.toFixed(2) as any, status: BookingStatus.PENDING } });
+      const created = await tx.booking.create({
+        data: {
+          courtId,
+          userId: req.user!.id,
+          startTime: start,
+          endTime: end,
+          price: price.toFixed(2) as any,
+          status: BookingStatus.PENDING
+        },
+        include: { court: { include: { facility: true } } }
+      });
+      return created;
     });
 
+    const socketPayload = {
+      bookingId: booking.id,
+      courtId: booking.courtId,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      facilityId: booking.court.facility.id
+    };
+    emitToRoom(`facility:${booking.court.facility.id}`, 'booking:slot_updated', socketPayload);
+    emitToRoom(`owner:${booking.court.facility.ownerId}`, 'booking:new', { ...socketPayload, facilityName: booking.court.facility.name });
+
     res.status(201).json(booking);
-  } catch (e: any) { res.status(400).json({ message: e.message }); }
+  } catch (e: any) {
+    res.status(400).json({ message: e.message || 'Failed to create booking' });
+  }
 });
 
 // Cancel a booking
@@ -79,8 +119,15 @@ bookingRouter.put('/:id/cancel', requireAuth, async (req: AuthRequest, res: Resp
       return u;
     });
 
-    const socketPayload = { bookingId: updated.id, courtId: existing.courtId, startTime: existing.startTime, endTime: existing.endTime, facilityId: existing.court.facility.id };
-    // Notify owner and user via socket rooms
+    const socketPayload = {
+      bookingId: updated.id,
+      courtId: existing.courtId,
+      startTime: existing.startTime,
+      endTime: existing.endTime,
+      facilityId: existing.court.facility.id
+    };
+    // Notify facility, owner, and user via socket rooms
+    emitToRoom(`facility:${existing.court.facility.id}`, 'booking:slot_updated', socketPayload);
     emitToRoom(`owner:${existing.court.facility.ownerId}`, 'booking:cancelled', socketPayload);
     emitToRoom(`user:${existing.userId}`, 'booking:cancelled', socketPayload);
 

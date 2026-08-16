@@ -22,11 +22,6 @@ import VenuesPage from "./pages/VenuesPage";
 import VenueDetailsPage from "./pages/VenueDetailsPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import OtpLogin from "./pages/OtpLogin";
-// If the file is named differently, update the import path accordingly, e.g.:
-// import Login from "./pages/LoginPage";
-// import Login from "./pages/login";
-// import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
@@ -47,7 +42,6 @@ const ConditionalFooter = () => {
   const authPages = [
     '/login',
     '/signup', 
-    '/otp-login',
     '/forgot-password',
     '/reset-password',
     '/admin/signup'
@@ -110,7 +104,7 @@ const AppContent = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/admin/signup" element={<AdminSignup />} />
-        <Route path="/otp-login" element={<OtpLogin />} />
+        <Route path="/otp-login" element={<Navigate to="/login" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/about" element={<About />} />

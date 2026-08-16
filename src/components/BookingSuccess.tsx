@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileText, Sparkles, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -52,13 +52,11 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
 
   const formatTime = (timeString: string) => {
     try {
-      const d = new Date(`2000-01-01T${timeString}`);
-      if (Number.isNaN(d.getTime())) return timeString;
-      return d.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      });
+      const [h, m] = timeString.split(':');
+      const hour = parseInt(h, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${m || '00'} ${ampm}`;
     } catch {
       return timeString;
     }
@@ -118,95 +116,100 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[92vw] sm:w-full max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 text-white p-4 sm:p-6 shadow-2xl backdrop-blur-xl">
-        <div className="text-center space-y-4">
+      <DialogContent className="max-w-md w-[92vw] sm:w-full max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white text-slate-900 p-5 sm:p-6 shadow-2xl transition-all">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Booking Confirmed</DialogTitle>
+          <DialogDescription>Your court reservation is confirmed</DialogDescription>
+        </DialogHeader>
+
+        <div className="text-center space-y-4 pt-1">
           {/* Animated Success Badge */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 220, delay: 0.1 }}
-            className="flex justify-center pt-1"
+            className="flex justify-center"
           >
             <div className="relative">
-              <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                <CheckCircle className="h-8 w-8 text-emerald-400" />
+              <div className="w-16 h-16 bg-emerald-100 border border-emerald-300 rounded-full flex items-center justify-center text-emerald-600 shadow-lg shadow-emerald-500/10">
+                <CheckCircle className="h-9 w-9 text-emerald-600" />
               </div>
             </div>
           </motion.div>
 
           {/* Heading */}
           <div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold tracking-wide uppercase mb-1">
-              <Sparkles className="h-3 w-3" /> Booking Confirmed
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold tracking-wide uppercase mb-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-600" /> Booking Confirmed
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               You're All Set to Play!
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Your court reservation has been verified and confirmed.
             </p>
           </div>
 
           {/* Compact Facility Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3.5 space-y-2.5 text-left">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3 text-left">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold text-sm text-white">{bookingData.facilityName}</h3>
-                <p className="text-xs font-medium text-emerald-400">{bookingData.courtName}</p>
+                <h3 className="font-bold text-sm sm:text-base text-slate-900">{bookingData.facilityName}</h3>
+                <p className="text-xs sm:text-sm font-semibold text-emerald-700">{bookingData.courtName}</p>
               </div>
-              <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+              <span className="text-xs sm:text-sm font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
                 ₹{bookingData.price}
               </span>
             </div>
 
-            <div className="space-y-1.5 text-xs text-slate-300 pt-2 border-t border-slate-800">
+            <div className="space-y-2 text-xs sm:text-sm text-slate-600 pt-2.5 border-t border-slate-200">
               <div className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                <span className="truncate">{bookingData.location}</span>
+                <MapPin className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <span className="truncate font-medium">{bookingData.location}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                <span>{formatDate(bookingData.date)}</span>
+                <Calendar className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <span className="font-medium">{formatDate(bookingData.date)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-                <span>{formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}</span>
+                <Clock className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                <span className="font-medium">{formatTime(bookingData.startTime)} - {formatTime(bookingData.endTime)}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800/60">
+            <div className="flex items-center justify-between text-xs font-mono text-slate-500 pt-2.5 border-t border-slate-200">
               <span>ID: {bookingData.id.slice(-8).toUpperCase()}</span>
               <span>Receipt: {bookingData.receiptId}</span>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             <Button
               onClick={handleDownloadReceipt}
               variant="outline"
               size="sm"
-              className="border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs h-10 font-semibold"
+              className="border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm h-11 font-semibold rounded-xl"
             >
-              <FileText className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+              <FileText className="h-4 w-4 mr-1.5 text-emerald-600" />
               Tax Invoice PDF
             </Button>
             <Button
               onClick={handleShare}
               variant="outline"
               size="sm"
-              className="border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs h-10 font-semibold"
+              className="border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs sm:text-sm h-11 font-semibold rounded-xl"
             >
-              <Share2 className="h-3.5 w-3.5 mr-1.5 text-emerald-400" />
+              <Share2 className="h-4 w-4 mr-1.5 text-emerald-600" />
               Share Details
             </Button>
           </div>
 
           {/* Primary Navigation Actions */}
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2.5 pt-1">
             <Button
               onClick={handleViewBookings}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs h-11 shadow-lg shadow-emerald-500/20"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm h-12 rounded-xl shadow-lg shadow-emerald-600/20"
             >
               View My Bookings
               <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -215,7 +218,7 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
             <Button
               onClick={handleBookAnother}
               variant="outline"
-              className="w-full border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs h-10"
+              className="w-full border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs sm:text-sm h-10 rounded-xl"
             >
               Book Another Venue
             </Button>

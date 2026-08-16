@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, ArrowLeft, User, Mail, Lock, Camera, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SEO from '@/components/SEO';
-import OtpVerification from '@/components/OtpVerification';
 
 // Dedicated Admin Signup page (role fixed to ADMIN)
 const AdminSignup = () => {
@@ -18,8 +17,6 @@ const AdminSignup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [devOtp, setDevOtp] = useState<string | undefined>();
   const [inviteSecret, setInviteSecret] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null); // reserved for future avatar upload integration
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -59,26 +56,12 @@ const AdminSignup = () => {
     if (password.length < 8) return;
     setIsLoading(true);
     try {
-      const result = await signup({ email, password, fullName, role: 'ADMIN', inviteSecret });
-      setUserId(result.userId);
-      setDevOtp(result.delivery?.devOtp);
+      await signup({ email, password, fullName, role: 'ADMIN', inviteSecret });
+      navigate('/admin/dashboard', { replace: true });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleOtpVerified = () => {
-    navigate('/login?role=admin', { state: { message: 'Admin account verified. Please login.' } });
-  };
-
-  if (userId) {
-    return (
-      <>
-        <SEO title="Verify Admin Email - QuickCourt" description="Verify your admin email" path="/admin/signup" />
-        <OtpVerification userId={userId} email={email} userRole="ADMIN" isLoginFlow={false} devOtp={devOtp} onVerified={handleOtpVerified} />
-      </>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

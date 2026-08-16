@@ -72,10 +72,6 @@ const Login = () => {
     }
   };
 
-  const handleOTPLogin = () => {
-    navigate('/otp-login');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <SEO title="Login - QuickCourt" description="Sign in to your QuickCourt account" path="/login" />
@@ -276,31 +272,6 @@ const Login = () => {
                   disabled={isLoading}
                 >
                   {isLoading ? 'Signing in...' : (isAdminLogin ? 'Access Admin Portal' : 'Login')}
-                </Button>
-              </motion.div>
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">Or use alternative methods</span>
-                </div>
-              </div>
-
-              {/* OTP Login Button */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleOTPLogin}
-                  className="w-full h-12 text-[#2ECC71] hover:text-[#27AE60] hover:bg-green-50 font-semibold rounded-lg transition-all duration-200"
-                >
-                  Login with OTP
                 </Button>
               </motion.div>
             </form>

@@ -280,11 +280,19 @@ const BookingWidget = ({
         {/* Book Now Button */}
         <Button
           onClick={onBookNow}
-          disabled={!selectedSlot}
-          className="w-full h-12 text-lg font-semibold bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          disabled={!selectedSlot || !selectedSlotData?.isAvailable}
+          className={`w-full h-12 text-lg font-semibold shadow-lg transition-all duration-200 ${
+            selectedSlot && selectedSlotData?.isAvailable
+              ? 'bg-green-600 hover:bg-green-700 text-white hover:shadow-xl'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
           size="lg"
         >
-          {selectedSlot ? `Book Now - ₹${selectedSlotData?.price}` : 'Select a Time Slot'}
+          {selectedSlot
+            ? selectedSlotData?.isAvailable
+              ? `Book Now - ₹${selectedSlotData?.price}`
+              : 'Slot Already Booked'
+            : 'Select a Time Slot'}
         </Button>
 
         {/* Trust Indicators */}

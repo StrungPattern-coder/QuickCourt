@@ -23,7 +23,7 @@ const pillars = [
 
 const built = [
   'Dynamic venue discovery with filters and approved-facility visibility',
-  'Email/password auth, OTP verification, OTP login, and password reset support',
+  'Email/password authentication with JWT sessions and password reset support',
   'Owner dashboard for facility and court setup',
   'Admin dashboard for approvals, users, bookings, and analytics',
   'Booking overlap prevention, receipts, reviews, and loyalty tracking'
