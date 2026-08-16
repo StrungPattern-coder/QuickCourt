@@ -7,6 +7,7 @@ import { emitToRoom } from '../../socket.js';
 
 const prisma = new PrismaClient();
 export const bookingRouter = Router();
+const PENDING_HOLD_MINUTES = 10;
 
 const bookingSchema = z.object({ courtId: z.string(), startTime: z.string().datetime(), endTime: z.string().datetime() });
 
@@ -27,13 +28,16 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
     const start = new Date(startTime); const end = new Date(endTime);
     if (end <= start) return res.status(400).json({ message: 'Invalid time range' });
     const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const activePendingSince = new Date(Date.now() - PENDING_HOLD_MINUTES * 60 * 1000);
       const overlap = await tx.booking.findFirst({
         where: {
           courtId,
-          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
           OR: [
-            { startTime: { lt: end }, endTime: { gt: start } }
-          ]
+            { status: BookingStatus.CONFIRMED },
+            { status: BookingStatus.PENDING, createdAt: { gte: activePendingSince } },
+          ],
+          startTime: { lt: end },
+          endTime: { gt: start },
         }
       });
       if (overlap) throw new Error('Slot unavailable');

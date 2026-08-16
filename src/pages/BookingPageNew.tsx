@@ -135,27 +135,28 @@ const BookingPageNew: React.FC = () => {
         courtsApi.getById(courtId!)
       ]);
 
-      // Determine start/end/price based on selected slot id by querying availability for the date
-      let startTimeNorm = '09:00';
-      let endTimeNorm = '10:00';
-      let duration = 1;
-      let price = Number(court.pricePerHour);
-
-      try {
-        const slots = await facilitiesApi.getAvailability(venueId!, normalizedDate);
-        const selected = Array.isArray(slots) ? slots.find((s: any) => s.id === slot) : null;
-        if (selected) {
-          startTimeNorm = selected.startTime;
-          endTimeNorm = selected.endTime;
-          duration = Math.max(0.5, (
-            Number(selected.endTime.split(':')[0]) * 60 + Number(selected.endTime.split(':')[1] || 0) -
-            (Number(selected.startTime.split(':')[0]) * 60 + Number(selected.startTime.split(':')[1] || 0))
-          ) / 60);
-          price = Number(selected.price) * duration / 1; // price is per-hour from API
-        }
-      } catch (e) {
-        console.warn('Availability lookup failed, using court defaults:', e);
+      // Revalidate the slot on the server before showing checkout.  Do not
+      // fall back to a default time: that could create a booking for a
+      // different slot after the selected one has become unavailable.
+      const slots = await facilitiesApi.getAvailability(venueId!, normalizedDate);
+      const selected = Array.isArray(slots) ? slots.find((s: any) => s.id === slot) : null;
+      if (!selected || !selected.isAvailable || selected.courtId !== court.id) {
+        toast({
+          title: 'Slot no longer available',
+          description: 'The selected time has just been booked. Please choose another slot.',
+          variant: 'destructive',
+        });
+        navigate(`/venue-details/${venueId}`, { replace: true });
+        return;
       }
+
+      const startTimeNorm = selected.startTime;
+      const endTimeNorm = selected.endTime;
+      const duration = Math.max(0.5, (
+        Number(selected.endTime.split(':')[0]) * 60 + Number(selected.endTime.split(':')[1] || 0) -
+        (Number(selected.startTime.split(':')[0]) * 60 + Number(selected.startTime.split(':')[1] || 0))
+      ) / 60);
+      const price = Number(selected.price) * duration;
 
       const bookingData: BookingDetails = {
         id: '', // Will be set after booking creation
@@ -210,22 +211,14 @@ const BookingPageNew: React.FC = () => {
       setIsCreatingBooking(true);
 
       // Create booking date-time strings
-      const bookingDate = parseDateFromParam(bookingDetails.date);
-      if (!bookingDate) {
+      // Slots are displayed in the venue's (India) timezone.  Include the
+      // offset explicitly so the instant sent to the API is identical from
+      // every browser timezone.
+      const startDateTime = new Date(`${bookingDetails.date}T${bookingDetails.startTime}:00+05:30`);
+      const endDateTime = new Date(`${bookingDetails.date}T${bookingDetails.endTime}:00+05:30`);
+      if (Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime())) {
         throw new Error('Invalid date format. Please go back and reselect your date.');
       }
-  const [startHourStr, startMinStr] = bookingDetails.startTime.split(':');
-  const [endHourStr, endMinStr] = bookingDetails.endTime.split(':');
-  const startHour = Number(startHourStr);
-  const startMin = startMinStr !== undefined ? Number(startMinStr) : 0;
-  const endHour = Number(endHourStr);
-  const endMin = endMinStr !== undefined ? Number(endMinStr) : 0;
-
-      const startDateTime = new Date(bookingDate);
-      startDateTime.setHours(startHour, startMin, 0, 0);
-
-      const endDateTime = new Date(bookingDate);
-      endDateTime.setHours(endHour, endMin, 0, 0);
 
       const data = await bookingsApi.create({
         courtId: bookingDetails.courtId,
@@ -240,9 +233,10 @@ const BookingPageNew: React.FC = () => {
       console.error('Failed to create booking:', error);
 
       if (String(error?.message || '').toLowerCase().includes('slot unavailable')) {
-        // Let the availability page show the booked state instead of surfacing a toast here.
+        // Return to freshly fetched availability, where the time is visibly
+        // marked BOOKED and cannot be selected again.
         setShowPaymentModal(false);
-        navigate(-1);
+        navigate(`/venue-details/${venueId}`, { replace: true });
         return;
       }
 
