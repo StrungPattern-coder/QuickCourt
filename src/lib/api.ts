@@ -78,6 +78,7 @@ export async function apiRequest<T>(
   const token = localStorage.getItem('accessToken');
   
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),

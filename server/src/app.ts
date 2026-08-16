@@ -28,6 +28,14 @@ app.use(sentryRequestHandler);
 
 app.use(helmet());
 
+// Booking and availability data must always be fresh; disable caching for API responses.
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // Enhanced CORS configuration
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
