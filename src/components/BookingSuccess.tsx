@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Calendar, Clock, MapPin, Download, Share2, ArrowRight, FileText, Sparkles, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { parseLocalDate } from '@/lib/datetime';
+import { formatBookingDate, formatBookingTime } from '@/lib/datetime';
 import { generateInvoicePDF } from '@/lib/invoice';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -35,32 +35,14 @@ const BookingSuccess: React.FC<BookingSuccessProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const formatDate = (dateString: string) => {
-    try {
-      const d = parseLocalDate(dateString) || new Date(dateString);
-      if (Number.isNaN(d.getTime())) return dateString;
-      return d.toLocaleDateString('en-IN', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  const formatDate = (dateString: string) => formatBookingDate(dateString, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
-  const formatTime = (timeString: string) => {
-    try {
-      const [h, m] = timeString.split(':');
-      const hour = parseInt(h, 10);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      return `${displayHour}:${m || '00'} ${ampm}`;
-    } catch {
-      return timeString;
-    }
-  };
+  const formatTime = (timeString: string) => formatBookingTime(timeString);
 
   const handleShare = async () => {
     const bookingText = `🎾 Booking Confirmed at ${bookingData.facilityName}!\n\n📍 ${bookingData.location}\n🏟️ ${bookingData.courtName}\n📅 ${formatDate(bookingData.date)}\n🕐 ${formatTime(bookingData.startTime)} - ${formatTime(bookingData.endTime)}\n💰 ₹${bookingData.price}`;

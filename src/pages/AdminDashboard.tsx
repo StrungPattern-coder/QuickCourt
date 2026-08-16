@@ -35,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import BrandNav from '@/components/BrandNav';
 import AdminAnalytics from '@/components/AdminAnalytics';
 import SEO from '@/components/SEO';
+import { formatBookingDate, formatBookingTimeRange } from '@/lib/datetime';
 
 interface DashboardStats {
   totalUsers: number;
@@ -781,10 +782,10 @@ const AdminDashboard = () => {
                                 <Clock className="h-3 w-3 mr-1 text-gray-400" />
                                 <div>
                                   <p className="text-sm text-gray-900">
-                                    {new Date(booking.startTime).toLocaleDateString()}
+                                    {formatBookingDate(booking.startTime, { month: 'short', day: 'numeric', year: 'numeric' })}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {new Date(booking.startTime).toLocaleTimeString()} - {new Date(booking.endTime).toLocaleTimeString()}
+                                    {formatBookingTimeRange(booking.startTime, booking.endTime)}
                                   </p>
                                 </div>
                               </div>

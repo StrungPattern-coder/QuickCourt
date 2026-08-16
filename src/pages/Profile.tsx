@@ -17,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { bookingsApi, Booking, loyaltyApi, badgeApi, BadgeEarned } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { formatBookingDate, formatBookingTime } from '@/lib/datetime';
+
 const Profile = () => {
   const { user, isAuthenticated, updateProfile } = useAuth();
   const { toast } = useToast();
@@ -218,21 +220,13 @@ const Profile = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (dateString: string) => formatBookingDate(dateString, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  const formatTime = (timeString: string) => formatBookingTime(timeString);
 
   const BookingCard = ({ booking }: { booking: Booking }) => (
     <Card className="mb-4">

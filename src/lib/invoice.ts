@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { formatLocalDateInput, parseLocalDate } from './datetime';
+import { formatLocalDateInput, parseLocalDate, formatBookingDate, formatBookingTimeRange, extractBookingTimeStr } from './datetime';
 
 export interface InvoiceBookingData {
   id: string;
@@ -20,11 +20,14 @@ export interface InvoiceBookingData {
 export function generateInvoicePDF(booking: InvoiceBookingData): void {
   const price = Number(booking.price) || 0;
   
-  // Parse slot duration
+  // Parse slot duration safely
+  const cleanStartTime = extractBookingTimeStr(booking.startTime);
+  const cleanEndTime = extractBookingTimeStr(booking.endTime);
+
   const durationHours = (() => {
     try {
-      const [sh, sm] = booking.startTime.split(':').map(n => Number(n) || 0);
-      const [eh, em] = booking.endTime.split(':').map(n => Number(n) || 0);
+      const [sh, sm] = cleanStartTime.split(':').map(n => Number(n) || 0);
+      const [eh, em] = cleanEndTime.split(':').map(n => Number(n) || 0);
       const diffMinutes = (eh * 60 + em) - (sh * 60 + sm);
       return Math.max(0.5, diffMinutes / 60);
     } catch {
@@ -35,31 +38,14 @@ export function generateInvoicePDF(booking: InvoiceBookingData): void {
   const hourlyRate = Math.round(price / durationHours);
 
   // Date formatting
-  const formattedBookingDate = (() => {
-    const d = parseLocalDate(booking.date);
-    if (!d) return booking.date;
-    return d.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  })();
+  const formattedBookingDate = formatBookingDate(booking.date, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
-  const formattedTimeSlot = (() => {
-    const formatTime = (timeStr: string) => {
-      try {
-        const [h, m] = timeStr.split(':');
-        const hour = parseInt(h, 10);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 || 12;
-        return `${displayHour}:${m || '00'} ${ampm}`;
-      } catch {
-        return timeStr;
-      }
-    };
-    return `${formatTime(booking.startTime)} - ${formatTime(booking.endTime)}`;
-  })();
+  const formattedTimeSlot = formatBookingTimeRange(booking.startTime, booking.endTime);
 
   const invoiceNo = booking.receiptId 
     ? booking.receiptId.replace(/[^A-Za-z0-9-]/g, '').slice(0, 24)

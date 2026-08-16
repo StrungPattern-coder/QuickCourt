@@ -43,6 +43,7 @@ import { courtsApi, bookingsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import type { Socket } from 'socket.io-client';
 import { createSafeSocket } from '@/lib/socket';
+import { formatBookingDate, formatBookingTimeRange } from '@/lib/datetime';
 
 const OwnerDashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -916,7 +917,7 @@ const OwnerDashboard: React.FC = () => {
                                             </Badge>
                                           </div>
                                           <div className="mt-2 flex items-center justify-between text-xs text-gray-600 border-t border-gray-100 pt-2">
-                                            <span>📅 {formatDateTime(booking.startTime)} - {new Date(booking.endTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span>📅 {formatBookingDate(booking.startTime, { month: 'short', day: 'numeric', year: 'numeric' })}, {formatBookingTimeRange(booking.startTime, booking.endTime)}</span>
                                             <span className="font-semibold text-gray-900">₹{Number(booking.price || 0)}</span>
                                           </div>
                                         </div>

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Calendar, CreditCard, ShieldCheck, AlertCircle, Loader2, Lock, CheckCircle2 } from 'lucide-react';
 import { useRazorpayPayment, PaymentOptions } from '@/hooks/useRazorpayPayment';
 import { useToast } from '@/hooks/use-toast';
-import { parseLocalDate } from '@/lib/datetime';
+import { formatBookingDate, formatBookingTime } from '@/lib/datetime';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -35,26 +35,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const { processPayment, isLoading, error, setError } = useRazorpayPayment();
   const { toast } = useToast();
 
-  const formatDate = (dateString: string) => {
-    return (parseLocalDate(dateString) || new Date(dateString)).toLocaleDateString('en-IN', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const formatDate = (dateString: string) => formatBookingDate(dateString, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
-  const formatTime = (timeString: string) => {
-    try {
-      const [h, m] = timeString.split(':');
-      const hour = parseInt(h, 10);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      return `${displayHour}:${m || '00'} ${ampm}`;
-    } catch {
-      return timeString;
-    }
-  };
+  const formatTime = (timeString: string) => formatBookingTime(timeString);
 
   const handlePayment = async () => {
     setError(null);

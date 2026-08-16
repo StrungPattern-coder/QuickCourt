@@ -64,3 +64,82 @@ export function getRelativeDateLabel(dateString: string): string {
   });
 }
 
+/**
+ * Extracts "HH:mm" from either "HH:mm", "HH:mm:ss", or "YYYY-MM-DDTHH:mm:ss.sssZ"
+ * without any timezone conversion skew.
+ */
+export function extractBookingTimeStr(timeOrIso: string): string {
+  if (!timeOrIso) return '00:00';
+  if (typeof timeOrIso !== 'string') return '00:00';
+  if (timeOrIso.includes('T')) {
+    const timePart = timeOrIso.split('T')[1];
+    const match = /^(\d{2}):(\d{2})/.exec(timePart);
+    if (match) return `${match[1]}:${match[2]}`;
+  }
+  const match = /^(\d{1,2}):(\d{2})/.exec(timeOrIso);
+  if (match) {
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+  return timeOrIso;
+}
+
+/**
+ * Extracts "YYYY-MM-DD" from either "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss.sssZ", or Date
+ * without any timezone conversion skew.
+ */
+export function extractBookingDateStr(dateOrIso: string | Date): string {
+  if (!dateOrIso) return formatLocalDateInput();
+  if (dateOrIso instanceof Date) {
+    return formatLocalDateInput(dateOrIso);
+  }
+  if (typeof dateOrIso === 'string') {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateOrIso);
+    if (match) {
+      return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+  }
+  return formatLocalDateInput(new Date(dateOrIso));
+}
+
+/**
+ * Formats "06:00" or "2026-08-17T06:00:00.000Z" to "6:00 AM" without timezone drift.
+ */
+export function formatBookingTime(timeOrIso: string): string {
+  if (!timeOrIso) return '';
+  const timeStr = extractBookingTimeStr(timeOrIso);
+  const parts = timeStr.split(':');
+  if (parts.length >= 2) {
+    const hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minute} ${ampm}`;
+  }
+  return timeOrIso;
+}
+
+/**
+ * Formats date to "Monday, August 17, 2026" or custom options without timezone drift.
+ */
+export function formatBookingDate(dateOrIso: string | Date, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateOrIso) return '';
+  const dateStr = extractBookingDateStr(dateOrIso);
+  const parsed = parseLocalDate(dateStr);
+  if (!parsed) return typeof dateOrIso === 'string' ? dateOrIso : formatLocalDateInput(dateOrIso);
+  
+  return parsed.toLocaleDateString('en-US', options || {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Formats time range e.g. "6:00 AM - 7:00 AM"
+ */
+export function formatBookingTimeRange(startTimeOrIso: string, endTimeOrIso: string): string {
+  return `${formatBookingTime(startTimeOrIso)} - ${formatBookingTime(endTimeOrIso)}`;
+}
+
+

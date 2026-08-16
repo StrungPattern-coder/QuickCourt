@@ -12,7 +12,7 @@ import BrandNav from '@/components/BrandNav';
 import SEO from '@/components/SEO';
 import { useToast } from '@/hooks/use-toast';
 import { generateInvoicePDF } from '@/lib/invoice';
-import { formatLocalDateInput } from '@/lib/datetime';
+import { formatLocalDateInput, formatBookingDate, formatBookingTime, extractBookingDateStr, extractBookingTimeStr } from '@/lib/datetime';
 
 const MyBookings = () => {
   const { isAuthenticated, user } = useAuth();
@@ -94,29 +94,15 @@ const MyBookings = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  const formatDate = (dateString: string) => formatBookingDate(dateString);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatTime = (timeString: string) => formatBookingTime(timeString);
 
   const handleDownloadInvoice = (booking: Booking) => {
     try {
-      const startTimeDate = new Date(booking.startTime);
-      const endTimeDate = new Date(booking.endTime);
-      
-      const startTimeStr = `${String(startTimeDate.getHours()).padStart(2, '0')}:${String(startTimeDate.getMinutes()).padStart(2, '0')}`;
-      const endTimeStr = `${String(endTimeDate.getHours()).padStart(2, '0')}:${String(endTimeDate.getMinutes()).padStart(2, '0')}`;
+      const dateStr = extractBookingDateStr(booking.startTime);
+      const startTimeStr = extractBookingTimeStr(booking.startTime);
+      const endTimeStr = extractBookingTimeStr(booking.endTime);
 
       generateInvoicePDF({
         id: booking.id,
@@ -125,7 +111,7 @@ const MyBookings = () => {
         courtName: booking.court.name,
         location: booking.court.facility.location,
         sport: booking.court.facility.sports?.[0] || 'Sports',
-        date: formatLocalDateInput(startTimeDate),
+        date: dateStr,
         startTime: startTimeStr,
         endTime: endTimeStr,
         price: Number(booking.price),
