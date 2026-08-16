@@ -8,6 +8,13 @@ import { AuthRequest, requireAuth, requireRoles } from '../../middleware/auth.js
 const prisma = new PrismaClient();
 export const facilityRouter = Router();
 
+// Facilities currently operate in India.  Store all booking instants in UTC,
+// but build a venue's calendar day and clock-time slots in IST.  Relying on
+// the Node process timezone here made availability differ between local
+// development and Vercel (which runs in UTC).
+const VENUE_TIMEZONE_OFFSET_MINUTES = 5 * 60 + 30;
+const PENDING_HOLD_MINUTES = 10;
+
 const formatLocalDateInput = (date = new Date()) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -18,7 +25,13 @@ const formatLocalDateInput = (date = new Date()) => {
 const parseLocalDateInput = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return new Date(value);
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+
+  // `YYYY-MM-DD` represents a calendar date at the venue, not midnight in
+  // whichever timezone happens to run this server.
+  return new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+      - VENUE_TIMEZONE_OFFSET_MINUTES * 60 * 1000
+  );
 };
 
 const createSchema = z.object({
@@ -237,13 +250,18 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
 
     const courtIds = facility.courts.map(c => c.id);
     // Fetch bookings for the day for these courts
+    const activePendingSince = new Date(Date.now() - PENDING_HOLD_MINUTES * 60 * 1000);
     const bookings = await prisma.booking.findMany({
       where: {
         courtId: { in: courtIds },
-        status: { in: ['PENDING', 'CONFIRMED'] as any },
+        // A pending payment is a short-lived checkout hold.  Old abandoned
+        // holds must not leave recurring phantom "BOOKED" slots in the UI.
         OR: [
-          { startTime: { lt: dayEnd }, endTime: { gt: dayStart } }
-        ]
+          { status: 'CONFIRMED' as any },
+          { status: 'PENDING' as any, createdAt: { gte: activePendingSince } },
+        ],
+        startTime: { lt: dayEnd },
+        endTime: { gt: dayStart },
       },
       select: { id: true, courtId: true, startTime: true, endTime: true }
     });
@@ -263,10 +281,8 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
       // Generate 1-hour slots between open and close
       for (let startMin = court.openTime; startMin + 60 <= court.closeTime; startMin += 60) {
         const endMin = startMin + 60;
-        const slotStart = new Date(dayStart);
-        slotStart.setMinutes(startMin);
-        const slotEnd = new Date(dayStart);
-        slotEnd.setMinutes(endMin);
+        const slotStart = new Date(dayStart.getTime() + startMin * 60 * 1000);
+        const slotEnd = new Date(dayStart.getTime() + endMin * 60 * 1000);
 
         // Check overlap with bookings
         const hasOverlap = bookings.some(b => b.courtId === court.id && (slotStart < b.endTime && slotEnd > b.startTime));
