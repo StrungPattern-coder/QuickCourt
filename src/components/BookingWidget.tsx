@@ -177,6 +177,11 @@ const BookingWidget = ({
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <AnimatePresence>
                 {timeSlots.map((slot, index) => (
+                  (() => {
+                    const isBooked = !slot.isAvailable;
+                    const isSelected = selectedSlot === slot.id && !isBooked;
+
+                    return (
                   <motion.div
                     key={slot.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -185,30 +190,30 @@ const BookingWidget = ({
                     transition={{ delay: index * 0.05 }}
                     onClick={() => slot.isAvailable && onSlotSelect(slot.id)}
                     className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                      selectedSlot === slot.id
+                      isBooked
+                        ? 'border-red-200 bg-red-50/80 cursor-not-allowed select-none'
+                        : isSelected
                         ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-400/20'
-                        : slot.isAvailable
-                          ? 'border-gray-200 hover:border-green-400 hover:bg-emerald-50/50 cursor-pointer'
-                          : 'border-red-200 bg-red-50/80 cursor-not-allowed select-none'
+                        : 'border-gray-200 hover:border-green-400 hover:bg-emerald-50/50 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-semibold ${
-                            slot.isAvailable ? 'text-gray-900' : 'text-red-950 line-through'
+                            isBooked ? 'text-red-950 line-through' : 'text-gray-900'
                           }`}>
                             {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                           </span>
-                          {selectedSlot === slot.id && (
+                          {isSelected && (
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-xs ${slot.isAvailable ? 'text-gray-500' : 'text-red-800'}`}>
+                          <span className={`text-xs ${isBooked ? 'text-red-800' : 'text-gray-500'}`}>
                             {slot.courtName}
                           </span>
-                          {!slot.isAvailable && (
+                          {isBooked && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white uppercase tracking-wider shadow-sm">
                               BOOKED
                             </span>
@@ -217,16 +222,18 @@ const BookingWidget = ({
                       </div>
                       <div className="text-right">
                         <div className={`font-bold ${
-                          slot.isAvailable ? 'text-green-600' : 'text-red-600 line-through text-sm'
+                          isBooked ? 'text-red-600 line-through text-sm' : 'text-green-600'
                         }`}>
                           ₹{slot.price}
                         </div>
-                        <div className={`text-xs ${slot.isAvailable ? 'text-gray-500' : 'text-red-700/80'}`}>
-                          {slot.isAvailable ? 'per hour' : 'Unavailable'}
+                        <div className={`text-xs ${isBooked ? 'text-red-700/80' : 'text-gray-500'}`}>
+                          {isBooked ? 'Unavailable' : 'per hour'}
                         </div>
                       </div>
                     </div>
                   </motion.div>
+                    );
+                  })()
                 ))}
               </AnimatePresence>
             </div>
