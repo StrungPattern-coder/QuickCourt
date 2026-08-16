@@ -287,6 +287,10 @@ export const facilitiesApi = {
     endTime: string;
     price: number;
     isAvailable: boolean;
+    isBooked?: boolean;
+    isPast?: boolean;
+    isMaintenance?: boolean;
+    reason?: 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'AVAILABLE';
     courtId: string;
     courtName: string;
   }[]>(`/facilities/${facilityId}/availability?date=${encodeURIComponent(date)}`),

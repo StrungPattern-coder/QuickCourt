@@ -29,6 +29,21 @@ bookingRouter.post('/', requireAuth, requireRoles(UserRole.USER, UserRole.OWNER,
     const end = new Date(endTime);
     if (end <= start) return res.status(400).json({ message: 'Invalid time range' });
 
+    // Validate that slot is not in the past (using venue wall-clock time)
+    const VENUE_TIMEZONE_OFFSET_MINUTES = 5 * 60 + 30;
+    const venueNowMs = Date.now() + VENUE_TIMEZONE_OFFSET_MINUTES * 60 * 1000;
+    const venueNow = new Date(venueNowMs);
+    const venueWallClockUtcMs = Date.UTC(
+      venueNow.getUTCFullYear(),
+      venueNow.getUTCMonth(),
+      venueNow.getUTCDate(),
+      venueNow.getUTCHours(),
+      venueNow.getUTCMinutes()
+    );
+    if (start.getTime() <= venueWallClockUtcMs) {
+      return res.status(400).json({ message: 'Cannot book a time slot that has already passed. Please choose an upcoming slot.' });
+    }
+
     // Auto-expire stale pending bookings older than 10 minutes
     const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
     await prisma.booking.updateMany({

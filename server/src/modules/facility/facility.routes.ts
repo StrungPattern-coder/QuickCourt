@@ -16,9 +16,11 @@ const VENUE_TIMEZONE_OFFSET_MINUTES = 5 * 60 + 30;
 const PENDING_HOLD_MINUTES = 10;
 
 const formatLocalDateInput = (date = new Date()) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const venueMs = date.getTime() + VENUE_TIMEZONE_OFFSET_MINUTES * 60 * 1000;
+  const vDate = new Date(venueMs);
+  const year = vDate.getUTCFullYear();
+  const month = String(vDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(vDate.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -278,12 +280,28 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
       select: { id: true, courtId: true, startTime: true, endTime: true, status: true }
     });
 
-    const now = new Date();
-    const todayStr = formatLocalDateInput(now);
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    // Standardize venue local clock in IST (UTC+5:30)
+    const venueNowMs = Date.now() + VENUE_TIMEZONE_OFFSET_MINUTES * 60 * 1000;
+    const venueNow = new Date(venueNowMs);
+    const venueYear = venueNow.getUTCFullYear();
+    const venueMonth = String(venueNow.getUTCMonth() + 1).padStart(2, '0');
+    const venueDay = String(venueNow.getUTCDate()).padStart(2, '0');
+    const venueTodayStr = `${venueYear}-${venueMonth}-${venueDay}`;
+    const venueCurrentMins = venueNow.getUTCHours() * 60 + venueNow.getUTCMinutes();
 
-    const slots: Array<{ id: string; startTime: string; endTime: string; price: number; isAvailable: boolean; courtId: string; courtName: string; }>
-      = [];
+    const slots: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      price: number;
+      isAvailable: boolean;
+      isBooked: boolean;
+      isPast: boolean;
+      isMaintenance: boolean;
+      reason: 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'AVAILABLE';
+      courtId: string;
+      courtName: string;
+    }> = [];
 
     // Helper to format minutes to HH:mm
     const toHM = (mins: number) => {
@@ -314,14 +332,28 @@ facilityRouter.get('/:id/availability', async (req: Request, res: Response) => {
         });
 
         // Determine if slot has already passed
-        const isPast = dateParam < todayStr || (dateParam === todayStr && endMin <= currentMins);
+        const isPast = dateParam < venueTodayStr || (dateParam === venueTodayStr && startMin <= venueCurrentMins);
+        const isBooked = hasOverlap;
+        const isMaintenance = hasMaintenance;
+        const isAvailable = !isBooked && !isMaintenance && !isPast;
+        const reason = isBooked
+          ? 'BOOKED'
+          : hasMaintenance
+          ? 'MAINTENANCE'
+          : isPast
+          ? 'PAST'
+          : 'AVAILABLE';
 
         slots.push({
           id: `${court.id}-${dateParam}-${startMin}`,
           startTime: toHM(startMin),
           endTime: toHM(endMin),
           price: Number(court.pricePerHour),
-          isAvailable: !hasOverlap && !hasMaintenance && !isPast,
+          isAvailable,
+          isBooked,
+          isPast,
+          isMaintenance,
+          reason,
           courtId: court.id,
           courtName: court.name,
         });

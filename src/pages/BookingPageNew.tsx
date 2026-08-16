@@ -13,7 +13,7 @@ import BookingSuccess from '@/components/BookingSuccess';
 import PaymentModal from '@/components/PaymentModal';
 import SEO from '@/components/SEO';
 import { bookingsApi, courtsApi, facilitiesApi } from '@/lib/api';
-import { formatLocalDateInput, parseLocalDate, getRelativeDateLabel } from '@/lib/datetime';
+import { formatLocalDateInput, parseLocalDate, getRelativeDateLabel, isSlotInPast } from '@/lib/datetime';
 
 interface BookingDetails {
   id: string;
@@ -118,14 +118,22 @@ const BookingPageNew: React.FC = () => {
         if (selected) {
           startTimeNorm = selected.startTime;
           endTimeNorm = selected.endTime;
-          isAvailable = selected.isAvailable;
+          const isPast = selected.isPast ?? isSlotInPast(normalizedDate, selected.startTime);
+          isAvailable = Boolean(selected.isAvailable && !isPast && !selected.isBooked && selected.reason !== 'BOOKED');
           const [sh, sm] = selected.startTime.split(':').map(Number);
           const [eh, em] = selected.endTime.split(':').map(Number);
           duration = Math.max(0.5, ((eh * 60 + (em || 0)) - (sh * 60 + (sm || 0))) / 60);
           price = Math.round(Number(selected.price) * duration);
+        } else {
+          if (isSlotInPast(normalizedDate, startTimeNorm)) {
+            isAvailable = false;
+          }
         }
       } catch (e) {
         console.warn('Availability lookup warning, using court defaults:', e);
+        if (isSlotInPast(normalizedDate, startTimeNorm)) {
+          isAvailable = false;
+        }
       }
 
       setIsSlotUnavailable(!isAvailable);
@@ -176,10 +184,10 @@ const BookingPageNew: React.FC = () => {
       return;
     }
 
-    if (isSlotUnavailable) {
+    if (isSlotUnavailable || (bookingDetails && isSlotInPast(bookingDetails.date, bookingDetails.startTime))) {
       toast({
         title: "Slot Unavailable",
-        description: "This court slot has already been booked. Please pick another slot.",
+        description: "This court time slot is in the past or has already been reserved. Please choose an upcoming slot.",
         variant: "destructive",
       });
       return;
@@ -331,17 +339,17 @@ const BookingPageNew: React.FC = () => {
 
           {/* Slot Unavailable Warning Banner */}
           {isSlotUnavailable && (
-            <div className="mb-5 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-900 flex items-start gap-3 shadow-sm">
-              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3 shadow-sm">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-bold text-sm text-red-900">Slot Already Booked</h4>
-                <p className="text-xs text-red-700 mt-0.5">
-                  This court time slot has already been reserved by another player. Please return to the venue page and select another available slot.
+                <h4 className="font-bold text-sm text-amber-900">Slot Unavailable</h4>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  This court time slot has already passed or has been booked by another player. Please select an available upcoming slot.
                 </p>
                 <Button
-                  onClick={() => navigate(`/venue-details/${venueId}`)}
+                  onClick={() => navigate(venueId ? `/venue-details/${venueId}` : '/venues')}
                   size="sm"
-                  className="mt-3 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs h-9 rounded-lg"
+                  className="mt-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs h-9 rounded-lg"
                 >
                   Choose Another Slot
                 </Button>

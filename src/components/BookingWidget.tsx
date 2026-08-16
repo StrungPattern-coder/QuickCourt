@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatLocalDateInput, parseLocalDate, getRelativeDateLabel } from '@/lib/datetime';
+import { formatLocalDateInput, parseLocalDate, getRelativeDateLabel, isSlotInPast } from '@/lib/datetime';
 
 interface VenueDetails {
   id: string;
@@ -27,6 +27,10 @@ interface TimeSlot {
   endTime: string;
   price: number;
   isAvailable: boolean;
+  isBooked?: boolean;
+  isPast?: boolean;
+  isMaintenance?: boolean;
+  reason?: 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'AVAILABLE';
   courtId: string;
   courtName: string;
 }
@@ -58,7 +62,7 @@ const BookingWidget = ({
 }: BookingWidgetProps) => {
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
+    const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const formattedHour = hour % 12 || 12;
     return `${formattedHour}:${minutes} ${ampm}`;
@@ -70,7 +74,10 @@ const BookingWidget = ({
 
   const selectedSlotData = timeSlots.find(slot => slot.id === selectedSlot);
   const activeSports = venue.sports.filter(sport => sport.isActive);
-  const availableSlots = timeSlots.filter(slot => slot.isAvailable);
+  const availableSlots = timeSlots.filter(slot => {
+    const isPast = slot.isPast ?? isSlotInPast(selectedDate, slot.startTime);
+    return slot.isAvailable && !isPast && !slot.isBooked && slot.reason !== 'BOOKED' && slot.reason !== 'MAINTENANCE';
+  });
 
   // Generate date options (today + next 7 days)
   const dateOptions = Array.from({ length: 8 }, (_, i) => {
@@ -151,7 +158,7 @@ const BookingWidget = ({
             <label className="text-sm font-medium text-gray-700">Available Time Slots</label>
             {selectedSport && selectedDate && (
               <span className="text-xs text-gray-500">
-                {availableSlots.length} slots available
+                {availableSlots.length} {availableSlots.length === 1 ? 'slot' : 'slots'} available
               </span>
             )}
           </div>
@@ -174,67 +181,109 @@ const BookingWidget = ({
               <p className="text-xs mt-1">Try selecting a different date</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="space-y-2 max-h-72 overflow-y-auto p-1">
               <AnimatePresence>
-                {timeSlots.map((slot, index) => (
-                  (() => {
-                    const isBooked = !slot.isAvailable;
-                    const isSelected = selectedSlot === slot.id && !isBooked;
+                {timeSlots.map((slot, index) => {
+                  const isPast = slot.isPast ?? isSlotInPast(selectedDate, slot.startTime);
+                  const isBooked = Boolean(slot.isBooked || slot.reason === 'BOOKED' || (!slot.isAvailable && !isPast && slot.reason !== 'MAINTENANCE'));
+                  const isMaintenance = Boolean(slot.isMaintenance || slot.reason === 'MAINTENANCE');
+                  const isAvailable = slot.isAvailable && !isPast && !isBooked && !isMaintenance;
+                  const isSelected = selectedSlot === slot.id && isAvailable;
 
-                    return (
-                  <motion.div
-                    key={slot.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => slot.isAvailable && onSlotSelect(slot.id)}
-                    className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                      isBooked
-                        ? 'border-red-200 bg-red-50/80 cursor-not-allowed select-none'
-                        : isSelected
-                        ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-400/20'
-                        : 'border-gray-200 hover:border-green-400 hover:bg-emerald-50/50 cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-semibold ${
-                            isBooked ? 'text-red-950 line-through' : 'text-gray-900'
-                          }`}>
-                            {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                          </span>
-                          {isSelected && (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-xs ${isBooked ? 'text-red-800' : 'text-gray-500'}`}>
-                            {slot.courtName}
-                          </span>
-                          {isBooked && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white uppercase tracking-wider shadow-sm">
-                              BOOKED
+                  let cardStyle = 'border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/50 cursor-pointer bg-white shadow-xs';
+                  if (isSelected) {
+                    cardStyle = 'border-emerald-600 bg-emerald-50/90 shadow-md ring-2 ring-emerald-500/20 cursor-pointer';
+                  } else if (isBooked) {
+                    cardStyle = 'border-rose-200 bg-rose-50/70 cursor-not-allowed select-none opacity-85';
+                  } else if (isPast) {
+                    cardStyle = 'border-gray-200 bg-gray-50/90 cursor-not-allowed select-none opacity-60';
+                  } else if (isMaintenance) {
+                    cardStyle = 'border-amber-200 bg-amber-50/70 cursor-not-allowed select-none opacity-85';
+                  }
+
+                  return (
+                    <motion.div
+                      key={slot.id}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ delay: index * 0.03 }}
+                      onClick={() => isAvailable && onSlotSelect(slot.id)}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${cardStyle}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-semibold ${
+                              isBooked
+                                ? 'text-rose-950 line-through'
+                                : isPast
+                                ? 'text-gray-400'
+                                : isMaintenance
+                                ? 'text-amber-950'
+                                : 'text-gray-900'
+                            }`}>
+                              {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                             </span>
-                          )}
+                            {isSelected && (
+                              <CheckCircle className="h-4 w-4 text-emerald-600" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs ${
+                              isBooked
+                                ? 'text-rose-800'
+                                : isPast
+                                ? 'text-gray-400'
+                                : isMaintenance
+                                ? 'text-amber-800'
+                                : 'text-gray-500'
+                            }`}>
+                              {slot.courtName}
+                            </span>
+                            {isBooked ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white uppercase tracking-wider shadow-xs">
+                                BOOKED
+                              </span>
+                            ) : isPast ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 uppercase tracking-wider">
+                                UNAVAILABLE
+                              </span>
+                            ) : isMaintenance ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-600 text-white uppercase tracking-wider shadow-xs">
+                                MAINTENANCE
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold ${
+                            isBooked
+                              ? 'text-rose-600 line-through text-sm'
+                              : isPast
+                              ? 'text-gray-400 text-sm'
+                              : isMaintenance
+                              ? 'text-amber-600 text-sm'
+                              : 'text-emerald-600'
+                          }`}>
+                            ₹{slot.price}
+                          </div>
+                          <div className={`text-xs ${
+                            isBooked
+                              ? 'text-rose-700/80'
+                              : isPast
+                              ? 'text-gray-400'
+                              : isMaintenance
+                              ? 'text-amber-700/80'
+                              : 'text-gray-500'
+                          }`}>
+                            {isBooked ? 'Unavailable' : isPast ? 'Time Passed' : isMaintenance ? 'Unavailable' : 'per hour'}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-bold ${
-                          isBooked ? 'text-red-600 line-through text-sm' : 'text-green-600'
-                        }`}>
-                          ₹{slot.price}
-                        </div>
-                        <div className={`text-xs ${isBooked ? 'text-red-700/80' : 'text-gray-500'}`}>
-                          {isBooked ? 'Unavailable' : 'per hour'}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                    );
-                  })()
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}
@@ -278,22 +327,34 @@ const BookingWidget = ({
         )}
 
         {/* Book Now Button */}
-        <Button
-          onClick={onBookNow}
-          disabled={!selectedSlot || !selectedSlotData?.isAvailable}
-          className={`w-full h-12 text-lg font-semibold shadow-lg transition-all duration-200 ${
-            selectedSlot && selectedSlotData?.isAvailable
-              ? 'bg-green-600 hover:bg-green-700 text-white hover:shadow-xl'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-          size="lg"
-        >
-          {selectedSlot
-            ? selectedSlotData?.isAvailable
-              ? `Book Now - ₹${selectedSlotData?.price}`
-              : 'Slot Already Booked'
-            : 'Select a Time Slot'}
-        </Button>
+        {(() => {
+          const isSlotValid = Boolean(
+            selectedSlotData &&
+            selectedSlotData.isAvailable &&
+            !selectedSlotData.isBooked &&
+            selectedSlotData.reason !== 'BOOKED' &&
+            !(selectedSlotData.isPast ?? isSlotInPast(selectedDate, selectedSlotData.startTime))
+          );
+
+          return (
+            <Button
+              onClick={onBookNow}
+              disabled={!selectedSlot || !isSlotValid}
+              className={`w-full h-12 text-lg font-semibold shadow-lg transition-all duration-200 ${
+                selectedSlot && isSlotValid
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-xl'
+                  : 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+              }`}
+              size="lg"
+            >
+              {selectedSlot
+                ? isSlotValid
+                  ? `Book Now - ₹${selectedSlotData?.price}`
+                  : 'Slot Unavailable'
+                : 'Select a Time Slot'}
+            </Button>
+          );
+        })()}
 
         {/* Trust Indicators */}
         <div className="pt-4 border-t border-green-100">
@@ -314,3 +375,4 @@ const BookingWidget = ({
 };
 
 export default BookingWidget;
+

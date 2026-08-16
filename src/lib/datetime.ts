@@ -142,4 +142,23 @@ export function formatBookingTimeRange(startTimeOrIso: string, endTimeOrIso: str
   return `${formatBookingTime(startTimeOrIso)} - ${formatBookingTime(endTimeOrIso)}`;
 }
 
-
+/**
+ * Checks whether a given slot (on selectedDate with startTime HH:mm) is in the past
+ * according to current local/system time.
+ */
+export function isSlotInPast(selectedDate: string | Date, startTime: string): boolean {
+  if (!selectedDate || !startTime) return false;
+  const dateStr = extractBookingDateStr(selectedDate);
+  const now = new Date();
+  const todayStr = formatLocalDateInput(now);
+  
+  if (dateStr < todayStr) return true;
+  if (dateStr > todayStr) return false;
+  
+  const timeStr = extractBookingTimeStr(startTime);
+  const [sh, sm] = timeStr.split(':').map(Number);
+  const slotStartMins = (sh || 0) * 60 + (sm || 0);
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+  
+  return slotStartMins <= currentMins;
+}

@@ -71,6 +71,10 @@ export interface TimeSlot {
   endTime: string;
   price: number;
   isAvailable: boolean;
+  isBooked?: boolean;
+  isPast?: boolean;
+  isMaintenance?: boolean;
+  reason?: 'BOOKED' | 'PAST' | 'MAINTENANCE' | 'AVAILABLE';
   courtId: string;
   courtName: string;
 }
