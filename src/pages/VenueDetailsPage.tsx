@@ -163,6 +163,15 @@ const VenueDetailsPage = () => {
     return () => window.clearInterval(intervalId);
   }, [selectedSport, selectedDate]);
 
+  useEffect(() => {
+    if (!selectedSlot) return;
+
+    const selected = timeSlots.find(slot => slot.id === selectedSlot);
+    if (!selected || !selected.isAvailable) {
+      setSelectedSlot('');
+    }
+  }, [timeSlots, selectedSlot]);
+
   // Refetch availability on booking events for this venue/date
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -341,7 +350,7 @@ const VenueDetailsPage = () => {
     }
 
     const slot = timeSlots.find(s => s.id === selectedSlot);
-    if (slot) {
+    if (slot && slot.isAvailable) {
       navigate(`/book/${venue?.id}/${slot.courtId}?slot=${selectedSlot}&date=${selectedDate}&sport=${selectedSport}`);
     }
   };

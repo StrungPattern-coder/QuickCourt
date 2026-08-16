@@ -238,6 +238,14 @@ const BookingPageNew: React.FC = () => {
       setShowPaymentModal(true);
     } catch (error: any) {
       console.error('Failed to create booking:', error);
+
+      if (String(error?.message || '').toLowerCase().includes('slot unavailable')) {
+        // Let the availability page show the booked state instead of surfacing a toast here.
+        setShowPaymentModal(false);
+        navigate(-1);
+        return;
+      }
+
       toast({
         title: "Booking Failed",
         description: error.message || "Failed to create booking. Please try again.",
